@@ -45,7 +45,6 @@ gmod_gff3_preprocessor.pl --gfffile <your_prepreprocessed_ggf_file> --splitfile 
 
 ```
 #!/bin/bash
-
 for chr in `cat <your_prepreprocessed_gff_file> | cut -f1 | sort | uniq`
 do
     grep "$chr" <your_prepreprocessed_gff_file> > $chr
