@@ -51,5 +51,4 @@ do
     grep "$chr" <your_prepreprocessed_gff_file> > $chr
 done
 ```
-
 4. Profit!
