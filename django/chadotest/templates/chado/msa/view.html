@@ -1,0 +1,123 @@
+{% extends 'chado/base.html' %}
+{% load static %}
+{% block content %}
+<div class="page-header" id="banner">
+    <div class="row">
+        <div class="col-lg-12">
+            <h1>{{ consensus.name }}</h1>
+            <a href="{% url 'msa_consensus' consensus.pk %}">view</a> | <a href="{% url 'msa_consensus_download' consensus.pk %}">download</a>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-lg-6">
+        <h2>Polypeptides</h2>
+        <p>There are {{ featurelocs|length }} polypeptides in the alignment.</p>
+        <table class="table table-striped tabled-bordered table-hover">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Organism</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for f in featurelocs %}
+                <tr>
+                    <td>{{ f.feature.name }}</td>
+                    <td><a href="{% url 'organism_view' f.feature.organism.organism_id %}">{{ f.feature.organism.common_name }}</a></td>
+                    <td><a href="{% url 'feature_view' f.feature.feature_id %}">view</a></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="col-lg-6">
+        <h2>Organisms</h2>
+        <div id="graph" style="text-align: center">
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block javascript %}
+<script type="text/javascript" src="{% static 'js/d3.v3.js' %}" ></script>
+<script type="text/javascript">
+
+    var canvasWidth = 300, //width
+        canvasHeight = 300,   //height
+        outerRadius = 100,   //radius
+        color = d3.scale.category20(); //builtin range of colors
+
+    // the organism's features
+    var dataSet = {{ num_organisms|safe }};
+    
+    var vis = d3.select("#graph")
+        .append("svg:svg") //create the SVG element inside the <body>
+        .data([dataSet]) //associate our data with the document
+        .attr("width", canvasWidth) //set the width of the canvas
+        .attr("height", canvasHeight) //set the height of the canvas
+        .append("svg:g") //make a group to hold our pie chart
+        .attr("transform", "translate(" + 1.5*outerRadius + "," + 1.5*outerRadius + ")") // relocate center of pie to 'outerRad    ius,outerRadius'
+
+    // This will create <path> elements for us using arc data...
+    var arc = d3.svg.arc()
+        .outerRadius(outerRadius);
+
+    var pie = d3.layout.pie() //this will create arc data for us given a list of values
+        .value(function(d) { return d.count; }) // Binding each value to the pie
+        .sort( function(d) { return null; } );
+
+    // Select all <g> elements with class slice (there aren't any yet)
+    var arcs = vis.selectAll("g.slice")
+        // Associate the generated pie data (an array of arcs, each having startAngle,
+        // endAngle and value properties) 
+        .data(pie)
+        // This will create <g> elements for every "extra" data element that should be associated
+        // with a selection. The result is creating a <g> for every object in the data array
+        .enter()
+        // Create a group to hold each slice (we will have a <path> and a <text>
+        // element associated with each slice)
+        .append("svg:g")
+        .attr("class", "slice");    //allow us to style things in the slices (like text)
+
+    arcs.append("svg:path")
+        //set the color for each slice to be chosen from the color function defined above
+        .attr("fill", function(d, i) { return color(i); } )
+        //this creates the actual SVG path using the associated data (pie) with the arc drawing function
+        .attr("d", arc);
+
+    // Add a legendLabel to each arc slice...
+    arcs.append("svg:text")
+        .attr("transform", function(d) { //set the label's origin to the center of the arc
+            //we have to make sure to set these before calling arc.centroid
+            d.outerRadius = outerRadius + 50; // Set Outer Coordinate
+            d.innerRadius = outerRadius + 45; // Set Inner Coordinate
+            return "translate(" + arc.centroid(d) + ")";
+        })
+        .attr("text-anchor", "middle") //center the text on it's origin
+        .style("fill", "Black")
+        .style("font", "bold 12px Arial")
+        .text(function(d, i) { return dataSet[i].organism; }); //get the label from our original data array
+
+    // Add a magnitude value to the larger arcs, translated to the arc centroid and rotated.
+    arcs.filter(function(d) { return d.endAngle - d.startAngle > .2; }).append("svg:text")
+        .attr("dy", ".35em")
+        .attr("text-anchor", "middle")
+        //.attr("transform", function(d) { return "translate(" + arc.centroid(d) + ")rotate(" + angle(d) + ")"; })
+        .attr("transform", function(d) { //set the label's origin to the center of the arc
+          //we have to make sure to set these before calling arc.centroid
+          d.outerRadius = outerRadius; // Set Outer Coordinate
+          d.innerRadius = outerRadius/2; // Set Inner Coordinate
+          return "translate(" + arc.centroid(d) + ")rotate(" + angle(d) + ")";
+        })
+        .style("fill", "White")
+        .style("font", "bold 12px Arial")
+        .text(function(d) { return d.data.count; });
+
+    // Computes the angle of an arc, converting from radians to degrees.
+    function angle(d) {
+        var a = (d.startAngle + d.endAngle) * 90 / Math.PI - 90;
+        return a > 90 ? a - 180 : a;
+    }
+</script>
+{% endblock %}

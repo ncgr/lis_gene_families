@@ -1,0 +1,50 @@
+{% extends 'chado/base.html' %}
+{% load static %}
+{% block content %}
+<div class="page-header" id="banner">
+    <div class="row">
+        <div class="col-lg-12">
+            <h1>{{ tree.name }}</h1>
+            <a href="{% url 'phylo_newick' tree.pk %}">view</a> | <a href="{% url 'phylo_newick_download' tree.pk %}">download</a>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-lg-12">
+        {% if messages %}
+            {% for message in messages %}
+            <div class="alert{% if message.tags %} alert-{{ message.tags }}{% endif %}">
+                <strong>{{ message.tags|capfirst }}!</strong> {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+
+        <div id="tree" style="text-align: center">
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block javascript %}
+<script type="text/javascript" src="{% static 'js/raphael-min.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/jsphylosvg-min.js' %}"></script>
+<script type="text/javascript">
+    window.onload = function() {
+        {% if alert %}
+        alert("{{ alert }}");
+        {% endif %}
+        var width = document.getElementById('tree').offsetWidth;
+        var height = {{ num_leafs }} * 30;
+        Smits.PhyloCanvas.Render.Style.connectedDash.stroke = 'rgb(0,0,0)';
+        var data = '{{ xml|safe }}';
+        var dataObject = {
+            xml: data,
+            fileSource: false
+        }; 
+        phylocanvas = new Smits.PhyloCanvas(
+            dataObject,     // the tree
+            'tree',         // div Id where to render
+            width, height   // width and hiehgt in pixels
+        );
+    }
+</script>
+{% endblock %}

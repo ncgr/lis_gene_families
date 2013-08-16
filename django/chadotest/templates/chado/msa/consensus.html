@@ -1,0 +1,31 @@
+{% extends 'chado/base.html' %}
+{% load static %}
+{% block css %}
+<style type="text/css">
+    body {
+        word-wrap: break-word;
+    }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div class="row">
+        <div class="col-lg-12">
+            <h1>{{ consensus.name }}</h1>
+            <a href="{% url 'msa_view' consensus.pk %}">back</a> | <a href="{% url 'msa_consensus_download' consensus.pk %}">download</a>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-lg-12">
+        <p>
+            >{{ consensus.uniquename }}
+            {{ consensus.residues }}
+            {% for f in featurelocs %}
+            >{{ f.feature.uniquename }}
+            {{ f.residue_info }}</br>
+            {% endfor %}
+        </p>
+    </div>
+</div>
+{% endblock %}

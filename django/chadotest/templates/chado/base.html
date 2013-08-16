@@ -1,0 +1,43 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- mobile first - ensure proper rendering and touch zooming on mobile devices -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Chado{% endblock %}</title>
+    <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
+    {% block css %}
+    {% endblock %}
+</head>
+<body>
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <button class="navbar-toggle" type="button" data-toggle="collapse" data-target=".bs-navbar-collapse">
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+    </button>
+    <a href="{% url 'index' %}" class="navbar-brand">LIS &cap; Chado</a>
+    <div class="nav-collapse collapse bs-navbar-collapse">
+      <ul class="nav navbar-nav">
+        <li>
+          <a href="{% url 'organism_index' %}">Organisms</a>
+        </li>
+        <li>
+          <a href="{% url 'msa_index' %}">Multiple Sequence Alignments</a>
+        </li>
+        <li>
+          <a href="{% url 'phylo_index' %}">Phylogenetic Trees</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+<div class="container">
+{% block content %}
+{% endblock %}
+</div>
+{% block javascript %}
+{% endblock %}
+</body>
+</html>
