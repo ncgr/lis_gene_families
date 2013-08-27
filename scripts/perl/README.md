@@ -4,20 +4,17 @@ These are the scripts that were used with the scripts bundled with Chado to load
 
 ## Data loading pipeline
 
-### Load an organism
+### Organisms
 
 Before any data can be loaded into the database the organism that data corresponds to must be present. Adding your organism can be achieved in two ways:
 
 1. Add the organism using an SQL query:
-```
-INSERT INTO organism (abbreviation, genus, species, common_name) VALUES ('G.max', 'Glycine', 'max', 'soybean');
-```
+
+    INSERT INTO organism (abbreviation, genus, species, common_name) VALUES ('G.max', 'Glycine', 'max', 'soybean');
 or
 2. Using a GMOD tool:
 
-```
-gmod_add_organism.pl --abbreviation G.max --genus Glycine --species max --common_name soybean
-```
+    gmod_add_organism.pl --abbreviation G.max --genus Glycine --species max --common_name soybean
 
 ### fasta files
 
