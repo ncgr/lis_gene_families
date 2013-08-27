@@ -56,3 +56,9 @@ or
     done
     ```
 4. Profit!
+
+### feature residues
+
+### Multiple Sequence Alignments
+
+### Phylogenetic trees

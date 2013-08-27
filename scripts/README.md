@@ -3,7 +3,7 @@ Scripts
 These are the scripts that were used in concert with those bundled with Chado.
 
 ## perl
-Perl scripts that are pertinent to the LIS data loading pipeline.
+Perl scripts that are pertinent to the LIS data loading pipeline. See README.md in this directory for a description of the pipeline.
 
 ## bash
 Composed of loaders that call perl scripts in the pipeline iteratively on a bulk of files.
