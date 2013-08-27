@@ -10,11 +10,15 @@ Before any data can be loaded into the database the organism that data correspon
 
 1. Add the organism using an SQL query:
 
+    ```
     INSERT INTO organism (abbreviation, genus, species, common_name) VALUES ('G.max', 'Glycine', 'max', 'soybean');
+    ```<br/>
 or
 2. Using a GMOD tool:
 
+    ```
     gmod_add_organism.pl --abbreviation G.max --genus Glycine --species max --common_name soybean
+    ```
 
 ### fasta files
 
