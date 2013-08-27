@@ -98,7 +98,7 @@ The `--organismid` flag is optional; it should be used if polypeptides for only 
     1. Sometimes the `uniquename` field of polypeptides will store a unique identifier associated with the source that feature's analysis came from, i.e. a PACid from the Phytozome database. If you want to preserve these when overwriting the default `uniquename` field values you'll have to create an entry in the `db` table so the values can be stored as entries in the `dbxref` table. Create the entry as follows:
 
         ```
-        INSERT INTO do ( name, description, urlprefix, url ) VALUES ('<database_name>', '<database_description>', '<database_url_prefix>', '<database_url>');
+        INSERT INTO db ( name, description, urlprefix, url ) VALUES ('<db_name>', '<db_description>', '<db_url_prefix>', '<db_url>');
         ```
     2. To remedy the afformentioned use the following script:
 
@@ -107,11 +107,11 @@ The `--organismid` flag is optional; it should be used if polypeptides for only 
         ```
     As with `gmod_remove_duplicate_polypeptides.pl` the `--organismid` flag is optional. The `--dbid` flag is also also optional. If you opted to preserve the unique identifiers, as discussed in the previous step, the `<db_unique_identifier>` value will be that of the entry you just created in the `db` table (it's primary key). There are also `--nomrna` and `--nopoly` flags that may be used to prevent the targeting of mRNAs and polypeptides, respectively.
 
-As just discuess, some features have a unique identifier associated with the source that feature's analysis came from. In some cases there will be a unique identifier for that feature in a fasta file that doesn't get represnted in the database. The following script reads these unique identifiers from a fasta file and associates them with their polypeptides in the database by creating entries in the `dbxref` table, as previously discussed. The script is used as follows:
+As just discuess, some features have a unique identifier associated with the source that feature's analysis came from. In some cases there will be a unique identifier for that feature in a fasta file that doesn't get represnted in the database. The following script reads these unique identifiers from a fasta file and associates them with their polypeptides in the database by creating entries in the `dbxref` table. The script is used as follows:
 
-    ```
-    gmod_peptide_dbxref_from_fasta.pl <fasta_file> --dbid <db_unique_identifier>
-    ```
+```
+gmod_peptide_dbxref_from_fasta.pl <fasta_file> --dbid <db_unique_identifier>
+```
 The argument to the `--dbid` flag is the unique identifier (primary key) of the entry you have created for these polypepties' analysis source in the `db` table, as previously discussed. Note the script currently only works with PACids, though, it may be easily extended to work for others as well.
 
 ### feature residues
