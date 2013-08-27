@@ -13,7 +13,7 @@ Before any data can be loaded into the database the organism that data correspon
     ```
     INSERT INTO organism (abbreviation, genus, species, common_name) VALUES ('G.max', 'Glycine', 'max', 'soybean');
     ```
-<br/>or
+or
 2. Using a GMOD tool:
 
     ```
