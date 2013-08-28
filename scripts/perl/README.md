@@ -156,19 +156,19 @@ Similar to MSA files, files representing phylogenetic trees are only loaded if a
 
     3. Then `dbxref` entries can be created:
 
-    ```
-    INSERT INTO dbxref ( db_id, accession ) VALUES (<your_db_unique_identifier>, 'phylo_root');
-    INSERT INTO dbxref ( db_id, accession ) VALUES (<your_db_unique_identifier>, 'phylo_interior');
-    INSERT INTO dbxref ( db_id, accession ) VALUES (<your_db_unique_identifier>, 'phylo_leaf');
-    ```
+        ```
+        INSERT INTO dbxref ( db_id, accession ) VALUES (<your_db_unique_identifier>, 'phylo_root');
+        INSERT INTO dbxref ( db_id, accession ) VALUES (<your_db_unique_identifier>, 'phylo_interior');
+        INSERT INTO dbxref ( db_id, accession ) VALUES (<your_db_unique_identifier>, 'phylo_leaf');
+        ```
 
     4. Finally, the three terms in the controlled vocaulary can be created:
 
-    ```
-    INSERT INTO cvterm ( cv_id, name, dbxref_id ) VALUES (<your_cv_unique_identifier>, 'phylo_root', <your_phylo_root_dbxref_unique_identifier>);
-    INSERT INTO cvterm ( cv_id, name, dbxref_id ) VALUES (<your_cv_unique_identifier>, 'phylo_interior', <your_phylo_interior_dbxref_unique_identifier>);
-    INSERT INTO cvterm ( cv_id, name, dbxref_id ) VALUES (<your_cv_unique_identifier>, 'phylo_leaf', <your_phylo_leaf_dbxref_unique_identifier>);
-    ```
+        ```
+        INSERT INTO cvterm ( cv_id, name, dbxref_id ) VALUES (<your_cv_unique_identifier>, 'phylo_root', <your_phylo_root_dbxref_unique_identifier>);
+        INSERT INTO cvterm ( cv_id, name, dbxref_id ) VALUES (<your_cv_unique_identifier>, 'phylo_interior', <your_phylo_interior_dbxref_unique_identifier>);
+        INSERT INTO cvterm ( cv_id, name, dbxref_id ) VALUES (<your_cv_unique_identifier>, 'phylo_leaf', <your_phylo_leaf_dbxref_unique_identifier>);
+        ```
 
 3. Since each eantry in the `phylotree` table requires a dbxref you need to create an entry in the `db` table for the dbxrefs to refer to, that is, if you want it to be a different entry than the one you made in the previous step.
 
