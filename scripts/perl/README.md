@@ -114,8 +114,31 @@ gmod_peptide_dbxref_from_fasta.pl <fasta_file> --dbid <db_unique_identifier>
 ```
 The argument to the `--dbid` flag is the unique identifier (primary key) of the entry you have created for these polypepties' analysis source in the `db` table, as previously discussed. Note the script currently only works with PACids, though, it may be easily extended to work for others as well.
 
-### feature residues
-
 ### Multiple Sequence Alignments
 
+Files representing Multiple Sequence Alignments (MSAs) are only loaded if all the polypeptides in the alignment are represented in the databse. If this is the case then a new feature is created to represent the consensus with the given name and "-consensus" as the value for the `name` and `uniquename` fields. Entries are then created in the `featureloc` table for each polypeptide in the MSA with the consensus feature as their source. MSAs are loaded as follws:
+
+1. It is imperative that the names of the polypeptides in the MSA files match those in the database, excluding the "_pep" at the end. This munging is left as an exercise for the user.
+
+2. Like all features, each consensus feature must have an organism. It is recommended that a consensus organism is created for this purpose:
+
+    ```
+    INSERT INTO organism (abbreviation, genus, species, common_name) VALUES ('consensus', 'consensus', 'consensus', 'consensus');
+    ```
+3. An MSA file can be loaed with the script:
+
+    ```
+    gmod_load_msa.pl --consensus_name <consensus_name> --errorfile <error_file>
+    ```
+The `--consensus\_name` flag is required since there is no reasonable name that can be extracted from an MSA file. If some polypeptides in the MSA were not found then a list will be written to gmod_load_msa_errors.txt unless the `--errorfile` flag was uesd.
+
+4. If you don't want to run the previous command on each MSA file then use the bash script:
+
+    ```
+    gmod_bulk_load_msas.sh
+    ```
+This script will try to load all the files in the current directory as MSAs, using the filename as the name of the entry in the `feature` table and the name of the error file with "_errors.txt" appended on.
+
 ### Phylogenetic trees
+
+### feature residues

@@ -73,7 +73,7 @@ GetOptions("dbname=s"           => \$dbname,
            "host=s"             => \$host,
            "port=i"             => \$port,
            "consensus_name=s"   => \$consensus_name,
-           "check_exdists"      => \$exists,
+           "check_exists"      => \$exists,
            "dbid=i"             => \$db,
            "errorfile=s"        => \$errorfile) || die("Error in command line arguments\n");
 
