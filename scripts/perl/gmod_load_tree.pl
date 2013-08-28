@@ -17,7 +17,7 @@ gmod_load_tree.pl - Loads a phylogentic tree into a chado database from a file.
 
 =head1 SYNOPSIS
 
-  gmod_load_tree.pl <filename>
+  gmod_load_tree.pl <filename> [options]
 
   --dbid        The db_id of the db dbxref for the trees should be create with
   --name        The name given to the phylotree entry in the database (default=<filename>)

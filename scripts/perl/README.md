@@ -130,7 +130,7 @@ Files representing Multiple Sequence Alignments (MSAs) are only loaded if all th
     ```
     gmod_load_msa.pl <msa_file> --errorfile <error_file>
     ```
-If the `--name` flag is given, the argument will be used as the value for the `name` and `uniquename` fields of the consensus feature. If some polypeptides in the MSA were not found then a list will be written to gmod_load_msa_errors.txt unless the `--errorfile` flag was uesd.
+By default to file name is used as the value for the `name` and `uniquename` fields of the consensus feature, unless a different name is given with the `--name` flag. If some polypeptides in the MSA were not found then a list will be written to gmod_load_msa_errors.txt unless the `--errorfile` flag was uesd.
 
 4. If you don't want to run the previous command on each MSA file then use the bash script:
 
@@ -141,6 +141,55 @@ This script will try to load all the files in the current directory as MSAs, usi
 
 ### Phylogenetic trees
 
-Similar to MSA files, files representing phylogenetic trees are only loaded if all the polypeptides in the tree are represente in the database. If this is the case then 
+Similar to MSA files, files representing phylogenetic trees are only loaded if all the polypeptides in the tree are represented in the database. If this is the case then a new entry is created in the `phylotree` table and an entry is created in the `phylonode` table for each polypeptide in the tree as well as for interior nodes. Trees are loaded as follows:
+
+1. Again, like MSA files, it is imperative that the names of the polypeptides in the phylogenetic tree files match those in the database, excluding the "_pep" at the end. It is up to the user to make sure this is so.
+
+2. Like polypeptide and mRNA entries in the `feature` table have cvterms for their types, phylonodes need cvterms as well. Since there are no cvterm terms for phylogenetic trees by default they must be created.
+    
+    1. First a controlled vocabulary must be created - an entry in the `cv` table:
+
+        ```
+        INSERT INTO cv ( name ) VALUES ('phylo_tree');
+        ```
+    2. Next three terms (root, interior, and leaf) must be added to this controlled vocabulary - entries in the `cvterm` table. Since each entry in the `cvterm` table needs a corresponding entry in the `dbxref` table an entry in the `db` table must be created, as described in the Cleaning up section.
+
+    3. Then `dbxref` entries can be created:
+
+    ```
+    INSERT INTO dbxref ( db_id, accession ) VALUES (<your_db_id>, 'phylo_root');
+    INSERT INTO dbxref ( db_id, accession ) VALUES (<your_db_id>, 'phylo_interior');
+    INSERT INTO dbxref ( db_id, accession ) VALUES (<your_db_id>, 'phylo_leaf');
+    ```
+    4. Finally the three terms in the controlled vocaulary can be created:
+
+    ```
+    INSERT INTO cvterm ( cv_id, name, dbxref_id ) VALUES (<your_cv_id>, 'phylo_root', <your_phylo_root_dbxref_id>);
+    INSERT INTO cvterm ( cv_id, name, dbxref_id ) VALUES (<your_cv_id>, 'phylo_interior', <your_phylo_interior_dbxref_id>);
+    INSERT INTO cvterm ( cv_id, name, dbxref_id ) VALUES (<your_cv_id>, 'phylo_leaf', <your_phylo_leaf_dbxref_id>);
+    ```
+
+3. Since each eantry in the `phylotree` table requires a dbxref you need to create an entry in the db table for the dbxrefs to refer to, that is, if you want it to be a different entry than the one you made in the previous step.
+
+4. A phylogenetic tree is loaded as follows:
+
+    ```
+    gmod_load_tree.pl <phylogenetic_tree_file> --dbid <your_db_id> --errorfile <error_file>
+    ```
+By default the file name is used as the value for the `name` field of the entry in the `phylotree` table, unless a different name is given with the `--name` flag. The `--dbid` flag takes the unique identifier (primary key) of the entry in the `db` table discussed in the previous step. If some polypeptides in the phylogenetic tree were not found then a list will be written to gmod_load_tree_errors.txt unless the `--errorfile` flag was given.
+
+5. If you don't want to run the previous command on each phylogenetic tree file then use the bash script:
+
+    ```
+    gmod_bulk_load_trees.sh <your_db_id>
+    ```
+This script will try to load all the files in the current directory as phylogenetic trees, using the filename as the name of the entry in the `phylotree` table and the name of the error file with "_errors.txt" appended on.
+
+6. The values of the `left\_idx` and `right\_idx` fields in the `phylonode` table are not automatically assigned by the loader. This is done with another script:
+
+    ```
+    gmod_index_trees.pl --rootid <root_phylonode_unique_identifier>
+    ```
+`--rootid` is optional but can be can be used to specify the root node of a single tree to be indexed instead of the default - index all trees in the database.
 
 ### feature residues
