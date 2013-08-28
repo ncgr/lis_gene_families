@@ -128,9 +128,9 @@ Files representing Multiple Sequence Alignments (MSAs) are only loaded if all th
 3. An MSA file can be loaed with the script:
 
     ```
-    gmod_load_msa.pl --consensus_name <consensus_name> --errorfile <error_file>
+    gmod_load_msa.pl <msa_file> --errorfile <error_file>
     ```
-The `--consensus\_name` flag is required since there is no reasonable name that can be extracted from an MSA file. If some polypeptides in the MSA were not found then a list will be written to gmod_load_msa_errors.txt unless the `--errorfile` flag was uesd.
+If the `--name` flag is given, the argument will be used as the value for the `name` and `uniquename` fields of the consensus feature. If some polypeptides in the MSA were not found then a list will be written to gmod_load_msa_errors.txt unless the `--errorfile` flag was uesd.
 
 4. If you don't want to run the previous command on each MSA file then use the bash script:
 
@@ -140,5 +140,7 @@ The `--consensus\_name` flag is required since there is no reasonable name that 
 This script will try to load all the files in the current directory as MSAs, using the filename as the name of the entry in the `feature` table and the name of the error file with "_errors.txt" appended on.
 
 ### Phylogenetic trees
+
+Similar to MSA files, files representing phylogenetic trees are only loaded if all the polypeptides in the tree are represente in the database. If this is the case then 
 
 ### feature residues

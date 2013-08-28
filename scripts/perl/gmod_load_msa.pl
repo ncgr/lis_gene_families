@@ -22,7 +22,7 @@ use DBI; # our DataBase Interface
   --host            The host the database is on (default=localhost)
   --port            The port the database is on
   --dbid            The db_id from the db table for the db that the msa feature should have a dbxref with.
-  --consensus_name  The value given to the name and uniquename fields of the feature for the msa
+  --name            The value given to the name and uniquename fields of the feature for the msa (default=<msa_file>)
   --check_exists    Will use a consensus feature with the given consensus name if it exists
   --errorfile       The file that errors should be written to (defailt=gmod_load_msa_errors.txt)
 
@@ -30,7 +30,7 @@ use DBI; # our DataBase Interface
 
 The only argument to the script is the input file that contains the multiple sequence alignment. Polypeptide names in the database have "_pep" appeneded to their names to distinguish them from their mRNA. It follows that the names of sequences represented in the input file may have "_pep" appended to the end as well, though, this is not necessary.
 
-The --concensus_name flag is required as well. This is the value given to the name and uniquename fields for the multiple sequence alignment feature. Note that the value given must not already exist in the table since it is used as the value for the features uniquename field.
+The --concensus_name flag is optional. This is the value given to the name and uniquename fields for the multiple sequence alignment feature. Note that the value given must not already exist in the table since it is used as the value for the features uniquename field. If the flag is not provided then the filename will be used.
 
 The --check_exists flag should be used with caution. Before creating a new feature for the consensus, it checks to see if one already exists and uses it if it does. This can be useful if a load was cancelled partway through and not all the featureloc entries were created. Likewise, featureloc entries can be created for a consensus they don't belong to.
 
@@ -72,21 +72,17 @@ GetOptions("dbname=s"           => \$dbname,
            "password=s"         => \$password,
            "host=s"             => \$host,
            "port=i"             => \$port,
-           "consensus_name=s"   => \$consensus_name,
+           "name=s"   => \$consensus_name,
            "check_exists"      => \$exists,
            "dbid=i"             => \$db,
            "errorfile=s"        => \$errorfile) || die("Error in command line arguments\n");
-
-if (!$consensus_name) {
-    die("The --consensus_name flag is required\n");
-}
 
 
 # make sure there weren't any unexpected command line arguments
 if (@ARGV != 1) {
     pod2usage(2);
 }
-
+$consensus_name = $ARGV[0] if (!$consensus_name);
 
 # open the msa file
 print "Opening input file\n";
