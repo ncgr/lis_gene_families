@@ -190,6 +190,24 @@ This script will try to load all the files in the current directory as phylogene
     ```
     gmod_index_trees.pl --rootid <root_phylonode_unique_identifier>
     ```
-`--rootid` is optional but can be can be used to specify the root node of a single tree to be indexed instead of the default - index all trees in the database.
+`--rootid` is optional but can be used to specify the root node of a single tree to be indexed instead of the default - index all trees in the database.
 
 ### feature residues
+
+If you have fasta files with sequences for existing entries in the `feature table`, such as mRNAs or polypeptides, you can load them as follows:
+
+1. Use the GMOD tool:
+
+    ```
+    gmod_bulk_load_gff3.pl --fastafile <fasta_file> --organism <organism_common_name>
+    ```
+Again, this is loading sequence data for existing entries in the `feature` table into their `residues` fields. The `--organism` flag takes the common name of the organism the file corresponds to in the database as an argument.
+
+2. If you don't want to run the previous command on every fasta file you want to load then use the bash script:
+
+    ```
+    gmod_bulk_load_fasta.pl <organism_common_name>
+    ```
+This script will try to load all the files in the current directory as fasta files.
+
+
