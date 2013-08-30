@@ -206,7 +206,7 @@ Again, this is loading sequence data for existing entries in the `feature` table
 2. If you don't want to run the previous command on every fasta file you want to load then use the bash script:
 
     ```
-    gmod_bulk_load_fasta.pl <organism_common_name>
+    gmod_bulk_load_fastas.sh <organism_common_name>
     ```
 This script will try to load all the files in the current directory as fasta files.
 
