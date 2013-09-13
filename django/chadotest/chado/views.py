@@ -140,7 +140,12 @@ def phylo_view(request, phylotree_id, template_name):
         else:
             xmltree += '<name>&#9675;</name><annotation>'
         #xmltree += '<desc>This is a description</desc>'
-        xmltree += '<uri>/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
+        #xmltree += '<uri>/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
+        #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40http://localhost:8000/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
+        xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://localhost:8000/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
+        #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--no_graphic%40http://localhost:8000/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
+        #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--no_graphic%40http://localhost:8000/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
+        #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40http://localhost:8000/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
         for child in family.filter(parent_phylonode=node):
             xmltree, leafs = add_node(xmltree, child, family, leafs)
         xmltree += '</clade>'
@@ -184,12 +189,16 @@ def phylo_gff_download(request, phylonode_id):
     # get the selected node and it's children
     phylonode = get_object_or_404(Phylonode, pk=phylonode_id)
     nodes = Phylonode.objects.filter(phylotree=phylonode.phylotree, left_idx__gte=phylonode.left_idx, right_idx__lte=phylonode.right_idx)
+    organisms = Organism.objects.all()
 
     # check if all the nodes have central dogma
-    node_pks = nodes.values_list('pk', flat=True)
+    #node_pks = nodes.values_list('pk', flat=True)
+    node_pks = nodes.values_list('feature_id', flat=True)
     polypeptide_relationships = FeatureRelationship.objects.filter(subject_id__in=node_pks)
-    if (polypeptide_relationships.count() != node_pks.count()):
-        messages.add_message(request, messages.ERROR, "Genes not available for some species in the subtree")
+    #FIXME: with the embedded call for this gff in the CMTV launch link, this error does not get reported until
+    #the launch. Better would be to have logic that doesn't provide these capabilities for inappropriate subtrees
+    if (polypeptide_relationships.count() == 0):
+        messages.add_message(request, messages.ERROR, "Genes not available for any species in the subtree")
         return redirect(request.META['HTTP_REFERER'])
 
     # get the genes and their scores
@@ -202,13 +211,20 @@ def phylo_gff_download(request, phylonode_id):
     # get the feature locations and chromosome for the genes
     featurelocs = Featureloc.objects.filter(feature_id__in=gene_pks)
     chromosome_pks = featurelocs.values_list('srcfeature_id', flat=True)
-    chromosomes = Feature.objects.filter(pk__in=chromosome_pks)
-
+    #chromosomes = Feature.objects.filter(pk__in=chromosome_pks);
+    chromosomes = Feature.objects.filter(pk__in=chromosome_pks).defer("residues").extra(select={'feature_length': "length(residues)"});
     # write the file gff file
     myfile = StringIO.StringIO()
+    for c in chromosomes:
+        species = organisms.get(organism_id=c.organism_id)
+        #myfile.write("##sequence-region " + species.genus+"_"+species.species+":"+c.name + " 1 " + str(len(c.residues))+"\n");
+        myfile.write("##sequence-region " + species.genus+"_"+species.species+":"+c.name + " 1 " + str(c.feature_length)+"\n");
+        
+
     for g in genes:
         featureloc = featurelocs.get(feature_id=g.feature_id)
         chromosome = chromosomes.get(feature_id=featureloc.srcfeature_id)
+        species = organisms.get(organism_id=chromosome.organism_id)
         analysis = analyses.get(feature_id=g.feature_id)
         score = "."
         if analysis.significance is not None:
@@ -219,7 +235,7 @@ def phylo_gff_download(request, phylonode_id):
         phase = "."
         if featureloc.phase is not None:
             phase = str(featureloc.phase)
-        myfile.write(chromosome.name+"\t.\tgene\t"+str(featureloc.fmin)+"\t"+str(featureloc.fmax)+"\t"+score+"\t"+strand+"\t"+phase+"\tID="+g.uniquename+";Name="+g.name+"\n")
+        myfile.write(species.genus+"_"+species.species+":"+chromosome.name+"\t.\tgene\t"+str(featureloc.fmin)+"\t"+str(featureloc.fmax)+"\t"+score+"\t"+strand+"\t"+phase+"\tID="+g.uniquename+";Name="+g.name+";Trait="+phylonode.phylotree.name+"\n")
 
     # generate the file
     response = HttpResponse(myfile.getvalue(), content_type='text/plain')
