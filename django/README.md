@@ -4,6 +4,7 @@ This is a proof of concept project that was developed using [django](https://www
 
 The components used are:
 * [django](http://www.djangoproject.com/)
+* [psycopg](http://initd.org/psycopg/])
 * [Chado models](https://gist.github.com/danielecook/4494488)
 * [D3](http://d3js.org/)
 * [jsPhyloSVG](http://www.jsphylosvg.com/)
@@ -12,6 +13,11 @@ The components used are:
 ### Running
 
 This project was developed with [Django v1.5.2](https://www.djangoproject.com/download/1.5.2/tarball/), which can be installed following the [installation tutorial](https://www.djangoproject.com/download/).
+
+If you get errors from manage.py make sure libpq is on your LD_LIBRARY_PATH, e.g.
+```bash
+export LD_LIBRARY_PATH=/usr/local/pgsql/lib:${LD_LIBRARY_PATH}
+```
 
 Once Django is installed you'll want to make sure the tables required by the project have been added to the database. Do this by navigating to the project's root directory and executing:
 
@@ -23,13 +29,14 @@ You will be asked if you want to create an admin account for the project. Say ye
 The project can now be run by navigating to it's root directory and executing:
 
 ```
-python manage.py runserver
+python manage.py runserver 
 ```
-This will start a development server that can be accessed at:
+This will start a development server at http://localhost:8000/chado
+To start on all IPs, or use different port:
 
 ```
-localhost:8000/chado
-````
+python manage.py runserver 0.0.0.0:8001 
+```
 
 ### Structure
 
