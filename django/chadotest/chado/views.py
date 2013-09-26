@@ -143,9 +143,44 @@ def phylo_view(request, phylotree_id, template_name):
         #xmltree += '<uri>/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
         #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40http://localhost:8000/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
         xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://localhost:8000/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
+	#xmltree += '<uri>http://www.google.com/|http://www.comparative-legumes.org/|http://www.ncbi.nlm.nih.gov/</uri></annotation>'
         #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--no_graphic%40http://localhost:8000/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
         #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--no_graphic%40http://localhost:8000/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
         #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40http://localhost:8000/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
+        for child in family.filter(parent_phylonode=node):
+            xmltree, leafs = add_node(xmltree, child, family, leafs)
+        xmltree += '</clade>'
+        return xmltree, leafs
+
+    # the xml tree
+    xml = '<phyloxml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.phyloxml.org http://www.phyloxml.org/1.10/phyloxml.xsd" xmlns="http://www.phyloxml.org"><phylogeny rooted="true">'
+
+    # add the nodes to the xml tree
+    xml, num_leafs = add_node(xml, root, nodes, 0)
+
+    # close the tree's tags
+    xml += '</phylogeny></phyloxml>'
+
+    # we've got the goods
+    return render(request, template_name, {'tree' : tree, 'xml' : xml, 'num_leafs' : num_leafs})
+
+
+def phylo_view_slide(request, phylotree_id, template_name):
+    # get trees stuffs
+    tree = get_object_or_404(Phylotree, pk=phylotree_id)
+    nodes = Phylonode.objects.filter(phylotree=tree)
+    root = nodes.get(left_idx=1)
+
+    # function that adds nodes to a xml tree and counts number of leaf nodes so we can dynamically set the tree height in the template
+    def add_node(xmltree, node, family, leafs):
+        xmltree += '<clade><branch_length>'+str(node.distance)+'</branch_length>'
+        if node.label:
+            leafs += 1
+            xmltree += '<name>'+node.label+'</name><annotation>'
+        else:
+            xmltree += '<name>&#9675;</name><annotation>'
+        xmltree += '<desc>This is a description</desc>'
+	xmltree += '<uri>http://www.google.com/|http://www.comparative-legumes.org/|http://www.ncbi.nlm.nih.gov/</uri></annotation>'
         for child in family.filter(parent_phylonode=node):
             xmltree, leafs = add_node(xmltree, child, family, leafs)
         xmltree += '</clade>'
