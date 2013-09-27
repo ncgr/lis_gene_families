@@ -154,6 +154,7 @@ def phylo_xml(tree):
         #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40http://localhost:8000/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
         if node.distance:
             xmltree += '<annotation><uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://localhost:8000/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
+	    #xmltree += '<annotation><uri>http://www.google.com/|http://www.comparative-legumes.org/|http://www.ncbi.nlm.nih.gov/</uri></annotation>'
         #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--no_graphic%40http://localhost:8000/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
         #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--no_graphic%40http://localhost:8000/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
         #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40http://localhost:8000/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
@@ -171,6 +172,15 @@ def phylo_xml(tree):
     # close the tree's tags
     xml += '</phylogeny></phyloxml>'
     return xml, num_leafs
+
+
+def phylo_view_slide(request, phylotree_id, template_name):
+    # get trees stuffs
+    tree = get_object_or_404(Phylotree, pk=phylotree_id)
+    xml, num_leafs = phylo_xml(tree)
+
+    # we've got the goods
+    return render(request, template_name, {'tree' : tree, 'xml' : xml, 'num_leafs' : num_leafs})
 
 
 def phylo_newick(request, phylotree_id, template_name):

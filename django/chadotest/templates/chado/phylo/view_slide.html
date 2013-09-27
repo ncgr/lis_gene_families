@@ -1,5 +1,25 @@
 {% extends 'chado/base.html' %}
 {% load static %}
+{% block css %}
+<style>
+#toggle {
+	width: 33%;
+	/*height: 100px;*/
+	height: 100%;
+	background-color: rgb(238, 238, 238);
+	position: absolute;
+	top: 0;
+	left: 0;
+	box-shadow: 0px 1px 4px rgba(0, 0, 0, 0.2);
+	padding: 0 10px;
+	text-align: left;
+	overflow: auto;
+}
+#toggle h4 {
+	word-wrap:break-word;
+}
+</style>
+{% endblock %}
 {% block content %}
 <div class="page-header" id="banner">
     <div class="row">
@@ -20,6 +40,7 @@
         {% endif %}
 
         <div id="tree" style="text-align: center">
+		<div id="toggle"></div>
         </div>
     </div>
 </div>
@@ -46,5 +67,40 @@
             width, height   // width and hiehgt in pixels
         );
     }
+</script>
+<script type="text/javascript" src="{% static 'js/jquery-1.10.2.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/jquery-ui-1.10.3.custom.min.js' %}"></script>
+<script type="text/javascript">
+	$(document).ready(function()
+	{
+		// make sure the toggle div is not showing when the page loads
+        	$('#toggle').hide();
+	});
+	$('#tree').on('click', function(e) {
+		// put the closest hyperlink into a jquery variable
+		var $a = $(e.target).closest('a');
+		// if a hyperlink was selected
+		if ($a.length) {
+			// if the hyperlink is in the tree, not the toggle div
+			if (!$a.parent().is($('#toggle'))) {
+				e.preventDefault();
+				var links = $a.attr('href').split("|");
+				var html = '<h4>'+$a.text()+'</h4>';
+				var i;
+				for (i = 0; i < links.length; i++) {
+					html += '<a href="'+links[i]+'">'+$a.text()+'</a><br />';
+				}
+				html += '<p>'+$a.attr('title')+'</p>'
+				$('#toggle').html(html);
+				// don't toggle it unless it's currently hidden
+				if (!$('#toggle').is(':visible')) {
+					$('#toggle').toggle('slide');
+				}
+			}
+		}
+		else if ($('#toggle').is(':visible')) {
+			$('#toggle').toggle('slide');
+		}
+	});
 </script>
 {% endblock %}
