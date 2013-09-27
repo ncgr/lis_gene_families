@@ -125,24 +125,35 @@ def phylo_index(request, template_name):
     return render(request, template_name, {'trees' : trees, 'count' : count})
 
 
+#def phylo_view(request, phylotree_id, phylonode_id, template_name):
 def phylo_view(request, phylotree_id, template_name):
     # get trees stuffs
     tree = get_object_or_404(Phylotree, pk=phylotree_id)
+    #xml, num_leafs = phylo_xml(tree, phylonode_id)
+    xml, num_leafs = phylo_xml(tree)
+    return render(request, template_name, {'tree' : tree, 'xml' : xml, 'num_leafs' : num_leafs})
+
+
+#def phylo_xml(tree, node_id):
+def phylo_xml(tree):
     nodes = Phylonode.objects.filter(phylotree=tree)
     root = nodes.get(left_idx=1)
+    #root = nodes.get(pk=node_id)
 
     # function that adds nodes to a xml tree and counts number of leaf nodes so we can dynamically set the tree height in the template
     def add_node(xmltree, node, family, leafs):
-        xmltree += '<clade><branch_length>'+str(node.distance)+'</branch_length>'
+        xmltree += '<clade><branch_length>'+(str(node.distance) if node.distance else ".01")+'</branch_length>'
+        #xmltree += '<clade><branch_length>'+str(node.distance)+'</branch_length>'
         if node.label:
             leafs += 1
-            xmltree += '<name>'+node.label+'</name><annotation>'
+            xmltree += '<name>'+node.label+'</name>'
         else:
-            xmltree += '<name>&#9675;</name><annotation>'
+            xmltree += '<name>&#9675;</name>'
         #xmltree += '<desc>This is a description</desc>'
         #xmltree += '<uri>/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
         #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40http://localhost:8000/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
-        xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://localhost:8000/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
+        if node.distance:
+            xmltree += '<annotation><uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://localhost:8000/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
         #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--no_graphic%40http://localhost:8000/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
         #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--no_graphic%40http://localhost:8000/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
         #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40http://localhost:8000/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
@@ -159,14 +170,28 @@ def phylo_view(request, phylotree_id, template_name):
 
     # close the tree's tags
     xml += '</phylogeny></phyloxml>'
-
-    # we've got the goods
-    return render(request, template_name, {'tree' : tree, 'xml' : xml, 'num_leafs' : num_leafs})
+    return xml, num_leafs
 
 
 def phylo_newick(request, phylotree_id, template_name):
     tree = get_object_or_404(Phylotree, pk=phylotree_id)
     return render(request, template_name, {'tree' : tree})
+
+def phylo_xml_download(request, phylotree_id):
+    # get the tree
+    tree = get_object_or_404(Phylotree, pk=phylotree_id)
+    xml, num_leafs = phylo_xml(tree)
+
+    # write the file to be downloaded
+    myfile = StringIO.StringIO()
+    myfile.write(xml);
+
+    # generate the file
+    response = HttpResponse(myfile.getvalue(), content_type='text/plain')
+    response['Content-Length'] = myfile.tell()
+    response['Content-Disposition'] = 'attachment; filename='+tree.name+'_newick'
+
+    return response
 
 
 def phylo_newick_download(request, phylotree_id):
