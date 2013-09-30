@@ -12,6 +12,8 @@ from django.contrib import messages
 # import our models and helpers
 from chado.models import Organism, Cvterm, Feature, Phylotree, Featureloc, Phylonode, FeatureRelationship, Analysisfeature
 from django.db.models import Count
+# make sure we have the csrf token!
+from django.views.decorators.csrf import ensure_csrf_cookie
 
 
 #########
@@ -130,12 +132,13 @@ def phylo_view(request, phylotree_id, template_name):
     # get trees stuffs
     tree = get_object_or_404(Phylotree, pk=phylotree_id)
     #xml, num_leafs = phylo_xml(tree, phylonode_id)
-    xml, num_leafs = phylo_xml(tree)
+    url = 'http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://localhost:8000/chado/phylo/node/gffdownload'
+    xml, num_leafs = phylo_xml(tree, url)
     return render(request, template_name, {'tree' : tree, 'xml' : xml, 'num_leafs' : num_leafs})
 
 
 #def phylo_xml(tree, node_id):
-def phylo_xml(tree):
+def phylo_xml(tree, url):
     nodes = Phylonode.objects.filter(phylotree=tree)
     root = nodes.get(left_idx=1)
     #root = nodes.get(pk=node_id)
@@ -153,7 +156,7 @@ def phylo_xml(tree):
         #xmltree += '<uri>/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
         #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40http://localhost:8000/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
         if node.distance:
-            xmltree += '<annotation><uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://localhost:8000/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
+            xmltree += '<annotation><uri>'+url+str(node.phylonode_id)+'</uri></annotation>'
 	    #xmltree += '<annotation><uri>http://www.google.com/|http://www.comparative-legumes.org/|http://www.ncbi.nlm.nih.gov/</uri></annotation>'
         #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--no_graphic%40http://localhost:8000/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
         #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--no_graphic%40http://localhost:8000/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
@@ -177,15 +180,33 @@ def phylo_xml(tree):
 def phylo_view_slide(request, phylotree_id, template_name):
     # get trees stuffs
     tree = get_object_or_404(Phylotree, pk=phylotree_id)
-    xml, num_leafs = phylo_xml(tree)
+    xml, num_leafs = phylo_xml(tree, '')
 
     # we've got the goods
     return render(request, template_name, {'tree' : tree, 'xml' : xml, 'num_leafs' : num_leafs})
 
 
+def phylo_view_slide_ajax(request):
+	if request.is_ajax():
+		try:
+			node = Phylonode.objects.get(pk=request.GET['phylonode'])
+			slidedict = {}
+			if node.label:
+				slidedict['label'] = node.label
+				slidedict['meta'] = "This is meta information for "+node.label
+			else:
+				slidedict['label'] = "Interior Node"
+			slidedict['links'] = [{'Compare':'http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://localhost:8000/chado/phylo/node/gffdownload'+str(node.phylonode_id)}, {'google':'http://www.google.com/'}]
+			return HttpResponse(simplejson.dumps(slidedict), content_type = 'application/javascript; charset=utf8')
+		except:
+			return HttpResponse("bad resquest")
+	return HttpResponse("bad request")
+
+
 def phylo_newick(request, phylotree_id, template_name):
     tree = get_object_or_404(Phylotree, pk=phylotree_id)
     return render(request, template_name, {'tree' : tree})
+
 
 def phylo_xml_download(request, phylotree_id):
     # get the tree

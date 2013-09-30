@@ -83,15 +83,37 @@
 		if ($a.length) {
 			// if the hyperlink is in the tree, not the toggle div
 			if (!$a.parent().is($('#toggle'))) {
+				// don't follow the hyperlink - it's not a link
 				e.preventDefault();
-				var links = $a.attr('href').split("|");
-				var html = '<h4>'+$a.text()+'</h4>';
-				var i;
-				for (i = 0; i < links.length; i++) {
-					html += '<a href="'+links[i]+'">'+$a.text()+'</a><br />';
-				}
-				html += '<p>'+$a.attr('title')+'</p>'
-				$('#toggle').html(html);
+				// send an ajax request for the content we want
+				$.ajax({
+				        url:"{% url 'phylo_view_slide_ajax' %}",
+				        data: {
+						// this is actually a phylonode_id
+						phylonode: $a.attr('href'),
+						// all pages are protected against csrf so we need to pass the token for this page
+				        	csrfmiddlewaretoken: '{{ csrf_token }}'
+				        },
+				        contentType: "application/json;charset=utf-8",
+				        dataType: "json",
+				        success: function(data) {
+						// pull the data out of the json we get back
+						var html = '<h4>'+data.label+'</h4>'
+						for (var i = 0; i < data.links.length; i++) {
+							for (var key in data.links[i]) {
+								html += '<a href="'+data.links[i][key]+'">'+key+'</a><br/>'
+							}
+						}
+						if (data.meta) {
+							html += '<p>'+data.meta+'</p>'
+						}
+						$('#toggle').html(html);
+				        },
+				        error: function(ts) { 
+						// this is for debugging, not production!
+				        	alert(ts.responseText);
+				        }
+				});
 				// don't toggle it unless it's currently hidden
 				if (!$('#toggle').is(':visible')) {
 					$('#toggle').toggle('slide');
