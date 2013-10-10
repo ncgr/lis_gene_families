@@ -30,6 +30,9 @@
           <a href="{% url 'phylo_index' %}">Phylogenetic Trees</a>
         </li>
       </ul>
+      <form action="{% url 'search' %}" method="GET" class="navbar-form pull-right" role="search">
+              <input type="text" name="q" class="form-control" placeholder="Search">
+      </form>
     </div>
   </div>
 </div>

@@ -32,4 +32,7 @@ urlpatterns = patterns('chado.views',
 
     # cvterm
     url(r'^cvterm/(?P<cvterm_id>\d+)/$', 'cvterm_view', {'template_name' : 'chado/cvterm/view.html'}, name='cvterm_view'),
+
+    # search
+    url(r'^search/$', 'search', {'template_name' : 'chado/search/index.html'}, name='search'),
     )

@@ -1,3 +1,4 @@
+
 # import http stuffs
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse
@@ -14,6 +15,9 @@ from chado.models import Organism, Cvterm, Feature, Phylotree, Featureloc, Phylo
 from django.db.models import Count
 # make sure we have the csrf token!
 from django.views.decorators.csrf import ensure_csrf_cookie
+# search stuffs
+import re
+from django.db.models import Q
 
 
 #########
@@ -26,6 +30,49 @@ def index(request, template_name):
     consensus = get_object_or_404(Cvterm, name="consensus")
     msas = Feature.objects.filter(type_id=consensus)
     return render(request, template_name, {'organisms' : organisms, 'msas' : msas})
+
+
+########################
+# search functionality *
+########################
+# http://julienphalip.com/post/2825034077/adding-search-to-a-django-site-in-a-snap
+
+def normalize_query(query_string, findterms=re.compile(r'"([^"]+)"|(\S+)').findall, normspace=re.compile(r'\s{2,}').sub):
+    ''' Splits the query string in invidual keywords, getting rid of unecessary spaces and grouping quoted words together.'''
+    return [normspace(' ', (t[0] or t[1]).strip()) for t in findterms(query_string)] 
+
+
+def get_query(query_string, search_fields):
+    ''' Returns a query, that is a combination of Q objects.
+	That combination aims to search keywords within a model by testing the given search fields.'''
+    query = None # Query to search for every search term        
+    terms = normalize_query(query_string)
+    for term in terms:
+        or_query = None # Query to search for a given term in each field
+        for field_name in search_fields:
+            q = Q(**{"%s__icontains" % field_name: term})
+            if or_query is None:
+                or_query = q
+            else:
+                or_query = or_query | q
+        if query is None:
+            query = or_query
+        else:
+            query = query & or_query
+    return query
+
+
+def search(request, template_name):
+    query_string = ""
+    results = None
+    if ('q' in request.GET) and request.GET['q'].strip():
+        query_string = request.GET['q']
+        term_query = get_query(query_string, ['name', 'definition',])
+        results = Cvterm.objects.filter(term_query)
+    else:
+	return redirect(request.META.get('HTTP_REFERER', '/chado/'))
+    return render(request, template_name, {'query_string' : query_string, 'results' : results, 'count' : results.count})
+    #return render_to_response('search/search_results.html', { 'query_string': query_string, 'found_entries': found_terms }, context_instance=RequestContext(request))
 
 
 ############
@@ -211,7 +258,7 @@ def phylo_newick(request, phylotree_id, template_name):
 def phylo_xml_download(request, phylotree_id):
     # get the tree
     tree = get_object_or_404(Phylotree, pk=phylotree_id)
-    xml, num_leafs = phylo_xml(tree)
+    xml, num_leafs = phylo_xml(tree, "")
 
     # write the file to be downloaded
     myfile = StringIO.StringIO()
@@ -220,7 +267,7 @@ def phylo_xml_download(request, phylotree_id):
     # generate the file
     response = HttpResponse(myfile.getvalue(), content_type='text/plain')
     response['Content-Length'] = myfile.tell()
-    response['Content-Disposition'] = 'attachment; filename='+tree.name+'_newick'
+    response['Content-Disposition'] = 'attachment; filename='+tree.name+'_xml'
 
     return response
 
@@ -326,5 +373,6 @@ def cvterm_view(request, cvterm_id, template_name):
     features = Feature.objects.filter(type=cvterm).defer("feature_id", "dbxref", "name", "uniquename", "residues", "seqlen", "md5checksum", "is_analysis", "is_obsolete", "timeaccessioned", "timelastmodified")
     num_features_by_organism = features.values('organism__common_name').annotate(count=Count('organism__common_name'))
     return render(request, template_name, {'cvterm' : cvterm, 'count' : count, 'num_features_by_organism' : simplejson.dumps(list(num_features_by_organism))})
+
 
 
