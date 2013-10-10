@@ -132,7 +132,7 @@ def phylo_view(request, phylotree_id, template_name):
     # get trees stuffs
     tree = get_object_or_404(Phylotree, pk=phylotree_id)
     #xml, num_leafs = phylo_xml(tree, phylonode_id)
-    url = 'http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://localhost:8000/chado/phylo/node/gffdownload'
+    url = 'http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://localhost:8000/chado/phylo/node/gff_download/'
     xml, num_leafs = phylo_xml(tree, url)
     return render(request, template_name, {'tree' : tree, 'xml' : xml, 'num_leafs' : num_leafs})
 
@@ -190,17 +190,40 @@ def phylo_view_slide(request, phylotree_id, template_name):
 def phylo_view_slide_ajax(request):
 	if request.is_ajax():
 		try:
+                        import re;
 			node = Phylonode.objects.get(pk=request.GET['phylonode'])
 			slidedict = {}
 			if node.label:
 				slidedict['label'] = node.label
 				slidedict['meta'] = "This is meta information for "+node.label
+                                slidedict['links'] = []
+                                if re.match('^Medtr',node.label):
+                                    slidedict['links'].append({'JCVI JBrowse':'http://www.jcvi.org/medicago/jbrowse/?data=data%2Fjson%2Fmedicago&loc='+node.label})
+                                    slidedict['links'].append({'Mt HapMap':'http://www.medicagohapmap.org/fgb2/gbrowse/mt35/?name='+node.label})
+                                    slidedict['links'].append({'Phytozome':'http://www.phytozome.net/cgi-bin/gbrowse/medicago/?name='+node.label})
+                                    slidedict['links'].append({'LegumeIP':'http://plantgrn.noble.org/LegumeIP/getseq.do?seq_acc=IMGA|'+node.label})
+                                    gene = node.label.split('.')[0]
+                                    #for whatever reason, medicago seems to have gotten their nomenclature into NCBI
+                                    slidedict['links'].append({'NCBI Gene':'http://www.ncbi.nlm.nih.gov/gene/?term='+gene})
+                                elif re.match('^Glyma',node.label):
+                                    slidedict['links'].append({'Phytozome':'http://www.phytozome.net/cgi-bin/gbrowse/soybean/?name='+node.label})
+                                    slidedict['links'].append({'SoyKB':'http://soykb.org/gene_card.php?gene='+node.label})
+                                elif re.match('^Phvul',node.label):
+                                    slidedict['links'].append({'Phytozome':'http://www.phytozome.net/cgi-bin/gbrowse/commonbean/?name='+node.label})
+                                slidedict['links'].append({'google':'http://www.google.com/search?q='+node.label})
 			else:
 				slidedict['label'] = "Interior Node"
-			slidedict['links'] = [{'Compare':'http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://localhost:8000/chado/phylo/node/gffdownload'+str(node.phylonode_id)}, {'google':'http://www.google.com/'}]
+                                slidedict['links'] = [{'CMTV':'http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://localhost:8000/chado/phylo/node/gff_download/'+str(node.phylonode_id)}]
+                                #TODO: extract the subset MSA for the sequences in the subtree
+                                #slidedict['links'].append({'MSA':'/chado/msa/'+str(node.feature_id)})
+                                #hack: use the naming convention to get the consensus feature; trees don't appear to
+                                #be easily connected with their MSAs otherwise
+                                #consensus_feature = features.get(uniquename=node.phylotree.name+'-consensus');
+                                consensus_feature = Feature.objects.get(uniquename=node.phylotree.name+'-consensus');
+                                slidedict['links'].append({'MSA':'/chado/msa/'+str(consensus_feature.feature_id)})
 			return HttpResponse(simplejson.dumps(slidedict), content_type = 'application/javascript; charset=utf8')
 		except:
-			return HttpResponse("bad resquest")
+			return HttpResponse("bad request")
 	return HttpResponse("bad request")
 
 
