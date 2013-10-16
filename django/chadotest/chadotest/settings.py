@@ -4,6 +4,11 @@ import os.path # used to create dynamic absolute paths (decoupling)
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
+TEMPLATE_CONTEXT_PROCESSORS = (
+    'django.contrib.auth.context_processors.auth',
+    'django.core.context_processors.request',
+)
+
 ADMINS = (
     # ('Your Name', 'your_email@example.com'),
 )

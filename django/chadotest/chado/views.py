@@ -65,10 +65,16 @@ def get_query(query_string, search_fields):
 def search(request, template_name):
     query_string = ""
     results = None
+    import sys
     if ('q' in request.GET) and request.GET['q'].strip():
         query_string = request.GET['q']
-        term_query = get_query(query_string, ['name', 'definition',])
-        results = Cvterm.objects.filter(term_query)
+        #term_query = get_query(query_string, ['name', 'definition',])
+        #term_query = get_query(query_string, ['featurecvterm_feature__cvterm__name', 'featurecvterm_feature__cvterm__definition',])
+        term_query = get_query(query_string, ['phylonode_phylotree__feature__featurecvterm_feature__cvterm__name', 'phylonode_phylotree__feature__featurecvterm_feature__cvterm__definition', ])
+        #sys.stderr.write("term_query is " + str(term_query))
+        #results = Cvterm.objects.filter(term_query)
+        #results = Feature.objects.filter(term_query)
+        results = Phylotree.objects.filter(term_query).distinct()
     else:
 	return redirect(request.META.get('HTTP_REFERER', '/chado/'))
     return render(request, template_name, {'query_string' : query_string, 'results' : results, 'count' : results.count})
@@ -179,7 +185,7 @@ def phylo_view(request, phylotree_id, template_name):
     # get trees stuffs
     tree = get_object_or_404(Phylotree, pk=phylotree_id)
     #xml, num_leafs = phylo_xml(tree, phylonode_id)
-    url = 'http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://localhost:8000/chado/phylo/node/gff_download/'
+    url = 'http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://'+request.get_host()+'/chado/phylo/node/gff_download/'
     xml, num_leafs = phylo_xml(tree, url)
     return render(request, template_name, {'tree' : tree, 'xml' : xml, 'num_leafs' : num_leafs})
 
@@ -201,14 +207,14 @@ def phylo_xml(tree, url):
             xmltree += '<name>&#9675;</name>'
         #xmltree += '<desc>This is a description</desc>'
         #xmltree += '<uri>/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
-        #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40http://localhost:8000/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
+        #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40http://'+request.get_host()+'/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
         #if node.distance:
-        #xmltree += '<annotation><uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://localhost:8000/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
+        #xmltree += '<annotation><uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://'+request.get_host()+'/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
         xmltree += '<annotation><uri>'+url+str(node.phylonode_id)+'</uri></annotation>'
 	    #xmltree += '<annotation><uri>http://www.google.com/|http://www.comparative-legumes.org/|http://www.ncbi.nlm.nih.gov/</uri></annotation>'
-        #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--no_graphic%40http://localhost:8000/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
-        #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--no_graphic%40http://localhost:8000/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
-        #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40http://localhost:8000/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
+        #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--no_graphic%40http://'+request.get_host()+'/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
+        #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--no_graphic%40http://'+request.get_host()+'/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
+        #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40http://'+request.get_host()+'/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
         for child in family.filter(parent_phylonode=node):
             xmltree, leafs = add_node(xmltree, child, family, leafs)
         xmltree += '</clade>'
@@ -260,7 +266,7 @@ def phylo_view_slide_ajax(request):
                                 slidedict['links'].append({'google':'http://www.google.com/search?q='+node.label})
 			else:
 				slidedict['label'] = "Interior Node"
-                                slidedict['links'] = [{'CMTV':'http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://localhost:8000/chado/phylo/node/gff_download/'+str(node.phylonode_id)}]
+                                slidedict['links'] = [{'CMTV':'http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://'+request.get_host()+'/chado/phylo/node/gff_download/'+str(node.phylonode_id)}]
                                 #TODO: extract the subset MSA for the sequences in the subtree
                                 #slidedict['links'].append({'MSA':'/chado/msa/'+str(node.feature_id)})
                                 #hack: use the naming convention to get the consensus feature; trees don't appear to
