@@ -263,6 +263,19 @@ def phylo_view_slide_ajax(request):
                                     slidedict['links'].append({'SoyKB':'http://soykb.org/gene_card.php?gene='+node.label})
                                 elif re.match('^Phvul',node.label):
                                     slidedict['links'].append({'Phytozome':'http://www.phytozome.net/cgi-bin/gbrowse/commonbean/?name='+node.label})
+                                elif re.match('^AT',node.label):
+                                    slidedict['links'].append({'TAIR':'http://www.arabidopsis.org/servlets/TairObject?type=locus&name='+node.label})
+                                elif re.match('^LOC_Os',node.label):
+                                    slidedict['links'].append({'MSU':'http://rice.plantbiology.msu.edu/cgi-bin/gbrowse/rice/?name='+node.label})
+                                elif re.match('^GRMZM',node.label):
+                                    gene = node.label.split('_')[0]
+                                    slidedict['links'].append({'MaizeGDB':'http://maizegdb.org/cgi-bin/displaygenemodelrecord.cgi?id='+gene})
+                                    slidedict['links'].append({'Gramene':'http://www.gramene.org/Zea_mays/Gene/Summary?g='+gene})
+                                elif re.match('^Solyc',node.label):
+                                    slidedict['links'].append({'Sol Genomics Network':'http://solgenomics.net/gbrowse/bin/gbrowse/ITAG2.3_genomic/?name='+node.label+'&h_feat='+node.label})
+                                elif re.match('^Vitvi',node.label):
+                                    gene = node.label.split('.')[1]
+                                    slidedict['links'].append({'Genoscope':'http://www.genoscope.cns.fr/cgi-bin/ggb/vitis/12X/gbrowse/vitis/?name='+gene})
                                 slidedict['links'].append({'google':'http://www.google.com/search?q='+node.label})
 			else:
 				slidedict['label'] = "Interior Node"
