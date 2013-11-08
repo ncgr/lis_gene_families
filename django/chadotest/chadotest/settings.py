@@ -139,6 +139,7 @@ INSTALLED_APPS = (
 
     # add the chado app
     'chado',
+    'd3viz_force_directed',
 )
 
 # A sample logging configuration. The only tangible logging

@@ -1,0 +1,62 @@
+{% extends 'chado/base.html' %}
+{% load static %}
+
+{% block title %}
+d3viz_force_directed
+{% endblock %}
+
+{% block css %}
+<link href="{% static 'css/chado-d3viz-force-directed.css' %}"
+    rel="stylesheet">
+{% endblock %}
+
+{% block javascript %}
+<script type="text/javascript" 
+        src="{% static 'js/jquery-1.10.2.min.js' %}"></script>
+
+<script type="text/javascript" 
+        src="{% static 'js/d3.v3.min.js' %}"></script>
+
+ <!-- d3 word cloud plugin: https://github.com/jasondavies/d3-cloud  -->
+<script type="text/javascript" 
+        src="{% static 'js/d3.layout.cloud.js' %}"></script>
+
+<!-- d3 tooltip plugin: https://github.com/caged/d3-tip -->
+<script type="text/javascript" 
+        src="{% static 'js/d3-tooltips.js' %}"></script>
+
+<!-- this app  -->
+<script type="text/javascript" 
+        src="{% static 'js/chado-d3viz-force-directed.js' %}"></script>
+
+<script type="text/javascript">
+// the phylonode_id will be used to fetch json data, by 
+// chado-d3viz-force-directed.js
+var phylonode_id = {{phylonode_id}};
+var data_source_url = '/chado/d3viz_force_directed/phylonode/{{phylonode_id}}.json';
+</script>
+
+{% endblock %}
+
+{% block content %}
+<div class="page-header" id=banner">
+
+    <div class="row">
+        <div class="col-lg-12" id="graph_info">
+        </div>
+    </div>
+
+    <div id="loading">
+        <img src="{% static 'gif/ajax-loader.gif' %}"/> 
+         loading phylonode_id: {{phylonode_id}}
+    </div>
+
+    <div id="tree_layout"></div>
+    <div id="force_layout" class="force_layout"></div>
+    <div id="word_cloud" class="word_cloud"></div>
+    <div id="selection_desc" style="display:none">* Mouseover a graph node for description. 
+      Click-Drag to select a group of nodes.
+      *</div>
+</div>
+{% endblock %}
+

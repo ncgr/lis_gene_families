@@ -1,0 +1,73 @@
+ *{  
+  font-family:sans-serif; 
+}
+
+#word_cloud {
+  border:2px solid;
+  border-radius:10px;
+  border-color: grey;
+//  width: 800x;
+//  height: 200px ;
+  text-align: center;
+  margin:0 auto
+}
+
+#force_layout {
+  border:2px solid;
+  border-radius:10px;
+  border-color: grey;
+//  width: 800px;
+//  height: 500px ;
+  text-align: center;
+  margin:0 auto
+}
+
+/* force layout node (cicle) */
+.fl_node {
+  stroke: #fff;
+  stroke-width: 2px;
+}
+.fl_link {
+  stroke: #999;
+  stroke-opacity: .6;
+}
+
+/* selection frame stuff ( see selection-frame/app.css for related idea */
+.fl_node.selected {
+//  fill: gold;
+  stroke: black;
+}
+
+rect.drag_selection {
+    stroke          : black;
+    stroke-dasharray: 4px;
+/*    stroke-opacity  : 0.5; */
+    fill            : transparent;
+}
+
+/* disable text selection */
+svg *::selection {
+    background : transparent;
+}
+
+svg *::-moz-selection {
+    background:transparent;
+}
+
+svg *::-webkit-selection {
+    background:transparent;
+}
+
+
+/* tooltip stuff */
+
+.d3-tip {
+/*  line-height: 1.1;*/
+  font-size: 10px;
+/*  font-weight: bold; */
+  padding: 2px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  border-radius: 4px;
+}
+

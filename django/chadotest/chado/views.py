@@ -280,6 +280,7 @@ def phylo_view_slide_ajax(request):
 			else:
 				slidedict['label'] = "Interior Node"
                                 slidedict['links'] = [{'CMTV':'http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://'+request.get_host()+'/chado/phylo/node/gff_download/'+str(node.phylonode_id)}]
+                                slidedict['links'].append({'NodeGraphWordCloud':'/chado/d3viz_force_directed/phylonode/viz/'+str(node.phylonode_id)}) 
                                 #TODO: extract the subset MSA for the sequences in the subtree
                                 #slidedict['links'].append({'MSA':'/chado/msa/'+str(node.feature_id)})
                                 #hack: use the naming convention to get the consensus feature; trees don't appear to
