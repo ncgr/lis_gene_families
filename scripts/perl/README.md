@@ -6,35 +6,36 @@ These are the scripts that were used with the scripts bundled with Chado to load
 
 ### Organisms
 
-Before any data can be loaded into the database the organism that data corresponds to must be present. Adding your organism can be achieved in two ways:
+Before any data can be loaded into the database the organism to which that data corresponds must be present. Adding your organism can be achieved in two ways:
 
 1. Add the organism using an SQL query:
 
     ```
-    INSERT INTO organism (abbreviation, genus, species, common_name) VALUES ('G.max', 'Glycine', 'max', 'soybean');
+    INSERT INTO organism (abbreviation, genus, species, common_name) VALUES ('Glyma', 'Glycine', 'max', 'soybean');
     ```
 or
 2. Using a GMOD tool:
 
     ```
-    gmod_add_organism.pl --abbreviation G.max --genus Glycine --species max --common_name soybean
+    gmod_add_organism.pl --abbreviation Glyma --genus Glycine --species max --common_name soybean
     ```
 
 ### fasta files
 
-fasta files must be loaded before their analyses so that features can be mapped back to their locations on the sequences.
+genomic fasta files must be loaded before their annotations so that features can be mapped back to their locations on the sequences.
 
+<adf: do we really need this in step 1? it is probably not very relevant for genomic fasta, and in all likelihood every munge will be somewhat custom???>
 1. Sometimes fasta files have extra content in their name lines. To remove what's in excess use:
 
     ```
     gmod_fasta_names.pl --names <identifiers_of_names_to_save> --append _pep --outfile <file_to_write>
     ```
-Here the argument to `--names` is a camma seperated list (no spaces) of identifiers that will be used to determine what values in the name line will be kept, i.e. `--names Glyma,Pvul,contig`. Note that if nothing in a name line matches an identifier then the line will be left blank. The `--append` flag should only be used if a string of text is to be appended to all the names in the file. In this example "\_pep" has been appeneded onto the names, which should be done with all fasta files representing polypeptides since "\_pep" is used by the LIS to allow mRNAs and their polypeptide features to have the same uniquename values while preserving uniqueness. The argument to `--outfile` is the file the processed fasta contents should be written to. If this flag is not provied then the processed contents will be written to stdout.
+Here the argument to `--names` is a comma seperated list (no spaces) of identifiers that will be used to determine what values in the name line will be kept, i.e. `--names Glyma,Pvul,contig`. Note that if nothing in a name line matches an identifier then the line will be left blank. The `--append` flag should only be used if a string of text is to be appended to all the names in the file. In this example "\_pep" has been appeneded onto the names, which should be done with all fasta files representing polypeptides since "\_pep" is used by the LIS to allow mRNAs and their polypeptide features to have the same uniquename values while preserving uniqueness. The argument to `--outfile` is the file the processed fasta contents should be written to. If this flag is not provied then the processed contents will be written to stdout.
 
 2. fasta files must be convert to gff3 format in order to be loaded. This is done with a GMOD tool as follows:
 
     ```
-    gmod_fasta2gff3.pl --type <probably_chromosome_or_polypeptide> --fasta_dir /path/to/your/fastas
+    gmod_fasta2gff3.pl --type <probably_chromosome_or_scaffold> --fasta_dir /path/to/your/fastas
     ```
 Note that only fastas from the same organism should be in the path given as an argument to the `--fasta_dir` flag. All fasta files at that path will be combined into a single gff file.
 3. Once the fasta is converted to a gff then you can load it using the GMOD bulk loader:

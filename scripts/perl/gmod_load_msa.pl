@@ -49,7 +49,7 @@ This library is free software; you can redistribute it and/or modify it under th
 # see if the user needs help
 my $man = 0;
 my $help = 0;
-GetOptions('help|?' => \$help, man => \$man) or pod2usage(2);
+#GetOptions('help|?' => \$help, man => \$man) or pod2usage(2);
 pod2usage(1) if $help;
 pod2usage(-exitval => 0, -verbose => 2) if $man;
 
