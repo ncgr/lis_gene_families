@@ -11,7 +11,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 # for passing messages
 from django.contrib import messages
 # import our models and helpers
-from chado.models import Organism, Cvterm, Feature, Phylotree, Featureloc, Phylonode, FeatureRelationship, Analysisfeature
+from chado.models import Organism, Cvterm, Feature, Phylotree, Featureloc, Phylonode, FeatureRelationship, Analysisfeature, FeatureCvterm
 from django.db.models import Count
 # make sure we have the csrf token!
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -291,7 +291,7 @@ def phylo_view_slide_ajax(request):
 			return HttpResponse(simplejson.dumps(slidedict), content_type = 'application/javascript; charset=utf8')
 		except:
 			return HttpResponse("bad request")
-	return HttpResponse("bad request")
+                return HttpResponse("bad request")
 
 
 def phylo_newick(request, phylotree_id, template_name):
@@ -390,6 +390,53 @@ def phylo_gff_download(request, phylonode_id):
     response['Content-Disposition'] = 'attachment; filename='+phylonode.phylotree.name+'_n'+str(phylonode.left_idx)+'-'+str(phylonode.right_idx)+'.gff'
 
     return response
+
+##
+# phylonode_json: return json of the gene tree and GO terms for this
+# phylonode. the json will be consumed by the view in viz(), and possibly
+# other services.
+#
+
+from pprint import pprint
+import inspect
+
+def phylonode_json(request, phylonode_id):
+
+    phylonode = get_object_or_404(Phylonode, pk=phylonode_id)
+
+    # use the left and right index to get the phylonode's child nodes directly:
+    nodes = Phylonode.objects.filter(phylotree=phylonode.phylotree,
+                                     left_idx__gte=phylonode.left_idx,
+                                     right_idx__lte=phylonode.right_idx)
+
+    # the 1st level of FeatureRelationships is polypeptides. we have trust this
+    # knowing the chado database was loaded thusly.
+    polypeptide_pks = nodes.values_list('feature_id', flat=True)
+    #polypeptide_rels = FeatureRelationship.objects.filter(subject_id__in=node_pks)
+
+    # return a json error message unless there is 1 or more polypeptides
+    #if (polypeptide_rels.count() == 0):
+        #json_msg = {
+        #'error':
+        #'Polypeptides not available for any species in subtree'
+        #}
+        #return HttpResponse(simplejson.dumps(json_msg),
+                            #content_type = 'application/javascript')
+    #polypeptide_pks = polypeptide_rels.values_list('object_id', flat=True)
+    polypeptides = Feature.objects.filter(pk__in=polypeptide_pks)
+
+    for pp in polypeptides:
+        pprint(pp.feature_id)
+        cvterms_rels = FeatureCvterm.objects.filter(feature_id=pp.feature_id)
+        cvterm_pks = cvterms_rels.values_list('cvterm_id')
+        pprint(cvterm_pks)
+        cvterms = Cvterm.objects.filter(pk__in=cvterm_pks)
+        for cvterm in cvterms:
+            pprint(cvterm)
+
+    json_data = [] # TODO
+    return HttpResponse(simplejson.dumps(json_data),
+                        content_type = 'application/javascript')
 
 
 def phylo_sample(request, template_name):
