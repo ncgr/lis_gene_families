@@ -80,6 +80,9 @@ def search(request, template_name):
     return render(request, template_name, {'query_string' : query_string, 'results' : results, 'count' : results.count})
     #return render_to_response('search/search_results.html', { 'query_string': query_string, 'found_entries': found_terms }, context_instance=RequestContext(request))
 
+def get_msa(request, redirect_template_name, phylo_tree):
+    pass
+
 
 ############
 # organism #
