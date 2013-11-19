@@ -254,6 +254,8 @@ def phylo_view_slide_ajax(request):
 				slidedict['meta'] = "This is meta information for "+node.label
                                 slidedict['links'] = []
                                 if re.match('^Medtr',node.label):
+                                    slidedict['links'].append({'LIS Mt4.0 GBrowse':'http://medtr.comparative-legumes.org/gb2/gbrowse/Mt4.0?name='+node.label})
+                                    slidedict['links'].append({'LIS Mt3.5.1 GBrowse':'http://medtr.comparative-legumes.org/gb2/gbrowse/Mt3.5.1?name='+node.label})
                                     slidedict['links'].append({'JCVI JBrowse':'http://www.jcvi.org/medicago/jbrowse/?data=data%2Fjson%2Fmedicago&loc='+node.label})
                                     slidedict['links'].append({'Mt HapMap':'http://www.medicagohapmap.org/fgb2/gbrowse/mt35/?name='+node.label})
                                     slidedict['links'].append({'Phytozome':'http://www.phytozome.net/cgi-bin/gbrowse/medicago/?name='+node.label})
@@ -262,9 +264,12 @@ def phylo_view_slide_ajax(request):
                                     #for whatever reason, medicago seems to have gotten their nomenclature into NCBI
                                     slidedict['links'].append({'NCBI Gene':'http://www.ncbi.nlm.nih.gov/gene/?term='+gene})
                                 elif re.match('^Glyma',node.label):
+                                    slidedict['links'].append({'Soybase':'http://soybase.org/gb2/gbrowse/gmax1.01/?name='+node.label})
                                     slidedict['links'].append({'Phytozome':'http://www.phytozome.net/cgi-bin/gbrowse/soybean/?name='+node.label})
                                     slidedict['links'].append({'SoyKB':'http://soykb.org/gene_card.php?gene='+node.label})
                                 elif re.match('^Phvul',node.label):
+                                    gene = node.label.split('.')[0] + '.' + node.label.split('.')[1];
+                                    slidedict['links'].append({'LIS GBrowse':'http://phavu.comparative-legumes.org/gb2/gbrowse/Pv1.0/?name='+gene})
                                     slidedict['links'].append({'Phytozome':'http://www.phytozome.net/cgi-bin/gbrowse/commonbean/?name='+node.label})
                                 elif re.match('^AT',node.label):
                                     slidedict['links'].append({'TAIR':'http://www.arabidopsis.org/servlets/TairObject?type=locus&name='+node.label})
