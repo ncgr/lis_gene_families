@@ -71,7 +71,7 @@ def search(request, template_name):
         #term_query = get_query(query_string, ['name', 'definition',])
         #term_query = get_query(query_string, ['featurecvterm_feature__cvterm__name', 'featurecvterm_feature__cvterm__definition',])
         term_query = get_query(query_string, ['phylonode_phylotree__feature__featurecvterm_feature__cvterm__name', 'phylonode_phylotree__feature__featurecvterm_feature__cvterm__definition', ])
-        #sys.stderr.write("term_query is " + str(term_query))
+        sys.stderr.write("term_query is " + str(term_query))
         #results = Cvterm.objects.filter(term_query)
         #results = Feature.objects.filter(term_query)
         results = Phylotree.objects.filter(term_query).distinct()
@@ -263,10 +263,15 @@ def phylo_view_slide_ajax(request):
                                     gene = node.label.split('.')[0]
                                     #for whatever reason, medicago seems to have gotten their nomenclature into NCBI
                                     slidedict['links'].append({'NCBI Gene':'http://www.ncbi.nlm.nih.gov/gene/?term='+gene})
+                                    #but that doesn't mean that it gave other people the message!
+                                    slidedict['links'].append({'Genomicus':'http://www.genomicus.biologie.ens.fr/genomicus-plants/cgi-bin/search.pl?view=default&amp;query=MTR_'+gene.replace("Medtr","")})
+
                                 elif re.match('^Glyma',node.label):
                                     slidedict['links'].append({'Soybase':'http://soybase.org/gb2/gbrowse/gmax1.01/?name='+node.label})
                                     slidedict['links'].append({'Phytozome':'http://www.phytozome.net/cgi-bin/gbrowse/soybean/?name='+node.label})
                                     slidedict['links'].append({'SoyKB':'http://soykb.org/gene_card.php?gene='+node.label})
+                                    gene = node.label.split('.')[0]
+                                    slidedict['links'].append({'Genomicus':'http://www.genomicus.biologie.ens.fr/genomicus-plants/cgi-bin/search.pl?view=default&amp;query='+gene})
                                 elif re.match('^Phvul',node.label):
                                     gene = node.label.split('.')[0] + '.' + node.label.split('.')[1];
                                     slidedict['links'].append({'LIS GBrowse':'http://phavu.comparative-legumes.org/gb2/gbrowse/Pv1.0/?name='+gene})
