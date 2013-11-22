@@ -63,22 +63,33 @@ def get_query(query_string, search_fields):
 
 
 def search(request, template_name):
-    query_string = ""
-    results = None
-    import sys
+    #query_string = ""
+    #results = None
+    #import sys
     if ('q' in request.GET) and request.GET['q'].strip():
         query_string = request.GET['q']
-        #term_query = get_query(query_string, ['name', 'definition',])
-        #term_query = get_query(query_string, ['featurecvterm_feature__cvterm__name', 'featurecvterm_feature__cvterm__definition',])
-        term_query = get_query(query_string, ['phylonode_phylotree__feature__featurecvterm_feature__cvterm__name', 'phylonode_phylotree__feature__featurecvterm_feature__cvterm__definition', ])
-        sys.stderr.write("term_query is " + str(term_query))
+        term_query = get_query(query_string, ['cvterm__name', 'cvterm__definition',])
+        results = FeatureCvterm.objects.filter(term_query)
+
+        #term_query = get_query(query_string, ['phylonode_phylotree__feature__featurecvterm_feature__cvterm__name', 'phylonode_phylotree__feature__featurecvterm_feature__cvterm__definition', ])
+        #sys.stderr.write("term_query is " + str(term_query))
         #results = Cvterm.objects.filter(term_query)
         #results = Feature.objects.filter(term_query)
-        results = Phylotree.objects.filter(term_query).distinct()
-    else:
+        #results = Phylotree.objects.filter(term_query).distinct()
+        return render(request, template_name, {'query_string' : query_string, 'results' : results, 'count' : results.count})
 	return redirect(request.META.get('HTTP_REFERER', '/chado/'))
-    return render(request, template_name, {'query_string' : query_string, 'results' : results, 'count' : results.count})
-    #return render_to_response('search/search_results.html', { 'query_string': query_string, 'found_entries': found_terms }, context_instance=RequestContext(request))
+
+def search_phylo(request, feature_id, template_name):
+    feature = get_object_or_404(Feature, pk=feature_id)
+    tree_ids = Phylonode.objects.filter(feature=feature).values_list('phylotree', flat=True)
+    trees = Phylotree.objects.filter(pk__in=tree_ids)
+    return render(request, template_name, {'feature' : feature, 'trees' : trees, 'count' : trees.count})
+
+def search_msa(request, feature_id, template_name):
+    feature = get_object_or_404(Feature, pk=feature_id)
+    msa_ids = Featureloc.objects.filter(feature=feature).values_list('srcfeature', flat=True)
+    msas = Feature.objects.filter(type__name='consensus', pk__in=msa_ids)
+    return render(request, template_name, {'feature' : feature, 'msas' : msas, 'count' : msas.count})
 
 def get_msa(request, redirect_template_name, phylo_tree):
     pass
