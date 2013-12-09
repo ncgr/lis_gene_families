@@ -1,7 +1,7 @@
 
 # import http stuffs
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseBadRequest
 from django.utils import simplejson
 from django.core.urlresolvers import reverse
 # file generation stuffs
@@ -63,20 +63,27 @@ def get_query(query_string, search_fields):
 
 
 def search(request, template_name):
-    #query_string = ""
-    #results = None
-    #import sys
-    if ('q' in request.GET) and request.GET['q'].strip():
+    # if there's a query
+    if 'q' in request.GET and request.GET['q'].strip():
         query_string = request.GET['q']
         term_query = get_query(query_string, ['cvterm__name', 'cvterm__definition',])
         results = FeatureCvterm.objects.filter(term_query)
-
-        #term_query = get_query(query_string, ['phylonode_phylotree__feature__featurecvterm_feature__cvterm__name', 'phylonode_phylotree__feature__featurecvterm_feature__cvterm__definition', ])
-        #sys.stderr.write("term_query is " + str(term_query))
-        #results = Cvterm.objects.filter(term_query)
-        #results = Feature.objects.filter(term_query)
-        #results = Phylotree.objects.filter(term_query).distinct()
-        return render(request, template_name, {'query_string' : query_string, 'results' : results, 'count' : results.count})
+        count = results.count()
+        # paginate results
+        num = get_search_num_results(request)
+        paginator = Paginator(results, num)
+        page = request.GET.get('page')
+        try:
+            results = paginator.page(page)
+        except PageNotAnInteger:
+            results = paginator.page(1)
+        except EmptyPage:
+            results = paginator.page(paginator.num_pages)
+        selected = None
+        if 'results' in request.session:
+            selected = request.session['results']
+        return render(request, template_name, {'query_string' : query_string, 'results' : results, 'count' : count, 'result_nums' : RESULT_NUMS, 'num' : str(num), 'selected' : selected})
+    # redirect if there wasn't a query
 	return redirect(request.META.get('HTTP_REFERER', '/chado/'))
 
 def search_phylo(request, feature_id, template_name):
@@ -93,6 +100,42 @@ def search_msa(request, feature_id, template_name):
 
 def get_msa(request, redirect_template_name, phylo_tree):
     pass
+
+def initialize_results_session(request):
+    request.session['results'] = {}
+
+def search_add_result_ajax(request):
+    if request.is_ajax():
+        result = None
+        try:
+            result = Feature.objects.get(pk=request.GET['result'])
+        except DoesNotExist:
+            return HttpResponseBadRequest('Bad Request')
+        if 'results' not in request.session:
+            initialize_results_session(request)
+        request.session['results'][result.pk] = result.name
+        return HttpResponse('OK')
+    return HttpResponseBadRequest('Bad Request')
+
+def search_remove_result_ajax(request):
+    if request.is_ajax():
+        result = None
+        try:
+            result = Feature.objects.get(pk=request.GET['result'])
+        except DoesNotExist:
+            return HttpResponseBadRequest('Bad Request')
+        if 'results' not in request.session:
+            initialize_results_session(request)
+        if result.pk in request.session['results']:
+            del request.session['results'][result.pk]
+        return HttpResponse('OK')
+    return HttpResponseBadRequest('Bad Request')
+
+def search_clear_results_ajax(request):
+    if request.is_ajax():
+        initialize_results_session(request)
+        return HttpResponse('OK')
+    return HttpResponseBadRequest('Bad Request')
 
 
 ############
@@ -122,7 +165,8 @@ def msa_index(request, template_name):
     msas = Feature.objects.filter(type__name='consensus')
     count = msas.count()
     # paginate them
-    paginator = Paginator(msas, 500)
+    num = get_msa_num_results(request)
+    paginator = Paginator(msas, num)
     page = request.GET.get('page')
     try:
         msas = paginator.page(page)
@@ -131,7 +175,7 @@ def msa_index(request, template_name):
     except EmptyPage:
         msas = paginator.page(paginator.num_pages)
     # deliver the pages
-    return render(request, template_name, {'msas' : msas, 'count' : count})
+    return render(request, template_name, {'msas' : msas, 'count' : count, 'result_nums' : RESULT_NUMS, 'num' : str(num)})
 
 
 def msa_view(request, feature_id, template_name):
@@ -182,7 +226,8 @@ def phylo_index(request, template_name):
     count = trees.count()
     #trees = Feature.objects.filter(type__name='consensus')
     # paginate them
-    paginator = Paginator(trees, 500)
+    num = get_phylo_num_results(request)
+    paginator = Paginator(trees, num)
     page = request.GET.get('page')
     try:
         trees = paginator.page(page)
@@ -191,7 +236,7 @@ def phylo_index(request, template_name):
     except EmptyPage:
         trees = paginator.page(paginator.num_pages)
     # deliver the pages
-    return render(request, template_name, {'trees' : trees, 'count' : count})
+    return render(request, template_name, {'trees' : trees, 'count' : count, 'result_nums' : RESULT_NUMS, 'num' : str(num)})
 
 
 #def phylo_view(request, phylotree_id, phylonode_id, template_name):
@@ -488,6 +533,42 @@ def cvterm_view(request, cvterm_id, template_name):
     features = Feature.objects.filter(type=cvterm).defer("feature_id", "dbxref", "name", "uniquename", "residues", "seqlen", "md5checksum", "is_analysis", "is_obsolete", "timeaccessioned", "timelastmodified")
     num_features_by_organism = features.values('organism__common_name').annotate(count=Count('organism__common_name'))
     return render(request, template_name, {'cvterm' : cvterm, 'count' : count, 'num_features_by_organism' : simplejson.dumps(list(num_features_by_organism))})
+
+
+###########
+# helpers #
+###########
+
+# these are how many results can be shown on a paginated page
+RESULT_NUMS = {'25':25, '50':50, '100':100, '250':250, '500':500}
+
+# determines the number of results to be shown on a paginated page
+def get_search_num_results(request):
+    num = RESULT_NUMS.itervalues().next()
+    if 'num' in request.GET and request.GET['num'] in RESULT_NUMS:
+        num = RESULT_NUMS[request.GET['num']]
+        request.session['search_num'] = num
+    elif 'search_num' in request.session:
+        num = request.session['search_num']
+    return num
+
+def get_msa_num_results(request):
+    num = RESULT_NUMS.itervalues().next()
+    if 'num' in request.GET and request.GET['num'] in RESULT_NUMS:
+        num = RESULT_NUMS[request.GET['num']]
+        request.session['msa_num'] = num
+    elif 'msa_num' in request.session:
+        num = request.session['msa_num']
+    return num
+
+def get_phylo_num_results(request):
+    num = RESULT_NUMS.itervalues().next()
+    if 'num' in request.GET and request.GET['num'] in RESULT_NUMS:
+        num = RESULT_NUMS[request.GET['num']]
+        request.session['phylo_num'] = num
+    elif 'phylo_num' in request.session:
+        num = request.session['phylo_num']
+    return num
 
 
 

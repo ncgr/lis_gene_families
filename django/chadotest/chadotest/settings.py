@@ -110,6 +110,12 @@ MIDDLEWARE_CLASSES = (
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
 
+# set the session engine to use cookies
+SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
+
+# save the session every time it's modified
+SESSION_SAVE_EVERY_REQUEST = True
+
 ROOT_URLCONF = 'chadotest.urls'
 
 # Python dotted path to the WSGI application used by Django's runserver.
