@@ -11,6 +11,18 @@
 </div>
 <div class="row">
     <div class="col-lg-12">
+        <form class="form-horizontal" role="form">
+            <div class="form-group">
+                <label class="col-sm-2 control-label">Results per page</label>
+                <div class="col-sm-10">
+                    <select class="form-control" ONCHANGE="location = '?page={{ results.number }}&num=' + this.options[this.selectedIndex].value;">
+                        {% for o in result_nums %}
+                        <option{% if o == num %} selected{% endif %}>{{ o }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </form>
         <p>Viewing trees {{ trees.start_index }} through {{ trees.end_index }}</p>
         <table class="table table-striped table-bordered table-hover">
             <thead>
