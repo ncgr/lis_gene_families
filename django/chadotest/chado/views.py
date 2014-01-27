@@ -68,21 +68,11 @@ def search(request, template_name):
         query_string = request.GET['q']
         term_query = get_query(query_string, ['cvterm__name', 'cvterm__definition',])
         results = FeatureCvterm.objects.filter(term_query)
-        count = results.count()
-        # paginate results
-        num = get_search_num_results(request)
-        paginator = Paginator(results, num)
-        page = request.GET.get('page')
-        try:
-            results = paginator.page(page)
-        except PageNotAnInteger:
-            results = paginator.page(1)
-        except EmptyPage:
-            results = paginator.page(paginator.num_pages)
+        # get selected results, if any
         selected = None
         if 'results' in request.session:
             selected = request.session['results']
-        return render(request, template_name, {'query_string' : query_string, 'results' : results, 'count' : count, 'result_nums' : RESULT_NUMS, 'num' : str(num), 'selected' : selected})
+        return render(request, template_name, {'query_string' : query_string, 'results' : paginate(request, results, 'search_num'), 'result_nums' : RESULT_NUMS, 'selected' : selected})
     # redirect if there wasn't a query
 	return redirect(request.META.get('HTTP_REFERER', '/chado/'))
 
@@ -144,8 +134,7 @@ def search_clear_results_ajax(request):
 
 
 def organism_index(request, template_name):
-    organisms = Organism.objects.all()
-    return render(request, template_name, {'organisms' : organisms})
+    return render(request, template_name, {'organisms' : paginate(request, Organism.objects.all(), 'organism_num'), 'result_nums' : RESULT_NUMS})
 
 
 def organism_view(request, organism_id, template_name):
@@ -161,21 +150,7 @@ def organism_view(request, organism_id, template_name):
 
 
 def msa_index(request, template_name):
-    # get the msas
-    msas = Feature.objects.filter(type__name='consensus')
-    count = msas.count()
-    # paginate them
-    num = get_msa_num_results(request)
-    paginator = Paginator(msas, num)
-    page = request.GET.get('page')
-    try:
-        msas = paginator.page(page)
-    except PageNotAnInteger:
-        msas = paginator.page(1)
-    except EmptyPage:
-        msas = paginator.page(paginator.num_pages)
-    # deliver the pages
-    return render(request, template_name, {'msas' : msas, 'count' : count, 'result_nums' : RESULT_NUMS, 'num' : str(num)})
+    return render(request, template_name, {'msas' : paginate(request, Feature.objects.filter(type__name='consensus'), 'msa_num'), 'result_nums' : RESULT_NUMS})
 
 
 def msa_view(request, feature_id, template_name):
@@ -221,22 +196,7 @@ def msa_consensus_download(request, feature_id):
 
 
 def phylo_index(request, template_name):
-    # get the trees
-    trees = Phylotree.objects.all()
-    count = trees.count()
-    #trees = Feature.objects.filter(type__name='consensus')
-    # paginate them
-    num = get_phylo_num_results(request)
-    paginator = Paginator(trees, num)
-    page = request.GET.get('page')
-    try:
-        trees = paginator.page(page)
-    except PageNotAnInteger:
-        trees = paginator.page(1)
-    except EmptyPage:
-        trees = paginator.page(paginator.num_pages)
-    # deliver the pages
-    return render(request, template_name, {'trees' : trees, 'count' : count, 'result_nums' : RESULT_NUMS, 'num' : str(num)})
+    return render(request, template_name, {'trees' : paginate(request, Phylotree.objects.all(), 'phylo_num'), 'result_nums' : RESULT_NUMS})
 
 
 #def phylo_view(request, phylotree_id, phylonode_id, template_name):
@@ -540,35 +500,40 @@ def cvterm_view(request, cvterm_id, template_name):
 ###########
 
 # these are how many results can be shown on a paginated page
-RESULT_NUMS = {'25':25, '50':50, '100':100, '250':250, '500':500}
+# a list and a dictionary for convenience - ordered list -> templates, dictionary -> string lookups in view
+RESULT_NUMS = [25, 50, 100, 250, 500]
+RESULT_DICT = {}
+for n in RESULT_NUMS:
+    RESULT_DICT[str(n)] = n
 
-# determines the number of results to be shown on a paginated page
-def get_search_num_results(request):
-    num = RESULT_NUMS.itervalues().next()
-    if 'num' in request.GET and request.GET['num'] in RESULT_NUMS:
-        num = RESULT_NUMS[request.GET['num']]
-        request.session['search_num'] = num
-    elif 'search_num' in request.session:
-        num = request.session['search_num']
-    return num
-
-def get_msa_num_results(request):
-    num = RESULT_NUMS.itervalues().next()
-    if 'num' in request.GET and request.GET['num'] in RESULT_NUMS:
-        num = RESULT_NUMS[request.GET['num']]
-        request.session['msa_num'] = num
-    elif 'msa_num' in request.session:
-        num = request.session['msa_num']
-    return num
-
-def get_phylo_num_results(request):
-    num = RESULT_NUMS.itervalues().next()
-    if 'num' in request.GET and request.GET['num'] in RESULT_NUMS:
-        num = RESULT_NUMS[request.GET['num']]
-        request.session['phylo_num'] = num
-    elif 'phylo_num' in request.session:
-        num = request.session['phylo_num']
-    return num
-
+# the one stop paginator - if these things weren't so closely related and always called together, I would call this function god
+def paginate(request, objects, who):
+    # determines the number of results to be shown on a paginated page
+    num = RESULT_DICT.itervalues().next()
+    if 'num' in request.GET and request.GET['num'] in RESULT_DICT:
+        num = RESULT_DICT[request.GET['num']]
+        request.session[who] = num
+    elif who in request.session:
+        num = request.session[who]
+    # paginate the objects
+    paginator = Paginator(objects, num)
+    page = request.GET.get('page')
+    try:
+        objects = paginator.page(page)
+    except PageNotAnInteger:
+        objects = paginator.page(1)
+    except EmptyPage:
+        objects = paginator.page(paginator.num_pages)
+    # give objects a range of pages (10) to be linked
+    if objects.paginator.num_pages > 10:
+        if objects.number < 7:
+            objects.paginator.display_page_range = range(1, 11)
+        elif objects.paginator.num_pages - objects.number < 4:
+            objects.paginator.display_page_range = range(objects.paginator.num_pages-10, objects.paginator.num_pages+1)
+        else:
+            objects.paginator.display_page_range = range(objects.number-5, objects.number+5)
+    else:
+        objects.paginator.display_page_range = objects.paginator.page_range
+    return objects
 
 

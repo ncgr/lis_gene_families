@@ -29,7 +29,7 @@
     <div class="row">
         <div class="col-lg-12">
             <h1>Results for "{{ query_string }}"</h1>
-            <p class="lead">{{ count }} results.</p>
+            <p class="lead">{{ results.paginator.count }} results.</p>
         </div>
     </div>
 </div>
@@ -41,7 +41,7 @@
                 <div class="col-sm-10">
                     <select class="form-control" ONCHANGE="location = '?q={{ query_string }}&page={{ results.number }}&num=' + this.options[this.selectedIndex].value;">
                         {% for o in result_nums %}
-                        <option{% if o == num %} selected{% endif %}>{{ o }}</option>
+                        <option{% if o == results.paginator.per_page %} selected{% endif %}>{{ o }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -115,7 +115,7 @@
         <div style="text-align: center">
             <ul class="pagination">
                 <li class="{% if results.has_previous %}enabled{% else %}disabled{% endif %}"><a href="{% if results.has_previous %}?q={{ query_string }}&page={{ results.previous_page_number }}{% else %}#{% endif %}">&laquo;</a></li>
-                {% for p in results.paginator.page_range %}
+                {% for p in results.paginator.display_page_range %}
                 <li class="{% if p == results.number %}disabled{% else %}enabled{% endif %}"><a href="?q={{ query_string }}&page={{ p }}">{{ p }}</a></li>
                 {% endfor %}
                 <li class="{% if results.has_next %}enabled{% else %}disabled{% endif %}"><a href="{% if results.has_next %}?q={{ query_string }}&page={{ results.next_page_number }}{% else %}#{% endif %}">&raquo;</a></li>
