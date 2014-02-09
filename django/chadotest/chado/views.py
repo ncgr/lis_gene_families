@@ -76,17 +76,28 @@ def search(request, template_name):
     # redirect if there wasn't a query
 	return redirect(request.META.get('HTTP_REFERER', '/chado/'))
 
-def search_phylo(request, feature_id, template_name):
-    feature = get_object_or_404(Feature, pk=feature_id)
-    tree_ids = Phylonode.objects.filter(feature=feature).values_list('phylotree', flat=True)
-    trees = Phylotree.objects.filter(pk__in=tree_ids)
-    return render(request, template_name, {'feature' : feature, 'trees' : trees, 'count' : trees.count})
+def search_organism(request, template_name):
+    if 'results' not in request.session:
+        initialize_results_session(request)
+    organism_ids = Feature.objects.filter(pk__in=request.session['results'].keys()).values_list('organism_id', flat=True)
+    organisms = Organism.objects.filter(pk__in=organism_ids)
+    return render(request, template_name, {'organisms' : organisms})
 
-def search_msa(request, feature_id, template_name):
-    feature = get_object_or_404(Feature, pk=feature_id)
-    msa_ids = Featureloc.objects.filter(feature=feature).values_list('srcfeature', flat=True)
+def search_msa(request, template_name):
+    if 'results' not in request.session:
+        initialize_results_session(request)
+    features = Feature.objects.filter(pk__in=request.session['results'].keys())
+    msa_ids = Featureloc.objects.filter(feature__in=features).values_list('srcfeature', flat=True)
     msas = Feature.objects.filter(type__name='consensus', pk__in=msa_ids)
-    return render(request, template_name, {'feature' : feature, 'msas' : msas, 'count' : msas.count})
+    return render(request, template_name, {'msas' : msas})
+
+def search_phylo(request, template_name):
+    if 'results' not in request.session:
+        initialize_results_session(request)
+    features = Feature.objects.filter(pk__in=request.session['results'].keys())
+    tree_ids = Phylonode.objects.filter(feature__in=features).values_list('phylotree', flat=True)
+    trees = Phylotree.objects.filter(pk__in=tree_ids)
+    return render(request, template_name, {'trees' : trees})
 
 def get_msa(request, redirect_template_name, phylo_tree):
     pass

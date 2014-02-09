@@ -60,13 +60,13 @@
                 <div class="nav-collapse collapse bs-navbar-collapse">
                     <ul class="nav navbar-nav">
                         <li>
-                            <a>Organisms</a>
+                            <a href="{% url 'search_organism' %}">Organisms</a>
                         </li>
                         <li>
-                            <a>Multiple Sequence Alignments</a>
+                            <a href="{% url 'search_msa' %}">Multiple Sequence Alignments</a>
                         </li>
                         <li>
-                            <a>Phylogenetic Trees</a>
+                            <a href="{% url 'search_phylo' %}">Phylogenetic Trees</a>
                         </li>
                         <li>
                             <a id="clear" href="#">Clear</a>
@@ -93,18 +93,13 @@
                 <tr>
                     <th>Name</th>
                     <th></th>
-                    <th></th>
                 </tr>
             </thead>
             <tbody>
                 {% for r in results %}
                 <tr>
                     <td><button data-id="{{ r.feature.pk }}" data-name="{{ r.feature.name }}" type="button" class="btn {% if r.feature.pk in selected %}btn-danger">Remove{% else %}btn-default">Add{% endif %}</button>&nbsp;&nbsp;{{ r.feature.name }}</td>
-                    <td><a href="{% url 'search_msa' r.feature.pk %}">multiple sequence alignments</a></td>
-                    <td><a href="{% url 'search_phylo'  r.feature.pk %}">phylogenetic trees</a></td>
-                </tr>
-                <tr>
-                    <td colsapn="3">
+                    <td>
                         <b>CV Term:</b> {{ r.cvterm.name }}<br/>
                         <b>CV Description:</b> {{ r.cvterm.description }}
                     </td>
