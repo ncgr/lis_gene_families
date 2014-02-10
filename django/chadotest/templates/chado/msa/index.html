@@ -5,7 +5,7 @@
     <div class="row">
         <div class="col-lg-12">
             <h1>Multiple Sequence Alignments</h1>
-            <p class="lead">There a currently {{ count }} multiple sequence alignments in the database.</p>
+            <p class="lead">There a currently {{ msas.paginator.count }} multiple sequence alignments in the database.</p>
         </div>
     </div>
 </div>
@@ -17,7 +17,7 @@
                 <div class="col-sm-10">
                     <select class="form-control" ONCHANGE="location = '?page={{ results.number }}&num=' + this.options[this.selectedIndex].value;">
                         {% for o in result_nums %}
-                        <option{% if o == num %} selected{% endif %}>{{ o }}</option>
+                        <option{% if o == msas.paginator.per_page %} selected{% endif %}>{{ o }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -43,7 +43,7 @@
         <div style="text-align: center">
             <ul class="pagination">
                 <li class="{% if msas.has_previous %}enabled{% else %}disabled{% endif %}"><a href="{% if msas.has_previous %}?page={{ msas.previous_page_number }}{% else %}#{% endif %}">&laquo;</a></li>
-                {% for p in msas.paginator.page_range %}
+                {% for p in msas.paginator.display_page_range %}
                 <li class="{% if p == msas.number %}disabled{% else %}enabled{% endif %}"><a href="?page={{ p }}">{{ p }}</a></li>
                 {% endfor %}
                 <li class="{% if msas.has_next %}enabled{% else %}disabled{% endif %}"><a href="{% if msas.has_next %}?page={{ msas.next_page_number }}{% else %}#{% endif %}">&raquo;</a></li>

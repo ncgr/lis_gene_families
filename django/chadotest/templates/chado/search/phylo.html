@@ -4,8 +4,8 @@
 <div class="page-header" id=banner">
     <div class="row">
         <div class="col-lg-12">
-            <h1>Phylogenetic trees for "{{ feature.name }}"</h1>
-            <p class="lead">{{ count }} results.</p>
+            <h1>Search based phylogenetic trees</h1>
+            <p class="lead">{{ trees.count }} results.</p>
         </div>
     </div>
 </div>
@@ -23,9 +23,6 @@
                 <tr>
                     <td>{{ t.name }}</td>
                     <td><a href="{% url 'phylo_view_slide' t.pk %}">view</a></td>
-                </tr>
-                <tr>
-                    <td colspan="2">Organisms</td>
                 </tr>
                 {% endfor %}
             </tbody>

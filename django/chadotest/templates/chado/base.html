@@ -12,13 +12,13 @@
 <body>
 <div class="navbar navbar-fixed-top">
   <div class="container">
-    <button class="navbar-toggle" type="button" data-toggle="collapse" data-target=".bs-navbar-collapse">
+    <button class="navbar-toggle" type="button" data-toggle="collapse" data-target=".navbar-collapse">
       <span class="icon-bar"></span>
       <span class="icon-bar"></span>
       <span class="icon-bar"></span>
     </button>
     <a href="{% url 'index' %}" class="navbar-brand">LIS &cap; Chado</a>
-    <div class="nav-collapse collapse bs-navbar-collapse">
+    <div class="nav-collapse collapse navbar-collapse">
       <ul class="nav navbar-nav">
         <li>
           <a href="{% url 'organism_index' %}">Organisms</a>
@@ -29,10 +29,12 @@
         <li>
           <a href="{% url 'phylo_index' %}">Phylogenetic Trees</a>
         </li>
+        <li>
+            <form action="{% url 'search' %}" method="GET" class="navbar-form" role="search">
+                    <input type="text" name="q" class="form-control" placeholder="Search">
+            </form>
+        </li>
       </ul>
-      <form action="{% url 'search' %}" method="GET" class="navbar-form pull-right" role="search">
-              <input type="text" name="q" class="form-control" placeholder="Search">
-      </form>
     </div>
   </div>
 </div>

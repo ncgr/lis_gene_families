@@ -36,8 +36,9 @@ urlpatterns = patterns('chado.views',
 
     # search
     url(r'^search/$', 'search', {'template_name' : 'chado/search/index.html'}, name='search'),
-    url(r'^search/phylo/(?P<feature_id>\d+)/$', 'search_phylo', {'template_name' : 'chado/search/phylo.html'}, name='search_phylo'),
-    url(r'^search/msa/(?P<feature_id>\d+)/$', 'search_msa', {'template_name' : 'chado/search/msa.html'}, name='search_msa'),
+    url(r'^search/organism/$', 'search_organism', {'template_name' : 'chado/search/organism.html'}, name='search_organism'),
+    url(r'^search/msa/$', 'search_msa', {'template_name' : 'chado/search/msa.html'}, name='search_msa'),
+    url(r'^search/phylo/$', 'search_phylo', {'template_name' : 'chado/search/phylo.html'}, name='search_phylo'),
     # ajax
     url(r'^search/add/$', 'search_add_result_ajax', name='search_add_result_ajax'),
     url(r'^search/remove/$', 'search_remove_result_ajax', name='search_remove_result_ajax'),
