@@ -60,13 +60,13 @@
                 <div class="nav-collapse collapse bs-navbar-collapse">
                     <ul class="nav navbar-nav">
                         <li>
-                            <a href="{% url 'search_organism' %}">Organisms</a>
+                            <a href="{% url 'search_organism' %}?q={{ query_string }}">Organisms</a>
                         </li>
                         <li>
-                            <a href="{% url 'search_msa' %}">Multiple Sequence Alignments</a>
+                            <a href="{% url 'search_msa' %}?q={{ query_string }}&clear">Multiple Sequence Alignments</a>
                         </li>
                         <li>
-                            <a href="{% url 'search_phylo' %}">Phylogenetic Trees</a>
+                            <a href="{% url 'search_phylo' %}?q={{ query_string }}&clear">Phylogenetic Trees</a>
                         </li>
                         <li>
                             <a id="clear" href="#">Clear</a>
@@ -226,8 +226,25 @@
 
         // when a result is clicked in the navbar
         $(document.body).on('click', '#selected > tbody button', function() {
-            toggleButton($(this).data('id'));
-            removeRow($(this).data('id'));
+            var id = $(this).data('id');
+            $.ajax({
+                    url: "{% url 'search_remove_result_ajax' %}",
+                    data: {
+                        result: id,
+                        // all pages are protected against csrf so we need to pass the token for this page
+                        csrfmiddlewaretoken: '{{ csrf_token }}'
+                    },
+                    contentType: "application/json;charset=utf-8",
+                    dataType: "text",
+                    success: function() {
+                        removeRow(id);
+                        toggleButton(id);
+                    },
+                    error: function(ts) { 
+                        // this is for debugging, not production!
+                        alert(ts.responseText);
+                    }
+            });
         });
 
         // when the navbar clear button is clicked
