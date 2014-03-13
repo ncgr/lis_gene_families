@@ -83,7 +83,7 @@
         <table id="results" class="table table-striped table-bordered table-hover">
             <thead>
                 <tr>
-                    <th>Name</th>
+                    <th><button id="add-all" type="button" class="btn btn-default">Add all</button>&nbsp;&nbsp;Name</th>
                     <th></th>
                 </tr>
             </thead>
@@ -126,6 +126,10 @@
     };
 
     $(document).ready(function() {
+        
+        // total results on this page helper variable
+        var result_count = {{ result_msas.end_index }} - {{ result_msas.start_index }} + 1;
+
         // highlight search query
         $("#results *").highlight("{{ query_string }}", "highlight");
 
@@ -150,6 +154,11 @@
             $('#collapsible').collapse('toggle');
         });
 
+        // add result to navbar
+        var addRow = function(id, name) {
+            $('#selected > tbody:last').append('<tr class="active"><td><button type="button" data-id="'+id+'" class="btn btn-danger">Remove</button>&nbsp;'+name+'</button></td></tr>');
+        };
+
         // remove results from navbar
         var removeRow = function(id) {
             $('#selected > tbody button[data-id="'+id+'"]').closest('tr').remove();
@@ -168,6 +177,82 @@
             }
         };
 
+        // toggle to add all button
+        var toggleAllButton = function() {
+            if ($('#add-all').hasClass('btn-default')) {
+                $('#add-all').removeClass('btn-default');
+                $('#add-all').addClass('btn-danger');
+                $('#add-all').text('Remove all');
+            } else {
+                $('#add-all').removeClass('btn-danger');
+                $('#add-all').addClass('btn-default');
+                $('#add-all').text('Add all');
+            }
+        };
+
+        if ($('#results > tbody button.btn-danger').length == result_count) {
+            toggleAllButton();
+        }
+
+        // when the add all button is clicked
+        $('#add-all').on('click', function() {
+            if ($(this).hasClass('btn-default')) {
+                var to_add = [];
+                $('#results > tbody button.btn-default').each(function() {
+                    to_add.push($(this).data('id'));
+                });
+                $.ajax({
+                    url: "{% url 'search_msa_add_all_ajax' %}",
+                    data: {
+                        results: to_add,
+                        // all pages are protected against csrf so we need to pass the token for this page
+                        csrfmiddlewaretoken: '{{ csrf_token }}'
+                    },
+                    contextType: "application/json;charset=utf-8",
+                    dataType: "text",
+                    success: function() {
+                        toggleAllButton();
+                        // set all buttons that aren't added to remove and add them to the cart
+                        $('#results > tbody button.btn-default').each(function() {
+                            var id = $(this).data('id');
+                            toggleButton(id);
+                            addRow(id, $(this).data('name'));
+                        });
+                    },
+                    error: function(ts) {
+                        alert(ts.responseText);
+                    }
+                });
+            } else {
+                var to_remove = [];
+                $('#results > tbody button.btn-danger').each(function() {
+                    to_remove.push($(this).data('id'));
+                });
+                $.ajax({
+                    url: "{% url 'search_msa_remove_all_ajax' %}",
+                    data: {
+                        results: to_remove,
+                        // all pages are protected against csrf so we need to pass the toke for this page
+                        csrfmiddlewaretoken: '{{ csrf_token }}'
+                    },
+                    contentType: "application/json;charset=utf-8",
+                    dataType: "text",
+                    success: function() {
+                        toggleAllButton();
+                        // remove all rows from the current page in the cart
+                        $('#results > tbody button.btn-danger').each(function() {
+                            var id = $(this).data('id');
+                            toggleButton(id);
+                            removeRow(id);
+                        });
+                    },
+                    error: function(ts) {
+                        alert(ts.responseText);
+                    }
+                });
+            }
+        });
+
         // when a result in the result table is clicked
         $('#results > tbody button').on('click', function() {
             var id = $(this).data('id');
@@ -183,8 +268,11 @@
                         contentType: "application/json;charset=utf-8",
                         dataType: "text",
                         success: function() {
-                            $('#selected > tbody:last').append('<tr class="active"><td><button type="button" data-id="'+id+'" class="btn btn-danger">Remove</button>&nbsp;'+name+'</button></td></tr>');
+                            addRow(id, name);
                             toggleButton(id);
+                            if ($('#add-all').hasClass('btn-default') && $('#results > tbody button.btn-danger').length == result_count) {
+                                toggleAllButton();
+                            }
                         },
                         error: function(ts) { 
                             // this is for debugging, not production!
@@ -202,6 +290,9 @@
                         contentType: "application/json;charset=utf-8",
                         dataType: "text",
                         success: function() {
+                            if ($('#add-all').hasClass('btn-danger') && $('#results > tbody button.btn-danger').length == result_count) {
+                                toggleAllButton();
+                            }
                             removeRow(id);
                             toggleButton(id);
                         },
@@ -226,6 +317,9 @@
                     contentType: "application/json;charset=utf-8",
                     dataType: "text",
                     success: function() {
+                        if ($('#add-all').hasClass('btn-danger') && $('#results > tbody button.btn-danger').length == result_count) {
+                            toggleAllButton();
+                        }
                         removeRow(id);
                         toggleButton(id);
                     },
@@ -251,6 +345,9 @@
                         $('#selected > tbody button').each( function() {
                             toggleButton($(this).data('id'));
                         });
+                        if ($('#add-all').hasClass('btn-danger')) {
+                            toggleAllButton();
+                        }
                         $('#selected > tbody').html('');
                     },
                     error: function(ts) { 

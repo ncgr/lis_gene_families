@@ -157,6 +157,33 @@ def search_remove_result_ajax(request, who):
         return HttpResponse('OK')
     return HttpResponseBadRequest('Bad Request')
 
+def search_add_all_ajax(request, who):
+    print who
+    if request.is_ajax():
+        if 'results_'+who not in request.session:
+            initialize_results_session(request, who)
+        results = None
+        if who == 'phylo':
+            results = Phylotree.objects.filter(pk__in=request.GET.getlist('results[]'))
+        else:
+            results = Feature.objects.filter(pk__in=request.GET.getlist('results[]'))
+        for r in results:
+            request.session['results_'+who][r.pk] = r.name
+        return HttpResponse('OK');
+    return HttpResponseBadRequest('Bad Request')
+
+def search_remove_all_ajax(request, who):
+    if request.is_ajax():
+        if 'results_'+who not in request.session:
+            initialize_results_session(request, who)
+        else:
+            results = Feature.objects.filter(pk__in=request.GET.getlist('results[]'))
+            for pk in map(int, request.GET.getlist('results[]')):
+                if pk in request.session['results_'+who]:
+                    del request.session['results_'+who][pk]
+        return HttpResponse('OK');
+    return HttpResponseBadResquest('Bad Request')
+
 def search_clear_results_ajax(request, who):
     if request.is_ajax():
         initialize_results_session(request, who)
