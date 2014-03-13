@@ -63,68 +63,74 @@ def get_query(query_string, search_fields):
 
 
 def search(request, template_name):
+    # remove the previous search session data
+    for k in request.session.keys():
+        if k.startswith('results_'):
+            del request.session[k]
     # if there's a query
     if 'q' in request.GET and request.GET['q'].strip():
         query_string = request.GET['q']
         term_query = get_query(query_string, ['cvterm__name', 'cvterm__definition',])
         results = FeatureCvterm.objects.filter(term_query)
-        return render(request, template_name, {'query_string' : query_string, 'results' : paginate(request, results, 'search_num'), 'result_nums' : RESULT_NUMS, 'selected' : get_results(request)})
+        return render(request, template_name, {'query_string' : query_string, 'results' : paginate(request, results, 'search_num'), 'result_nums' : RESULT_NUMS, 'selected' : get_results(request, 0)})
     # redirect if there wasn't a query
 	return redirect(request.META.get('HTTP_REFERER', '/chado/'))
 
-def search_organism(request, template_name):
+def search_organism(request, depth, template_name):
     # if there's a query
     if 'q' in request.GET and request.GET['q'].strip():
-        organism_ids = Feature.objects.filter(pk__in=get_results(request).keys()).values_list('organism_id', flat=True)
+        organism_ids = Feature.objects.filter(pk__in=get_results(request, depth).keys()).values_list('organism_id', flat=True)
         result_organisms = Organism.objects.filter(pk__in=organism_ids)
-        return render(request, template_name, {'query_string' : request.GET['q'], 'result_organisms' : paginate(request, result_organisms, 'search_organism_num'), 'result_nums' : RESULT_NUMS})
+        return render(request, template_name, {'query_string' : request.GET['q'], 'result_organisms' : paginate(request, result_organisms, 'search_organism_num'), 'result_nums' : RESULT_NUMS, 'depth' : depth})
     # redirect if there wasn't a query
 	return redirect(request.META.get('HTTP_REFERER', '/chado/'))
 
-def search_msa(request, template_name):
+def search_msa(request, depth, template_name):
     # if there's a query
     if 'q' in request.GET and request.GET['q'].strip():
         # get the msas
-        features = Feature.objects.filter(pk__in=get_results(request).keys())
+        features = Feature.objects.filter(pk__in=get_results(request, depth).keys())
         msa_ids = Featureloc.objects.filter(feature__in=features).values_list('srcfeature', flat=True)
         result_msas = Feature.objects.filter(type__name='consensus', pk__in=msa_ids)
-        return render(request, template_name, {'query_string' : request.GET['q'], 'result_msas' : paginate(request, result_msas, 'search_msa_num'), 'result_nums' : RESULT_NUMS, 'selected' : get_results(request, 'msa')})
+        return render(request, template_name, {'query_string' : request.GET['q'], 'result_msas' : paginate(request, result_msas, 'search_msa_num'), 'result_nums' : RESULT_NUMS, 'selected' : get_results(request, depth, 'msa'), 'depth' : depth})
     # redirect if there wasn't a query
 	return redirect(request.META.get('HTTP_REFERER', '/chado/'))
 
-def search_phylo(request, template_name):
+def search_phylo(request, depth, template_name):
     # if there's a query
     if 'q' in request.GET and request.GET['q'].strip():
         # get the msas
-        features = Feature.objects.filter(pk__in=get_results(request).keys())
+        features = Feature.objects.filter(pk__in=get_results(request, depth).keys())
         tree_ids = Phylonode.objects.filter(feature__in=features).values_list('phylotree', flat=True)
         result_trees = Phylotree.objects.filter(pk__in=tree_ids)
-        return render(request, template_name, {'query_string' : request.GET['q'], 'result_trees' : paginate(request, result_trees, 'search_phylo_num'), 'result_nums' : RESULT_NUMS, 'selected' : get_results(request, 'phylo')})
+        return render(request, template_name, {'query_string' : request.GET['q'], 'result_trees' : paginate(request, result_trees, 'search_phylo_num'), 'result_nums' : RESULT_NUMS, 'selected' : get_results(request, depth, 'phylo'), 'depth' : depth})
     # redirect if there wasn't a query
 	return redirect(request.META.get('HTTP_REFERER', '/chado/'))
 
-def search_feature(request, template_name, who):
+def search_feature(request, depth, template_name, who):
     if 'q' in request.GET and request.GET['q'].strip():
+        # note, depth is incremented every time features come around
+        new_depth = int(depth)+1
         result_features = None
         if who == 'phylo':
             #phylonode = get_object_or_404(Phylonode, pk=phylonode_id)
-            result_features = Feature.objects.filter(pk__in=Phylonode.objects.filter(phylotree__pk__in=get_results(request, 'phylo')).values_list('feature_id', flat=True))
+            result_features = Feature.objects.filter(pk__in=Phylonode.objects.filter(phylotree__pk__in=get_results(request, depth, 'phylo')).values_list('feature_id', flat=True))
         else:
             #consensus_ids = get_object_or_404(Feature, pk=feature_id)
-            result_features = Feature.objects.filter(pk__in=Featureloc.objects.filter(srcfeature__pk__in=get_results(request, 'msa').keys()).values_list('feature_id', flat=True))
-        return render(request, template_name, {'query_string' : request.GET['q'], 'result_features' : paginate(request, result_features, 'search_feature_num'), 'result_nums' : RESULT_NUMS})
+            result_features = Feature.objects.filter(pk__in=Featureloc.objects.filter(srcfeature__pk__in=get_results(request, depth, 'msa').keys()).values_list('feature_id', flat=True))
+        return render(request, template_name, {'query_string' : request.GET['q'], 'result_features' : paginate(request, result_features, 'search_feature_num'), 'result_nums' : RESULT_NUMS, 'selected' : get_results(request, new_depth), 'depth' : new_depth})
     # rediect if there wasn't a query
     return redirect(request.META.get('HTTP_REFERER', '/chado/'))
 
-def initialize_results_session(request, who=''):
-    request.session['results_'+who] = {}
+def initialize_results_session(request, depth, who=''):
+    request.session['results_'+str(depth)+who] = {}
 
-def get_results(request, who=''):
-    if 'results_'+who not in request.session:
-        request.session['results_'+who] = {}
-    return request.session['results_'+who]
+def get_results(request, depth, who=''):
+    if 'results_'+str(depth)+who not in request.session:
+        request.session['results_'+str(depth)+who] = {}
+    return request.session['results_'+str(depth)+who]
 
-def search_add_result_ajax(request, who):
+def search_add_result_ajax(request, depth, who):
     if request.is_ajax():
         result = None
         try:
@@ -134,13 +140,13 @@ def search_add_result_ajax(request, who):
                 result = Feature.objects.get(pk=request.GET['result'])
         except DoesNotExist:
             return HttpResponseBadRequest('Bad Request')
-        if 'results_'+who not in request.session:
-            initialize_results_session(request, who)
-        request.session['results_'+who][result.pk] = result.name
+        if 'results_'+str(depth)+who not in request.session:
+            initialize_results_session(request, depth, who)
+        request.session['results_'+str(depth)+who][result.pk] = result.name
         return HttpResponse('OK')
     return HttpResponseBadRequest('Bad Request')
 
-def search_remove_result_ajax(request, who):
+def search_remove_result_ajax(request, depth, who):
     if request.is_ajax():
         result = None
         try:
@@ -150,16 +156,42 @@ def search_remove_result_ajax(request, who):
                 result = Feature.objects.get(pk=request.GET['result'])
         except DoesNotExist:
             return HttpResponseBadRequest('Bad Request')
-        if 'results_'+who not in request.session:
-            initialize_results_session(request, who)
-        if result.pk in request.session['results_'+who]:
-            del request.session['results_'+who][result.pk]
+        if 'results_'+str(depth)+who not in request.session:
+            initialize_results_session(request, depth, who)
+        if result.pk in request.session['results_'+str(depth)+who]:
+            del request.session['results_'+str(depth)+who][result.pk]
         return HttpResponse('OK')
     return HttpResponseBadRequest('Bad Request')
 
-def search_clear_results_ajax(request, who):
+def search_add_all_ajax(request, depth, who):
     if request.is_ajax():
-        initialize_results_session(request, who)
+        if 'results_'+str(depth)+who not in request.session:
+            initialize_results_session(request, depth, who)
+        results = None
+        if who == 'phylo':
+            results = Phylotree.objects.filter(pk__in=request.GET.getlist('results[]'))
+        else:
+            results = Feature.objects.filter(pk__in=request.GET.getlist('results[]'))
+        for r in results:
+            request.session['results_'+str(depth)+who][r.pk] = r.name
+        return HttpResponse('OK');
+    return HttpResponseBadRequest('Bad Request')
+
+def search_remove_all_ajax(request, depth, who):
+    if request.is_ajax():
+        if 'results_'+str(depth)+who not in request.session:
+            initialize_results_session(request, depth, who)
+        else:
+            results = Feature.objects.filter(pk__in=request.GET.getlist('results[]'))
+            for pk in map(int, request.GET.getlist('results[]')):
+                if pk in request.session['results_'+str(depth)+who]:
+                    del request.session['results_'+str(depth)+who][pk]
+        return HttpResponse('OK');
+    return HttpResponseBadResquest('Bad Request')
+
+def search_clear_results_ajax(request, depth, who):
+    if request.is_ajax():
+        initialize_results_session(request, depth, who)
         return HttpResponse('OK')
     return HttpResponseBadRequest('Bad Request')
 
