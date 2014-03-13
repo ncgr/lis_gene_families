@@ -60,7 +60,7 @@
                 <div class="nav-collapse collapse bs-navbar-collapse">
                     <ul class="nav navbar-nav">
                         <li>
-                            <a href="{% url 'search_phylo_feature' %}?q={{ query_string }}">Features</a>
+                            <a href="{% url 'search_phylo_feature' depth %}?q={{ query_string }}">Features</a>
                         </li>
                         <li>
                             <a id="clear" href="#">Clear</a>
@@ -199,13 +199,14 @@
 
         // when the add all button is clicked
         $('#add-all').on('click', function() {
-            if ($(this).hasClass('btn-default')) {
+            if ($(this).hasClass('btn-default') && $('#results > tbody button').length > 0) {
+                console.log($('#results > tbody button.btn-danger'));
                 var to_add = [];
                 $('#results > tbody button.btn-default').each(function() {
                     to_add.push($(this).data('id'));
                 });
                 $.ajax({
-                    url: "{% url 'search_phylo_add_all_ajax' %}",
+                    url: "{% url 'search_phylo_add_all_ajax' depth %}",
                     data: {
                         results: to_add,
                         // all pages are protected against csrf so we need to pass the token for this page
@@ -232,7 +233,7 @@
                     to_remove.push($(this).data('id'));
                 });
                 $.ajax({
-                    url: "{% url 'search_phylo_remove_all_ajax' %}",
+                    url: "{% url 'search_phylo_remove_all_ajax' depth %}",
                     data: {
                         results: to_remove,
                         // all pages are protected against csrf so we need to pass the toke for this page
@@ -262,7 +263,7 @@
             if ($(this).hasClass('btn-default')) {
                 var name = $(this).data('name');
                 $.ajax({
-                        url: "{% url 'search_phylo_add_result_ajax' %}",
+                        url: "{% url 'search_phylo_add_result_ajax' depth %}",
                         data: {
                             result: id,
                             // all pages are protected against csrf so we need to pass the token for this page
@@ -284,7 +285,7 @@
                 });
             } else {
                 $.ajax({
-                        url: "{% url 'search_phylo_remove_result_ajax' %}",
+                        url: "{% url 'search_phylo_remove_result_ajax' depth %}",
                         data: {
                             result: id,
                             // all pages are protected against csrf so we need to pass the token for this page
@@ -311,7 +312,7 @@
         $(document.body).on('click', '#selected > tbody button', function() {
             var id = $(this).data('id');
             $.ajax({
-                    url: "{% url 'search_phylo_remove_result_ajax' %}",
+                    url: "{% url 'search_phylo_remove_result_ajax' depth %}",
                     data: {
                         result: id,
                         // all pages are protected against csrf so we need to pass the token for this page
@@ -337,7 +338,7 @@
         $('#clear').on('click', function(e) {
             e.preventDefault();
             $.ajax({
-                    url: "{% url 'search_phylo_clear_results_ajax' %}",
+                    url: "{% url 'search_phylo_clear_results_ajax' depth %}",
                     data: {
                         // all pages are protected against csrf so we need to pass the token for this page
                         csrfmiddlewaretoken: '{{ csrf_token }}'
