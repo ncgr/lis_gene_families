@@ -158,7 +158,6 @@ def search_remove_result_ajax(request, who):
     return HttpResponseBadRequest('Bad Request')
 
 def search_add_all_ajax(request, who):
-    print who
     if request.is_ajax():
         if 'results_'+who not in request.session:
             initialize_results_session(request, who)

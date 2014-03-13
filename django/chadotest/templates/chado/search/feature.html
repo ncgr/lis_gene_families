@@ -1,5 +1,26 @@
 {% extends 'chado/base.html' %}
 {% load static %}
+{% block css %}
+<style type="text/css">
+.sticky {
+    position: fixed;
+    width: 100%;
+    left: 0;
+    top: 50px; /* below the main navbar */
+    z-index: 100;
+    border-top: 0;
+} 
+#collapsible { /* hides by default */
+    height: 0;
+    overflow: hidden;
+}
+#table_wrapper {
+    max-height: 300px;
+    overflow: auto;
+    margin: 0 0 20px 0;
+}
+</style>
+{% endblock %}
 {% block content %}
 <div class="page-header" id=banner">
     <div class="row">
@@ -24,19 +45,57 @@
             </div>
         </form>
         <p>Viewing results {{ result_features.start_index }} through {{ result_features.end_index }}</p>
+        <div class="navbar navbar-inverse">
+            <div class="container">
+                <button class="navbar-toggle" type="button" data-toggle="collapse" data-target=".bs-navbar-collapse">
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a href="" id="collapse_trigger"  class="navbar-brand">Selected &#x25BC;</a>
+                <div class="nav-collapse collapse bs-navbar-collapse">
+                    <ul class="nav navbar-nav">
+                        <li>
+                            <a href="{% url 'search_organism' %}?q={{ query_string }}">Organisms</a>
+                        </li>
+                        <li>
+                            <a href="{% url 'search_msa' %}?q={{ query_string }}">Multiple Sequence Alignments</a>
+                        </li>
+                        <li>
+                            <a href="{% url 'search_phylo' %}?q={{ query_string }}">Phylogenetic Trees</a>
+                        </li>
+                        <li>
+                            <a id="clear" href="#">Clear</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div id="collapsible">
+                <div id="table_wrapper">
+                    <table id="selected" class="table table-bordered" style="margin-bottom: 0;">
+                        <tbody>
+                            {% for id, name in selected.items %}
+                            <tr>
+                                <td class="active"><button data-id="{{ id }}" class="btn btn-danger">Remove</button>&nbsp;{{ name }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
         <table class="table table-striped table-bordered table-hover">
             <thead>
                 <tr>
-                    <th>Name</th>
-                    <th>Organism</th>
+                    <th><button id="add-all" data-page="{{ results.number }}" type="button" class="btn btn-default">Add all</button>&nbsp;&nbsp;Name</th>
                     <th></th>
                 </tr>
             </thead>
             <tbody>
             {% for r in result_features %}
                 <tr>
-                    <td>{{ r.name }}</td>
-                    <td>{{ r.organism.common_name }}</td>
+                    <td><button data-id="{{ r.feature.pk }}" data-name="{{ r.feature.name }}" type="button" class="btn {% if r.feature.pk in selected %}btn-danger">Remove{% else %}btn-default">Add{% endif %}</button>&nbsp;&nbsp;{{ r.name }}</td>
                     <td><a href="{% url 'feature_view' r.feature_id %}">view</a></td>
                 </tr>
             {% endfor %}
@@ -53,4 +112,39 @@
         </div>
     </div>
 </div>
+{% endblock %}
+{% block javascript %}
+<script type="text/javascript" src="{% static 'js/jquery-1.10.2.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/bootstrap.min.js' %}"></script>
+<script type="text/javascript">
+
+    $(document).ready(function() {
+
+        // total results on this page helper variable
+        var result_count = {{ result_features.end_index }} - {{ result_features.start_index }} + 1;
+
+        // sticky navbar
+        var stickyNavTop = $('.navbar-inverse').offset().top;
+        var stickyNav = function(){
+            var scrollTop = $(window).scrollTop()+50; // pad for the main navbar
+            if (scrollTop > stickyNavTop) {   
+                $('.navbar-inverse').addClass('sticky');  
+            } else {
+                $('.navbar-inverse').removeClass('sticky');   
+            }
+        };
+        stickyNav();  
+        $(window).scroll(function() {
+            stickyNav();  
+        });
+
+        // collapsible navbar
+        $('#collapse_trigger').on('click', function(e) {
+            console.log("click");
+            e.preventDefault();
+            $('#collapsible').collapse('toggle');
+        });
+
+    });
+</script>
 {% endblock %}
