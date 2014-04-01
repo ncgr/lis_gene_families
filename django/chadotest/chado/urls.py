@@ -35,7 +35,9 @@ urlpatterns = patterns('chado.views',
     url(r'^cvterm/(?P<cvterm_id>\d+)/$', 'cvterm_view', {'template_name' : 'chado/cvterm/view.html'}, name='cvterm_view'),
 
     # search
-    url(r'^search/$', 'search', {'template_name' : 'chado/search/index.html'}, name='search'),
+    #url(r'^search_new/$', 'search_new', {'template_name' : 'chado/search/index.html'}, name='search_new'),
+    url(r'^search/$', 'search', name='search'),
+    url(r'^search/(?P<depth>\d+)/new/$', 'search_feature', {'template_name' : 'chado/search/index.html', 'who' : 'search'}, name='search_new_feature'),
     url(r'^search/(?P<depth>\d+)/organism/$', 'search_organism', {'template_name' : 'chado/search/organism.html'}, name='search_organism'),
     url(r'^search/(?P<depth>\d+)/msa/$', 'search_msa', {'template_name' : 'chado/search/msa.html'}, name='search_msa'),
     url(r'^search/(?P<depth>\d+)/msa/feature/$', 'search_feature', {'template_name' : 'chado/search/feature.html', 'who' : 'msa'}, name='search_msa_feature'),

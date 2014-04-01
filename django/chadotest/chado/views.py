@@ -62,19 +62,28 @@ def get_query(query_string, search_fields):
     return query
 
 
-def search(request, template_name):
-    # remove the previous search session data
-    for k in request.session.keys():
-        if k.startswith('results_'):
-            del request.session[k]
-    # if there's a query
+# a helper function that destroys all previous carts when a new search is conducted
+def search(request):
     if 'q' in request.GET and request.GET['q'].strip():
-        query_string = request.GET['q']
-        term_query = get_query(query_string, ['cvterm__name', 'cvterm__definition',])
-        results = FeatureCvterm.objects.filter(term_query)
-        return render(request, template_name, {'query_string' : query_string, 'results' : paginate(request, results, 'search_num'), 'result_nums' : RESULT_NUMS, 'selected' : get_results(request, 0)})
-    # redirect if there wasn't a query
-	return redirect(request.META.get('HTTP_REFERER', '/chado/'))
+        print "found question"
+        # remove the previous search session data
+        for k in request.session.keys():
+            if k.startswith('results_'):
+                del request.session[k]
+        return redirect('/chado/search/0/new/?q='+request.GET['q']);
+    return redirect(request.META.get('HTTP_REFERER', '/chado/'))
+
+
+#def search(request, template_name):
+#    print "searching"
+#    # if there's a query
+#    if 'q' in request.GET and request.GET['q'].strip():
+#        query_string = request.GET['q']
+#        term_query = get_query(query_string, ['cvterm__name', 'cvterm__definition',])
+#        results = FeatureCvterm.objects.filter(term_query)
+#        return render(request, template_name, {'query_string' : query_string, 'results' : paginate(request, results, 'search_num'), 'result_nums' : RESULT_NUMS, 'selected' : get_results(request, 0)})
+#    # redirect if there wasn't a query
+#	return redirect(request.META.get('HTTP_REFERER', '/chado/'))
 
 def search_organism(request, depth, template_name):
     # if there's a query
@@ -108,17 +117,22 @@ def search_phylo(request, depth, template_name):
 	return redirect(request.META.get('HTTP_REFERER', '/chado/'))
 
 def search_feature(request, depth, template_name, who):
+    print "template_name" + template_name
     if 'q' in request.GET and request.GET['q'].strip():
         # note, depth is incremented every time features come around
         new_depth = int(depth)+1
         result_features = None
-        if who == 'phylo':
+        if who == 'search':
+            query_string = request.GET['q']
+            term_query = get_query(query_string, ['cvterm__name', 'cvterm__definition',])
+            results = FeatureCvterm.objects.filter(term_query)
+        elif who == 'phylo':
             #phylonode = get_object_or_404(Phylonode, pk=phylonode_id)
-            result_features = Feature.objects.filter(pk__in=Phylonode.objects.filter(phylotree__pk__in=get_results(request, depth, 'phylo')).values_list('feature_id', flat=True))
+            results = Feature.objects.filter(pk__in=Phylonode.objects.filter(phylotree__pk__in=get_results(request, depth, 'phylo')).values_list('feature_id', flat=True))
         else:
             #consensus_ids = get_object_or_404(Feature, pk=feature_id)
-            result_features = Feature.objects.filter(pk__in=Featureloc.objects.filter(srcfeature__pk__in=get_results(request, depth, 'msa').keys()).values_list('feature_id', flat=True))
-        return render(request, template_name, {'query_string' : request.GET['q'], 'result_features' : paginate(request, result_features, 'search_feature_num'), 'result_nums' : RESULT_NUMS, 'selected' : get_results(request, new_depth), 'depth' : new_depth})
+            results = Feature.objects.filter(pk__in=Featureloc.objects.filter(srcfeature__pk__in=get_results(request, depth, 'msa').keys()).values_list('feature_id', flat=True))
+        return render(request, template_name, {'query_string' : request.GET['q'], 'results' : paginate(request, results, 'search_feature_num'), 'result_nums' : RESULT_NUMS, 'selected' : get_results(request, new_depth), 'depth' : new_depth})
     # rediect if there wasn't a query
     return redirect(request.META.get('HTTP_REFERER', '/chado/'))
 
