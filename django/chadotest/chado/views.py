@@ -65,7 +65,6 @@ def get_query(query_string, search_fields):
 # a helper function that destroys all previous carts when a new search is conducted
 def search(request):
     if 'q' in request.GET and request.GET['q'].strip():
-        print "found question"
         # remove the previous search session data
         for k in request.session.keys():
             if k.startswith('results_'):
@@ -88,9 +87,11 @@ def search(request):
 def search_organism(request, depth, template_name):
     # if there's a query
     if 'q' in request.GET and request.GET['q'].strip():
+        depth = int(depth)
         organism_ids = Feature.objects.filter(pk__in=get_results(request, depth).keys()).values_list('organism_id', flat=True)
+        depth += 1
         result_organisms = Organism.objects.filter(pk__in=organism_ids)
-        return render(request, template_name, {'query_string' : request.GET['q'], 'result_organisms' : paginate(request, result_organisms, 'search_organism_num'), 'result_nums' : RESULT_NUMS, 'depth' : depth})
+        return render(request, template_name, {'query_string' : request.GET['q'], 'result_organisms' : paginate(request, result_organisms, 'search_organism_num'), 'result_nums' : RESULT_NUMS, 'depth' : depth, 'prev_depth' : depth-1})
     # redirect if there wasn't a query
 	return redirect(request.META.get('HTTP_REFERER', '/chado/'))
 
@@ -98,10 +99,14 @@ def search_msa(request, depth, template_name):
     # if there's a query
     if 'q' in request.GET and request.GET['q'].strip():
         # get the msas
+        depth = int(depth)
         features = Feature.objects.filter(pk__in=get_results(request, depth).keys())
         msa_ids = Featureloc.objects.filter(feature__in=features).values_list('srcfeature', flat=True)
         result_msas = Feature.objects.filter(type__name='consensus', pk__in=msa_ids)
-        return render(request, template_name, {'query_string' : request.GET['q'], 'result_msas' : paginate(request, result_msas, 'search_msa_num'), 'result_nums' : RESULT_NUMS, 'selected' : get_results(request, depth, 'msa'), 'depth' : depth})
+        nav = get_nav(request, depth, 'msa')
+        depth += 1
+        selected = get_results(request, depth, 'msa')
+        return render(request, template_name, {'query_string' : request.GET['q'], 'result_msas' : paginate(request, result_msas, 'search_msa_num'), 'result_nums' : RESULT_NUMS, 'selected' : selected, 'depth' : depth, 'prev_depth' : depth-1, 'nav' : nav})
     # redirect if there wasn't a query
 	return redirect(request.META.get('HTTP_REFERER', '/chado/'))
 
@@ -109,20 +114,23 @@ def search_phylo(request, depth, template_name):
     # if there's a query
     if 'q' in request.GET and request.GET['q'].strip():
         # get the msas
+        depth = int(depth)
         features = Feature.objects.filter(pk__in=get_results(request, depth).keys())
         tree_ids = Phylonode.objects.filter(feature__in=features).values_list('phylotree', flat=True)
         result_trees = Phylotree.objects.filter(pk__in=tree_ids)
-        return render(request, template_name, {'query_string' : request.GET['q'], 'result_trees' : paginate(request, result_trees, 'search_phylo_num'), 'result_nums' : RESULT_NUMS, 'selected' : get_results(request, depth, 'phylo'), 'depth' : depth})
+        nav = get_nav(request, depth, 'phylo')
+        depth += 1
+        selected = get_results(request, depth, 'phylo')
+        return render(request, template_name, {'query_string' : request.GET['q'], 'result_trees' : paginate(request, result_trees, 'search_phylo_num'), 'result_nums' : RESULT_NUMS, 'selected' : selected, 'depth' : depth, 'prev_depth' : depth-1, 'nav' : nav})
     # redirect if there wasn't a query
 	return redirect(request.META.get('HTTP_REFERER', '/chado/'))
 
 def search_feature(request, depth, template_name, who):
-    print "template_name" + template_name
     if 'q' in request.GET and request.GET['q'].strip():
+        depth = int(depth)
         # note, depth is incremented every time features come around
-        new_depth = int(depth)+1
         result_features = None
-        if who == 'search':
+        if who == 'feature':
             query_string = request.GET['q']
             term_query = get_query(query_string, ['cvterm__name', 'cvterm__definition',])
             results = FeatureCvterm.objects.filter(term_query)
@@ -132,17 +140,28 @@ def search_feature(request, depth, template_name, who):
         else:
             #consensus_ids = get_object_or_404(Feature, pk=feature_id)
             results = Feature.objects.filter(pk__in=Featureloc.objects.filter(srcfeature__pk__in=get_results(request, depth, 'msa').keys()).values_list('feature_id', flat=True))
-        return render(request, template_name, {'query_string' : request.GET['q'], 'results' : paginate(request, results, 'search_feature_num'), 'result_nums' : RESULT_NUMS, 'selected' : get_results(request, new_depth), 'depth' : new_depth})
+        nav = get_nav(request, depth, who+'_feature')
+        depth += 1
+        selected = get_results(request, depth)
+        return render(request, template_name, {'query_string' : request.GET['q'], 'results' : paginate(request, results, 'search_feature_num'), 'result_nums' : RESULT_NUMS, 'selected' : selected, 'depth' : depth, 'prev_depth' : depth-1, 'nav' : nav})
     # rediect if there wasn't a query
     return redirect(request.META.get('HTTP_REFERER', '/chado/'))
 
 def initialize_results_session(request, depth, who=''):
     request.session['results_'+str(depth)+who] = {}
 
-def get_results(request, depth, who=''):
+def get_results(request, depth, who='feature'):
     if 'results_'+str(depth)+who not in request.session:
         request.session['results_'+str(depth)+who] = {}
     return request.session['results_'+str(depth)+who]
+
+def get_nav(request, depth, who):
+    depth = int(depth)
+    if 'results_nav' not in request.session:
+        request.session['results_nav'] = []
+    request.session['results_nav'] = request.session['results_nav'][0 : depth]
+    request.session['results_nav'].append({'depth' : depth, 'who' : who})
+    return request.session['results_nav']
 
 def search_add_result_ajax(request, depth, who):
     if request.is_ajax():
