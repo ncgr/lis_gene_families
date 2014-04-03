@@ -26,7 +26,8 @@
     <div class="row">
         <div class="col-lg-12">
             <h1>Features from "{{ query_string }}"</h1>
-            <p class="lead">{{ result_features.paginator.count }} results.</p>
+            <p>{% for n in nav %}{% if n.who == 'msa_feature' %}{% if n.depth == prev_depth %}Feature{% else %}<a href="{% url 'search_msa_feature' n.depth %}?q={{ query_string }}">Feature</a> > {% endif %}{% elif n.who == 'phylo_feature' %}{% if n.depth == prev_depth %}Feature{% else %}<a href="{% url 'search_phylo_feature' n.depth %}?q={{ query_string }}">Feature</a> > {% endif %}{% elif n.who == 'msa' %}{% if n.depth == prev_depth %}MSA{% else %}<a href="{% url 'search_msa' n.depth %}?q={{ query_string }}">MSA</a> > {% endif %}{% elif n.who == 'phylo' %}{% if n.depth == prev_depth %}Phylo{% else %}<a href="{% url 'search_phylo' n.depth %}?q={{ query_string }}">Phylo</a> > {% endif %}{% else %}{% if n.depth == prev_depth %}Feature{% else %}<a href="{% url 'search_new_feature' n.depth %}?q={{ query_string }}">Feature</a> > {% endif %}{% endif %}{% endfor %}</p>
+            <p class="lead">{{ results.paginator.count }} results.</p>
         </div>
     </div>
 </div>
@@ -36,15 +37,15 @@
             <div class="form-group">
                 <label class="col-sm-2 control-label">Results per page</label>
                 <div class="col-sm-10">
-                    <select class="form-control" ONCHANGE="location = '?q={{ query_string }}&page={{ result_features.number }}&num=' + this.options[this.selectedIndex].value;">
+                    <select class="form-control" ONCHANGE="location = '?q={{ query_string }}&page={{ results.number }}&num=' + this.options[this.selectedIndex].value;">
                         {% for o in result_nums %}
-                        <option{% if o == result_features.paginator.per_page %} selected{% endif %}>{{ o }}</option>
+                        <option{% if o == results.paginator.per_page %} selected{% endif %}>{{ o }}</option>
                         {% endfor %}
                     </select>
                 </div>
             </div>
         </form>
-        <p>Viewing results {{ result_features.start_index }} through {{ result_features.end_index }}</p>
+        <p>Viewing results {{ results.start_index }} through {{ results.end_index }}</p>
         <div class="navbar navbar-inverse">
             <div class="container">
                 <button class="navbar-toggle" type="button" data-toggle="collapse" data-target=".bs-navbar-collapse">
@@ -93,7 +94,7 @@
                 </tr>
             </thead>
             <tbody>
-            {% for r in result_features %}
+            {% for r in results %}
                 <tr>
                     <td><button data-id="{{ r.pk }}" data-name="{{ r.name }}" type="button" class="btn {% if r.pk in selected %}btn-danger">Remove{% else %}btn-default">Add{% endif %}</button>&nbsp;&nbsp;{{ r.name }}</td>
                     <td><a href="{% url 'feature_view' r.feature_id %}">view</a></td>
@@ -103,11 +104,11 @@
         </table>
         <div style="text-align: center">
             <ul class="pagination">
-                <li class="{% if result_features.has_previous %}enabled{% else %}disabled{% endif %}"><a href="{% if result_features.has_previous %}?q={{ query_string }}&page={{ result_features.previous_page_number }}{% else %}#{% endif %}">&laquo;</a></li>
-                {% for p in result_features.paginator.display_page_range %}
-                <li class="{% if p == result_features.number %}disabled{% else %}enabled{% endif %}"><a href="?q={{ query_string }}&page={{ p }}">{{ p }}</a></li>
+                <li class="{% if results.has_previous %}enabled{% else %}disabled{% endif %}"><a href="{% if results.has_previous %}?q={{ query_string }}&page={{ results.previous_page_number }}{% else %}#{% endif %}">&laquo;</a></li>
+                {% for p in results.paginator.display_page_range %}
+                <li class="{% if p == results.number %}disabled{% else %}enabled{% endif %}"><a href="?q={{ query_string }}&page={{ p }}">{{ p }}</a></li>
                 {% endfor %}
-                <li class="{% if result_features.has_next %}enabled{% else %}disabled{% endif %}"><a href="{% if result_features.has_next %}?q={{ query_string }}&page={{ result_features.next_page_number }}{% else %}#{% endif %}">&raquo;</a></li>
+                <li class="{% if results.has_next %}enabled{% else %}disabled{% endif %}"><a href="{% if results.has_next %}?q={{ query_string }}&page={{ results.next_page_number }}{% else %}#{% endif %}">&raquo;</a></li>
             </ul>
         </div>
     </div>
@@ -121,7 +122,7 @@
     $(document).ready(function() {
 
         // total results on this page helper variable
-        var result_count = {{ result_features.end_index }} - {{ result_features.start_index }} + 1;
+        var result_count = {{ results.end_index }} - {{ results.start_index }} + 1;
 
         // sticky navbar
         var stickyNavTop = $('.navbar-inverse').offset().top;  

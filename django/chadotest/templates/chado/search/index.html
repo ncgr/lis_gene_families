@@ -29,6 +29,8 @@
     <div class="row">
         <div class="col-lg-12">
             <h1>Results for "{{ query_string }}"</h1>
+            <p>Feature</p>
+            <!--<p><a>Feature (12)</a> > <a>MSA (234)</a> > <a>Feature (43)</a> > <a>Phylo (2)</a> > Organism</p>-->
             <p class="lead">{{ results.paginator.count }} results.</p>
         </div>
     </div>
@@ -60,13 +62,13 @@
                 <div class="nav-collapse collapse bs-navbar-collapse">
                     <ul class="nav navbar-nav">
                         <li>
-                            <a href="{% url 'search_organism' 0 %}?q={{ query_string }}">Organisms</a>
+                            <a href="{% url 'search_organism' depth %}?q={{ query_string }}">Organisms</a>
                         </li>
                         <li>
-                            <a href="{% url 'search_msa' 0 %}?q={{ query_string }}">Multiple Sequence Alignments</a>
+                            <a href="{% url 'search_msa' depth %}?q={{ query_string }}">Multiple Sequence Alignments</a>
                         </li>
                         <li>
-                            <a href="{% url 'search_phylo' 0 %}?q={{ query_string }}">Phylogenetic Trees</a>
+                            <a href="{% url 'search_phylo' depth %}?q={{ query_string }}">Phylogenetic Trees</a>
                         </li>
                         <li>
                             <a id="clear" href="#">Clear</a>
@@ -216,7 +218,7 @@
                     to_add.push($(this).data('id'));
                 });
                 $.ajax({
-                    url: "{% url 'search_add_all_ajax' 0 %}",
+                    url: "{% url 'search_add_all_ajax' depth %}",
                     data: {
                         results: to_add,
                         // all pages are protected against csrf so we need to pass the token for this page
@@ -243,7 +245,7 @@
                     to_remove.push($(this).data('id'));
                 });
                 $.ajax({
-                    url: "{% url 'search_remove_all_ajax' 0 %}",
+                    url: "{% url 'search_remove_all_ajax' depth %}",
                     data: {
                         results: to_remove,
                         // all pages are protected against csrf so we need to pass the toke for this page
@@ -274,7 +276,7 @@
             if ($(this).hasClass('btn-default')) {
                 var name = $(this).data('name');
                 $.ajax({
-                        url: "{% url 'search_add_result_ajax' 0 %}",
+                        url: "{% url 'search_add_result_ajax' depth %}",
                         data: {
                             result: id,
                             // all pages are protected against csrf so we need to pass the token for this page
@@ -296,7 +298,7 @@
                 });
             } else {
                 $.ajax({
-                        url: "{% url 'search_remove_result_ajax' 0 %}",
+                        url: "{% url 'search_remove_result_ajax' depth %}",
                         data: {
                             result: id,
                             // all pages are protected against csrf so we need to pass the token for this page
@@ -323,7 +325,7 @@
         $(document.body).on('click', '#selected > tbody button', function() {
             var id = $(this).data('id');
             $.ajax({
-                    url: "{% url 'search_remove_result_ajax' 0 %}",
+                    url: "{% url 'search_remove_result_ajax' depth %}",
                     data: {
                         result: id,
                         // all pages are protected against csrf so we need to pass the token for this page
@@ -349,7 +351,7 @@
         $('#clear').on('click', function(e) {
             e.preventDefault();
             $.ajax({
-                    url: "{% url 'search_clear_results_ajax' 0 %}",
+                    url: "{% url 'search_clear_results_ajax' depth %}",
                     data: {
                         // all pages are protected against csrf so we need to pass the token for this page
                         csrfmiddlewaretoken: '{{ csrf_token }}'
