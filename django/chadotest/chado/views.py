@@ -18,6 +18,8 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 # search stuffs
 import re
 from django.db.models import Q
+# for sending messages to the templates
+from django.contrib import messages
 
 
 #########
@@ -84,49 +86,77 @@ def search(request):
 #    # redirect if there wasn't a query
 #	return redirect(request.META.get('HTTP_REFERER', '/chado/'))
 
-def search_organism(request, depth, template_name):
+def search_organism(request, depth, template_name, who):
     # if there's a query
-    if 'q' in request.GET and request.GET['q'].strip():
+    if 'q' in request.GET and request.GET['q'].strip() and (who == 'feature' or who == 'msa' or who == 'phylo'):
         depth = int(depth)
-        organism_ids = Feature.objects.filter(pk__in=get_results(request, depth).keys()).values_list('organism_id', flat=True)
+        prev_results = get_results(request, depth, who)
+        if len(prev_results) == 0:
+            messages.error(request, 'No results selected!')
+            return redirect(request.META.get('HTTP_REFERER'))
+        features = None
+        if who == 'feature':
+            features = Feature.objects.filter(pk__in=prev_results.keys())
+        elif who == 'msa':
+            features = Feature.objects.filter(pk__in=Featureloc.objects.filter(srcfeature__pk__in=prev_results.keys()).values_list('feature_id', flat=True))
+        else:
+            features = Feature.objects.filter(pk__in=Phylonode.objects.filter(phylotree__pk__in=prev_results).values_list('feature_id', flat=True))
+        nav = get_nav(request, depth, 'organism_'+who)
         depth += 1
-        result_organisms = Organism.objects.filter(pk__in=organism_ids)
-        return render(request, template_name, {'query_string' : request.GET['q'], 'result_organisms' : paginate(request, result_organisms, 'search_organism_num'), 'result_nums' : RESULT_NUMS, 'depth' : depth, 'prev_depth' : depth-1})
+        result_organisms = Organism.objects.filter(pk__in=features.values_list('organism_id', flat=True))
+        return render(request, template_name, {'query_string' : request.GET['q'], 'result_organisms' : paginate(request, result_organisms, 'search_organism_num'), 'result_nums' : RESULT_NUMS, 'depth' : depth, 'prev_depth' : depth-1, 'nav' : nav})
     # redirect if there wasn't a query
 	return redirect(request.META.get('HTTP_REFERER', '/chado/'))
 
-def search_msa(request, depth, template_name):
+def search_msa(request, depth, template_name, who):
     # if there's a query
-    if 'q' in request.GET and request.GET['q'].strip():
+    if 'q' in request.GET and request.GET['q'].strip() and (who == 'feature' or who == 'phylo'):
         # get the msas
         depth = int(depth)
-        features = Feature.objects.filter(pk__in=get_results(request, depth).keys())
+        prev_results = get_results(request, depth, who)
+        if len(prev_results) == 0:
+            messages.error(request, 'No reuslts selected!')
+            return redirect(request.META.get('HTTP_REFERER'))
+        features = None
+        if who == 'feature':
+            features = Feature.objects.filter(pk__in=prev_results.keys())
+        else:
+            features = Feature.objects.filter(pk__in=Phylonode.objects.filter(phylotree__pk__in=prev_results).values_list('feature_id', flat=True))
         msa_ids = Featureloc.objects.filter(feature__in=features).values_list('srcfeature', flat=True)
         result_msas = Feature.objects.filter(type__name='consensus', pk__in=msa_ids)
-        nav = get_nav(request, depth, 'msa')
+        nav = get_nav(request, depth, 'msa_'+who)
         depth += 1
         selected = get_results(request, depth, 'msa')
         return render(request, template_name, {'query_string' : request.GET['q'], 'result_msas' : paginate(request, result_msas, 'search_msa_num'), 'result_nums' : RESULT_NUMS, 'selected' : selected, 'depth' : depth, 'prev_depth' : depth-1, 'nav' : nav})
     # redirect if there wasn't a query
 	return redirect(request.META.get('HTTP_REFERER', '/chado/'))
 
-def search_phylo(request, depth, template_name):
+def search_phylo(request, depth, template_name, who):
     # if there's a query
-    if 'q' in request.GET and request.GET['q'].strip():
+    if 'q' in request.GET and request.GET['q'].strip() and (who == 'feature' or who == 'msa'):
         # get the msas
         depth = int(depth)
-        features = Feature.objects.filter(pk__in=get_results(request, depth).keys())
+        prev_results = get_results(request, depth, who)
+        if len(prev_results) == 0:
+            messages.error(request, 'No results selected!')
+            return redirect(request.META.get('HTTP_REFERER'))
+        feature = None
+        if who == 'feature':
+            features = Feature.objects.filter(pk__in=prev_results.keys())
+        else:
+            features = Feature.objects.filter(pk__in=Featureloc.objects.filter(srcfeature__pk__in=prev_results.keys()).values_list('feature_id', flat=True))
         tree_ids = Phylonode.objects.filter(feature__in=features).values_list('phylotree', flat=True)
         result_trees = Phylotree.objects.filter(pk__in=tree_ids)
-        nav = get_nav(request, depth, 'phylo')
+        nav = get_nav(request, depth, 'phylo_'+who)
         depth += 1
         selected = get_results(request, depth, 'phylo')
         return render(request, template_name, {'query_string' : request.GET['q'], 'result_trees' : paginate(request, result_trees, 'search_phylo_num'), 'result_nums' : RESULT_NUMS, 'selected' : selected, 'depth' : depth, 'prev_depth' : depth-1, 'nav' : nav})
-    # redirect if there wasn't a query
-	return redirect(request.META.get('HTTP_REFERER', '/chado/'))
+    # redirect if there wasn't a query or the sender wasn't recognized
+    messages.error(request, 'Bad request!')
+    return redirect(request.META.get('HTTP_REFERER'))
 
 def search_feature(request, depth, template_name, who):
-    if 'q' in request.GET and request.GET['q'].strip():
+    if 'q' in request.GET and request.GET['q'].strip() and (who == 'feature' or who == 'msa' or who == 'phylo'):
         depth = int(depth)
         # note, depth is incremented every time features come around
         result_features = None
@@ -134,23 +164,27 @@ def search_feature(request, depth, template_name, who):
             query_string = request.GET['q']
             term_query = get_query(query_string, ['cvterm__name', 'cvterm__definition',])
             results = FeatureCvterm.objects.filter(term_query)
-        elif who == 'phylo':
-            #phylonode = get_object_or_404(Phylonode, pk=phylonode_id)
-            results = Feature.objects.filter(pk__in=Phylonode.objects.filter(phylotree__pk__in=get_results(request, depth, 'phylo')).values_list('feature_id', flat=True))
         else:
-            #consensus_ids = get_object_or_404(Feature, pk=feature_id)
-            results = Feature.objects.filter(pk__in=Featureloc.objects.filter(srcfeature__pk__in=get_results(request, depth, 'msa').keys()).values_list('feature_id', flat=True))
-        nav = get_nav(request, depth, who+'_feature')
+            prev_results = get_results(request, depth, who)
+            if len(prev_results) == 0:
+                messages.error(request, 'No results selected!')
+                return redirect(request.META.get('HTTP_REFERER'))
+            elif who == 'msa':
+                results = Feature.objects.filter(pk__in=Featureloc.objects.filter(srcfeature__pk__in=prev_results.keys()).values_list('feature_id', flat=True))
+            else:
+                results = Feature.objects.filter(pk__in=Phylonode.objects.filter(phylotree__pk__in=prev_results).values_list('feature_id', flat=True))
+        nav = get_nav(request, depth, 'feature_'+who)
         depth += 1
-        selected = get_results(request, depth)
+        selected = get_results(request, depth, 'feature')
         return render(request, template_name, {'query_string' : request.GET['q'], 'results' : paginate(request, results, 'search_feature_num'), 'result_nums' : RESULT_NUMS, 'selected' : selected, 'depth' : depth, 'prev_depth' : depth-1, 'nav' : nav})
-    # rediect if there wasn't a query
+    # rediect if there wasn't a query or the sender wasn't recognized
+    messages.error(request, 'Bad request!')
     return redirect(request.META.get('HTTP_REFERER', '/chado/'))
 
 def initialize_results_session(request, depth, who=''):
     request.session['results_'+str(depth)+who] = {}
 
-def get_results(request, depth, who='feature'):
+def get_results(request, depth, who):
     if 'results_'+str(depth)+who not in request.session:
         request.session['results_'+str(depth)+who] = {}
     return request.session['results_'+str(depth)+who]

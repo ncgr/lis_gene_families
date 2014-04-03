@@ -5,7 +5,40 @@
     <div class="row">
         <div class="col-lg-12">
             <h1>Organisms from "{{ query_string }}"</h1>
-            <p class="lead">{{ result_organisms.count }} results.</p>
+            {% for n in nav %}
+                {% if n.who == 'feature_msa' %}
+                    {% if n.depth == prev_depth %}Feature
+                    {% else %}<a href="{% url 'search_feature_msa' n.depth %}?q={{ query_string }}">Feature</a>&nbsp;>&nbsp;
+                    {% endif %}
+                {% elif n.who == 'feature_phylo' %}
+                    {% if n.depth == prev_depth %}Feature
+                    {% else %}<a href="{% url 'search_feature_phylo' n.depth %}?q={{ query_string }}">Feature</a>&nbsp;>&nbsp;
+                    {% endif %}
+                {% elif n.who == 'msa_feature' %}
+                    {% if n.depth == prev_depth %}MSA
+                    {% else %}<a href="{% url 'search_msa_feature' n.depth %}?q={{ query_string }}">MSA</a>&nbsp;>&nbsp;
+                    {% endif %}
+                {% elif n.who == 'msa_phylo' %}
+                    {% if n.depth == prev_depth %}MSA
+                    {% else %}<a href="{% url 'search_msa_phylo' n.depth %}?q={{ query_string }}">MSA</a>&nbsp;>&nbsp;
+                    {% endif %}
+                {% elif n.who == 'phylo_feature' %}
+                    {% if n.depth == prev_depth %}Phylo
+                    {% else %}<a href="{% url 'search_phylo_feature' n.depth %}?q={{ query_string }}">Phylo</a>&nbsp;>&nbsp;
+                    {% endif %}
+                {% elif n.who == 'phylo_msa' %}
+                    {% if n.depth == prev_depth %}Phylo
+                    {% else %}<a href="{% url 'search_phylo_msa' n.depth %}?q={{ query_string }}">Phylo</a>&nbsp;>&nbsp;
+                    {% endif %}
+                {% elif n.who == 'feature_feature' %}
+                    {% if n.depth == prev_depth %}Feature
+                    {% else %}<a href="{% url 'search_new_feature' n.depth %}?q={{ query_string }}">Feature</a>&nbsp;>&nbsp;
+                    {% endif %}
+                {% else %}
+                    Organism
+                {% endif %}
+            {% endfor %}
+            <p class="lead">{{ result_organisms.paginator.count }} results.</p>
         </div>
     </div>
 </div>
