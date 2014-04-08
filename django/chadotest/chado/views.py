@@ -163,7 +163,7 @@ def search_feature(request, depth, template_name, who):
         if who == 'feature':
             query_string = request.GET['q']
             term_query = get_query(query_string, ['cvterm__name', 'cvterm__definition',])
-            results = FeatureCvterm.objects.filter(term_query)
+            results = Feature.objects.filter(featurecvterm_feature__in=FeatureCvterm.objects.filter(term_query))
         else:
             prev_results = get_results(request, depth, who)
             if len(prev_results) == 0:
@@ -610,7 +610,6 @@ def phylo_sample(request, template_name):
 ###########
 # feature #
 ###########
-
 
 def feature_view(request, feature_id, template_name):
     feature = get_object_or_404(Feature, pk=feature_id)

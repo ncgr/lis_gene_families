@@ -5,6 +5,7 @@
     <div class="row">
         <div class="col-lg-12">
             <h1>Organisms from "{{ query_string }}"</h1>
+            <p>
             {% for n in nav %}
                 {% if n.who == 'feature_msa' %}
                     {% if n.depth == prev_depth %}Feature
@@ -38,6 +39,7 @@
                     Organism
                 {% endif %}
             {% endfor %}
+            </p>
             <p class="lead">{{ result_organisms.paginator.count }} results.</p>
         </div>
     </div>

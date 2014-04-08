@@ -23,6 +23,7 @@
                     <th>Name</th>
                     <th>Organism</th>
                     <th>Type</th>
+                    <th>CV Terms</th>
                     <th>Source</th>
                 </tr>
             </thead>
@@ -31,6 +32,7 @@
                     <td>{{ feature.name }}</td>
                     <td><a href="{% url 'organism_view' feature.organism_id %}">{{ feature.organism.common_name }}</a></td>
                     <td><a href="{% url 'cvterm_view' feature.type.cvterm_id %}">{{ feature.type.name }}</a></td>
+                    <td>{% for cv in feature.featurecvterm_feature.all %}<a style="text-decoration:underline;" href="{% url 'cvterm_view' cv.cvterm_id %}">{{ cv.cvterm.name }}</a> {% endfor %}</td>
                     <td>{% if feature.dbxref.db.url %}<a href="{{ feature.dbxref.db.urlprefix }}{{ feature.dbxref.db.url }}" target="_blank">{{ feature.dbxref.db.name }}</a>{% else %}{{ feature.dbxref.db.name }}{% endif %}</td>
                 </tr>
             </tbody>
