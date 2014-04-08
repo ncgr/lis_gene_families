@@ -366,6 +366,7 @@ class FeatureCvtermDbxref(models.Model):
 
 class FeatureCvterm(models.Model):
     feature_cvterm_id = models.IntegerField(primary_key=True)
+    #feature = models.ForeignKey("Feature", related_name="banana" )
     feature = models.ForeignKey("Feature", related_name="%(class)s_feature" )
     cvterm = models.ForeignKey("Cvterm", related_name="%(class)s_cvterm" )
     pub = models.ForeignKey("Pub", related_name="%(class)s_pub" )

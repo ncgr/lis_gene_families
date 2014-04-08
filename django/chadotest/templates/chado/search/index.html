@@ -50,10 +50,16 @@
             </div>
         </form>
         <p>Viewing results {{ results.start_index }} through {{ results.end_index }}</p>
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-danger">
+                    <strong>Oops!</strong> {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
         <div class="navbar navbar-inverse">
             <div class="container">
                 <button class="navbar-toggle" type="button" data-toggle="collapse" data-target=".bs-navbar-collapse">
-                    <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
@@ -62,13 +68,13 @@
                 <div class="nav-collapse collapse bs-navbar-collapse">
                     <ul class="nav navbar-nav">
                         <li>
-                            <a href="{% url 'search_organism' depth %}?q={{ query_string }}">Organisms</a>
+                            <a href="{% url 'search_organism_feature' depth %}?q={{ query_string }}">Organisms</a>
                         </li>
                         <li>
-                            <a href="{% url 'search_msa' depth %}?q={{ query_string }}">Multiple Sequence Alignments</a>
+                            <a href="{% url 'search_msa_feature' depth %}?q={{ query_string }}">Multiple Sequence Alignments</a>
                         </li>
                         <li>
-                            <a href="{% url 'search_phylo' depth %}?q={{ query_string }}">Phylogenetic Trees</a>
+                            <a href="{% url 'search_phylo_feature' depth %}?q={{ query_string }}">Phylogenetic Trees</a>
                         </li>
                         <li>
                             <a id="clear" href="#">Clear</a>
@@ -94,18 +100,15 @@
             <thead>
                 <tr>
                     <th><button id="add-all" data-page="{{ results.number }}" type="button" class="btn btn-default">Add all</button>&nbsp;&nbsp;Name</th>
-                    <th></th>
+                    <th>CV Terms</th>
                     <th></th>
                 </tr>
             </thead>
             <tbody>
                 {% for r in results %}
                 <tr>
-                    <td><button data-id="{{ r.feature.pk }}" data-name="{{ r.feature.name }}" type="button" class="btn {% if r.feature.pk in selected %}btn-danger">Remove{% else %}btn-default">Add{% endif %}</button>&nbsp;&nbsp;{{ r.feature.name }}</td>
-                    <td>
-                        <b>CV Term:</b> {{ r.cvterm.name }}<br/>
-                        <b>CV Description:</b> {{ r.cvterm.definition }}
-                    </td>
+                    <td><button data-id="{{ r.pk }}" data-name="{{ r.name }}" type="button" class="btn {% if r.pk in selected %}btn-danger">Remove{% else %}btn-default">Add{% endif %}</button>&nbsp;&nbsp;{{ r.name }}</td>
+                    <td>{% for cv in r.featurecvterm_feature.all %}<a style="text-decoration:underline;" href="{% url 'cvterm_view' cv.cvterm_id %}">{{ cv.cvterm.name }}</a> {% endfor %}</td>
                     <td><a href="{% url 'feature_view' r.feature_id %}">view</a></td>
                 </tr>
                 {% endfor %}
