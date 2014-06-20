@@ -25,6 +25,8 @@ urlpatterns = patterns('chado.views',
     url(r'^phylo/node/json/(?P<phylonode_id>\d+)/$', 'phylonode_json', name='phylonode_json'),
     # phylo tree slide
     url(r'^phylo_slide/(?P<phylotree_id>\d+)/$', 'phylo_view_slide', {'template_name' : 'chado/phylo/view_slide.html'}, name='phylo_view_slide'),
+    # d3
+    url(r'^phylo_d3/(?P<phylotree_id>\d+)/$', 'phylo_view_d3', {'template_name' : 'chado/phylo/view_d3.html'}, name='phylo_view_d3'),
     # ajax
     url(r'^phylo_slide/node/slide/$', 'phylo_view_slide_ajax', name='phylo_view_slide_ajax'),
 

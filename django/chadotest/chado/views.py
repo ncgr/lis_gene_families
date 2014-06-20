@@ -162,7 +162,7 @@ def search_feature(request, depth, template_name, who):
         result_features = None
         if who == 'feature':
             query_string = request.GET['q']
-            term_query = get_query(query_string, ['cvterm__name', 'cvterm__definition',])
+            term_query = get_query(query_string, ['cvterm__name', 'cvterm__definition', 'feature__uniquename'])
             results = Feature.objects.filter(featurecvterm_feature__in=FeatureCvterm.objects.filter(term_query))
         else:
             prev_results = get_results(request, depth, who)
@@ -356,7 +356,7 @@ def phylo_xml(tree, url):
         #xmltree += '<clade><branch_length>'+str(node.distance)+'</branch_length>'
         if node.label:
             leafs += 1
-            xmltree += '<name>'+node.label+'</name>'
+            xmltree += '<name>'+node.label+'</name><chart><component>'+node.feature.organism.genus+'_'+node.feature.organism.species+'</component><content>'+str(node.feature.seqlen)+'</content></chart>'
         else:
             xmltree += '<name>&#9675;</name>'
         #xmltree += '<desc>This is a description</desc>'
@@ -376,6 +376,16 @@ def phylo_xml(tree, url):
 
     # the xml tree
     xml = '<phyloxml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.phyloxml.org http://www.phyloxml.org/1.10/phyloxml.xsd" xmlns="http://www.phyloxml.org"><phylogeny rooted="true">'
+    # add binary 'arcs' to the trees to represent organisms
+    xml += '<render><charts><component type="binary" thickness="10" /><content type="bar" fill="#666" width="0.2" /></charts><styles>'
+    # add a style for each organism in the tree
+    features = Feature.objects.filter(pk__in=nodes.values_list('feature'))
+    organisms = Organism.objects.filter(pk__in=features.values_list('organism'))
+    organism_colors = {}
+
+    for o in organisms:
+        xml += '<'+o.genus+'_'+o.species+' fill="#A93" stroke="#DDD" />'
+    xml += '<barChart fill="#333" stroke-width="0" /></styles></render>'
 
     # add the nodes to the xml tree
     xml, num_leafs = add_node(xml, root, nodes, 0)
@@ -383,6 +393,39 @@ def phylo_xml(tree, url):
     # close the tree's tags
     xml += '</phylogeny></phyloxml>'
     return xml, num_leafs
+
+
+def generate_phylo_newick(tree):
+    root = Phylonode.objects.get(phylotree=tree, left_idx=1)
+
+    # function that adds nodes to a newick tree
+    def add_node(newick, node, tree):
+        if node.label:
+            newick += node.label+':'+str(node.distance)+','
+        else:
+            newick += '('
+            for child in Phylonode.objects.filter(phylotree=tree, parent_phylonode=node):
+                newick = add_node(newick, child, tree)
+            if newick[-1] == ',':
+                newick = newick[0:-1]
+            newick += '):'+str(node.distance)+','
+        return newick
+
+    # add the nodes to the newick tree
+    newick = add_node('', root, tree)
+    if newick[-1] == ',':
+        newick = newick[0:-1]
+    newick += ';'
+
+    return newick
+
+def phylo_view_d3(request, phylotree_id, template_name):
+    # get trees stuffs
+    tree = get_object_or_404(Phylotree, pk=phylotree_id)
+    newick = generate_phylo_newick(tree)
+
+    # we've got the goods
+    return render(request, template_name, {'tree' : tree, 'newick' : newick, 'num_leafs' : Phylonode.objects.filter(phylotree=tree).count})
 
 
 def phylo_view_slide(request, phylotree_id, template_name):
@@ -460,7 +503,7 @@ def phylo_view_slide_ajax(request):
 
 def phylo_newick(request, phylotree_id, template_name):
     tree = get_object_or_404(Phylotree, pk=phylotree_id)
-    return render(request, template_name, {'tree' : tree})
+    return render(request, template_name, {'tree' : tree, 'newick' : generate_phylo_newick(tree)})
 
 
 def phylo_xml_download(request, phylotree_id):
