@@ -741,7 +741,7 @@ def context_viewer(request, node_id, template_name):
     #print "genes:"
     #for g in gene_ids:
     #    print "    "+str(g)
-    gene_locs = Featureloc.objects.filter(feature__in=gene_ids)
+    gene_locs = Featureloc.objects.filter(feature__in=gene_ids, srcfeature__isnull=False)
     #print "feature locs:"
     #for l in gene_locs:
     #    print "    id: "+str(l.pk)
@@ -758,9 +758,9 @@ def context_viewer(request, node_id, template_name):
         num = 4
     for focus in gene_locs:
         track = {'focus' : focus}
-        backwards_before = Featureloc.objects.filter(fmin__lt=focus.fmin, feature__organism=focus.feature.organism, feature__type__name='gene').order_by('-fmin')[:num]
+        backwards_before = Featureloc.objects.filter(fmin__lt=focus.fmin, srcfeature=focus.srcfeature, feature__type__name='gene').order_by('-fmin')[:num]
         track['before'] = reversed(backwards_before)
-        track['after'] = Featureloc.objects.filter(fmin__gt=focus.fmin, feature__organism=focus.feature.organism, feature__type__name='gene').order_by('fmin')[:num]
+        track['after'] = Featureloc.objects.filter(fmin__gt=focus.fmin, srcfeature=focus.srcfeature, feature__type__name='gene').order_by('fmin')[:num]
         tracks.append(track)
 
 
