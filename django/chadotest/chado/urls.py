@@ -70,4 +70,7 @@ urlpatterns = patterns('chado.views',
     url(r'^search/(?P<depth>\d+)/feature/clear/$', 'search_clear_results_ajax', {'who' : 'feature'}, name='search_feature_clear_results_ajax'),
     url(r'^search/(?P<depth>\d+)/feature/add_all/$', 'search_add_all_ajax', {'who' : 'feature'}, name='search_feature_add_all_ajax'),
     url(r'^search/(?P<depth>\d+)/feature/remove_all/$', 'search_remove_all_ajax', {'who' : 'feature'}, name='search_feature_remove_all_ajax'),
+
+    # gene context
+    url(r'context_viewer/(?P<node_id>\d+)/$', 'context_viewer', {'template_name' : 'chado/gene/context.html'}, name='context_viewer'),
     )

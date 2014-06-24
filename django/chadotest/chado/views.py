@@ -356,7 +356,8 @@ def phylo_xml(tree, url):
         #xmltree += '<clade><branch_length>'+str(node.distance)+'</branch_length>'
         if node.label:
             leafs += 1
-            xmltree += '<name>'+node.label+'</name><chart><component>'+node.feature.organism.genus+'_'+node.feature.organism.species+'</component><content>'+str(node.feature.seqlen)+'</content></chart>'
+            #xmltree += '<name>'+node.label+'</name><chart><component>'+node.feature.organism.genus+'_'+node.feature.organism.species+'</component><content>'+str(node.feature.seqlen)+'</content></chart>'
+            xmltree += '<name>'+node.label+'</name><chart><component>'+node.feature.organism.genus+'_'+node.feature.organism.species+'</component><content>'+(str(node.feature.seqlen) if node.feature.seqlen else '0')+'</content></chart>'
         else:
             xmltree += '<name>&#9675;</name>'
         #xmltree += '<desc>This is a description</desc>'
@@ -377,7 +378,7 @@ def phylo_xml(tree, url):
     # the xml tree
     xml = '<phyloxml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.phyloxml.org http://www.phyloxml.org/1.10/phyloxml.xsd" xmlns="http://www.phyloxml.org"><phylogeny rooted="true">'
     # add binary 'arcs' to the trees to represent organisms
-    xml += '<render><charts><component type="binary" thickness="10" /><content type="bar" fill="#666" width="0.2" /></charts><styles>'
+    xml += '<render><charts><component type="binary" thickness="10" /><content type="bar" fill="#666" width="0.5" /></charts><styles>'
     # add a style for each organism in the tree
     features = Feature.objects.filter(pk__in=nodes.values_list('feature'))
     organisms = Organism.objects.filter(pk__in=features.values_list('organism'))
@@ -443,6 +444,7 @@ def phylo_view_slide_ajax(request):
                         import re;
 			node = Phylonode.objects.get(pk=request.GET['phylonode'])
 			slidedict = {}
+            # external nodes
 			if node.label:
 				slidedict['label'] = node.label
 				slidedict['meta'] = "This is meta information for "+node.label
@@ -484,6 +486,7 @@ def phylo_view_slide_ajax(request):
                                     gene = node.label.split('.')[1]
                                     slidedict['links'].append({'Genoscope':'http://www.genoscope.cns.fr/cgi-bin/ggb/vitis/12X/gbrowse/vitis/?name='+gene})
                                 slidedict['links'].append({'google':'http://www.google.com/search?q='+node.label})
+            # internal nodes
 			else:
 				slidedict['label'] = "Interior Node"
                                 slidedict['links'] = [{'CMTV':'http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://'+request.get_host()+'/chado/phylo/node/gff_download/'+str(node.phylonode_id)}]
@@ -495,6 +498,8 @@ def phylo_view_slide_ajax(request):
                                 #consensus_feature = features.get(uniquename=node.phylotree.name+'-consensus');
                                 consensus_feature = Feature.objects.get(uniquename=node.phylotree.name+'-consensus');
                                 slidedict['links'].append({'MSA':'/chado/msa/'+str(consensus_feature.feature_id)})
+                                # load the context viewer with each node in the subtree as a focus gene 
+                                slidedict['links'].append({'Context Viewer':'chado/context_viewer/'+str(node.pk)})
 			return HttpResponse(simplejson.dumps(slidedict), content_type = 'application/javascript; charset=utf8')
 		except:
 			return HttpResponse("bad request")
@@ -712,5 +717,68 @@ def paginate(request, objects, who):
     else:
         objects.paginator.display_page_range = objects.paginator.page_range
     return objects
+
+
+#######################
+# gene context viewer #
+#######################
+
+def context_viewer(request, node_id, template_name):
+    # get all the nodes in the subtree
+    root = get_object_or_404(Phylonode, pk=node_id)
+    nodes = Phylonode.objects.filter(phylotree=root.phylotree, left_idx__gt=root.left_idx, right_idx__lt=root.right_idx)
+    peptide_ids = nodes.values_list('feature', flat=True)
+
+    # work our way down to the genes and their locations
+    #print "peptides:"
+    #for p in peptide_ids:
+    #    print "    "+str(p)
+    mrna_ids = FeatureRelationship.objects.filter(subject__in=peptide_ids).values_list('object', flat=True)
+    #print "mrna:"
+    #for m in mrna_ids:
+    #    print "    "+str(m)
+    gene_ids = FeatureRelationship.objects.filter(subject__in=mrna_ids).values_list('object', flat=True)
+    #print "genes:"
+    #for g in gene_ids:
+    #    print "    "+str(g)
+    gene_locs = Featureloc.objects.filter(feature__in=gene_ids)
+    #print "feature locs:"
+    #for l in gene_locs:
+    #    print "    id: "+str(l.pk)
+
+    # make the tracks
+    tracks = []
+    num = 4;
+    if 'num' in request.GET:
+        try:
+            num = int(request.GET['num'])
+        except:
+            pass
+    if num > 10:
+        num = 4
+    for focus in gene_locs:
+        track = {'focus' : focus}
+        backwards_before = Featureloc.objects.filter(fmin__lt=focus.fmin, feature__organism=focus.feature.organism, feature__type__name='gene').order_by('-fmin')[:num]
+        track['before'] = reversed(backwards_before)
+        track['after'] = Featureloc.objects.filter(fmin__gt=focus.fmin, feature__organism=focus.feature.organism, feature__type__name='gene').order_by('fmin')[:num]
+        tracks.append(track)
+
+
+    return render(request, template_name, {'tracks' : tracks})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
