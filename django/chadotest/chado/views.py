@@ -729,26 +729,20 @@ def context_viewer(request, node_id, template_name):
     nodes = Phylonode.objects.filter(phylotree=root.phylotree, left_idx__gt=root.left_idx, right_idx__lt=root.right_idx)
     peptide_ids = nodes.values_list('feature', flat=True)
 
-    # work our way down to the genes and their locations
-    #print "peptides:"
-    #for p in peptide_ids:
-    #    print "    "+str(p)
+    # the colors for the gene families
+    before_colors = ['#afd45a', '#6cbfa9', '#7ea9d8', '#484848', '#ad8dc1', '#d783a7', '#f26f64', '#faa938', '#f0e24a', '#323232']
+    focus_color = '#72ae35'
+    after_colors = ['#39945c', '#3c73a4', '#67569b', '#ac3f65', '#d11b12', '#dea736', '#f55621', '#e4ddc9', '#fbc6d1', '#5ac9f7']
+    color_map = {}
+
+    # work our way to the genes and their locations
     mrna_ids = FeatureRelationship.objects.filter(subject__in=peptide_ids).values_list('object', flat=True)
-    #print "mrna:"
-    #for m in mrna_ids:
-    #    print "    "+str(m)
     gene_ids = FeatureRelationship.objects.filter(subject__in=mrna_ids).values_list('object', flat=True)
-    #print "genes:"
-    #for g in gene_ids:
-    #    print "    "+str(g)
     gene_locs = Featureloc.objects.filter(feature__in=gene_ids, srcfeature__isnull=False)
-    #print "feature locs:"
-    #for l in gene_locs:
-    #    print "    id: "+str(l.pk)
 
     # make the tracks
     tracks = []
-    num = 4;
+    num = 4
     if 'num' in request.GET:
         try:
             num = int(request.GET['num'])
@@ -757,12 +751,30 @@ def context_viewer(request, node_id, template_name):
     if num > 10:
         num = 4
     for focus in gene_locs:
+        focus.family = root.phylotree
+        focus.family.color = focus_color;
         track = {'focus' : focus}
         backwards_before = Featureloc.objects.filter(fmin__lt=focus.fmin, srcfeature=focus.srcfeature, feature__type__name='gene').order_by('-fmin')[:num]
-        track['before'] = reversed(backwards_before)
-        track['after'] = Featureloc.objects.filter(fmin__gt=focus.fmin, srcfeature=focus.srcfeature, feature__type__name='gene').order_by('fmin')[:num]
+        track['before'] = list(backwards_before)
+        for g in track['before']:
+            mrna_ids = FeatureRelationship.objects.filter(object=g.feature).values_list('subject', flat=True)
+            peptide_ids = FeatureRelationship.objects.filter(object__in=mrna_ids).values_list('subject', flat=True)
+            g.families = list(Phylotree.objects.filter(pk__in=Phylonode.objects.filter(feature__in=peptide_ids).values_list('phylotree', flat=True)))
+            for t in g.families:
+                if t.name not in color_map:
+                    color_map[t.name] = before_colors.pop()
+                t.color = color_map[t.name]
+        track['before'].reverse()
+        track['after'] = list(Featureloc.objects.filter(fmin__gt=focus.fmin, srcfeature=focus.srcfeature, feature__type__name='gene').order_by('fmin')[:num])
+        for g in track['after']:
+            mrna_ids = FeatureRelationship.objects.filter(object=g.feature).values_list('subject', flat=True)
+            peptide_ids = FeatureRelationship.objects.filter(object__in=mrna_ids).values_list('subject', flat=True)
+            g.families = list(Phylotree.objects.filter(pk__in=Phylonode.objects.filter(feature__in=peptide_ids).values_list('phylotree', flat=True)))
+            for t in g.families:
+                if t.name not in color_map:
+                    color_map[t.name] = after_colors.pop()
+                t.color = color_map[t.name]
         tracks.append(track)
-
 
     return render(request, template_name, {'tracks' : tracks})
 

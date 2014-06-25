@@ -21,11 +21,11 @@
         {% for t in tracks %}
         <tr>
         {% for g in t.before %}
-            <td>name: {{ g.feature.name }}, fmin: {{ g.fmin }}, fmax: {{ g.fmax }}, strand: {{ g.strand }}</td>
+            <td>name: {{ g.feature.name }}, fmin: {{ g.fmin }}, fmax: {{ g.fmax }}, strand: {{ g.strand }}, families: {% for f in g.families %}<span style="color:{{ f.color }};">{{ f.name }}</span>&nbsp{% endfor %}</td>
         {% endfor %}
-            <td><b>name: {{ t.focus.feature.name }}, fmin: {{ t.focus.fmin }}, fmax: {{ t.focus.fmax }}, strand: {{ t.focus.strand }}</b></td>
+            <td><b>name: {{ t.focus.feature.name }}, fmin: {{ t.focus.fmin }}, fmax: {{ t.focus.fmax }}, strand: {{ t.focus.strand }}, family: <span style="color:{{ t.focus.family.color }};">{{ t.focus.family.name }}</span></b></td>
         {% for g in t.after %}
-            <td>name: {{ g.feature.name }}, fmin: {{ g.fmin }}, fmax: {{ g.fmax }}, strand: {{ g.strand }}</td>
+            <td>name: {{ g.feature.name }}, fmin: {{ g.fmin }}, fmax: {{ g.fmax }}, strand: {{ g.strand }}, families: {% for f in g.families %}<span style="color:{{ f.color }};">{{ f.name }}</span>&nbsp{% endfor %}</td>
         {% endfor %}
         </tr>
         {% endfor %}
