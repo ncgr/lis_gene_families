@@ -19,7 +19,7 @@ MANAGERS = ADMINS
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': 'chado_test',                      # Or path to database file if using sqlite3.
+        'NAME': 'chado',                      # Or path to database file if using sqlite3.
         'USER': 'chado',
         'PASSWORD': '',
         'HOST': '',                      # Empty for localhost through domain sockets or '127.0.0.1' for localhost through TCP.
@@ -109,10 +109,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.messages.middleware.MessageMiddleware',
     # Uncomment the next line for simple clickjacking protection:
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'debug_toolbar.middleware.DebugToolbarMiddleware',
 )
-
-INTERNAL_IPS = ('127.0.0.1',)
 
 # set the session engine to use cookies
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
@@ -149,7 +146,6 @@ INSTALLED_APPS = (
     # add the chado app
     'chado',
     'd3viz_force_directed',
-    'debug_toolbar',
 )
 
 # A sample logging configuration. The only tangible logging
