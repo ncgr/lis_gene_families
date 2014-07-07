@@ -769,7 +769,7 @@ def context_viewer(request, node_id, template_name):
         # get the focus position
         focus_pos = GeneOrder.objects.get(gene=gene)
         # get the genes that come before the focus
-        before_genes = list(GeneOrder.objects.filter(chromosome=focus_pos.chromosome, number__lt=focus_pos.number, number__gte=focus_pos.number-num).values_list('gene', flat=True))
+        before_genes = list(GeneOrder.objects.filter(chromosome=focus_pos.chromosome_id, number__lt=focus_pos.number, number__gte=focus_pos.number-num).values_list('gene', flat=True))
         track['before'] = list(Featureloc.objects.only('fmin', 'fmax', 'strand').filter(feature__in=before_genes).order_by('fmin'))
         for g in track['before']:
             floc_ids.append(g.pk)
@@ -780,7 +780,7 @@ def context_viewer(request, node_id, template_name):
                     color_map[t.name] = {'color' : before_colors.pop(), 'id' : t.pk}
                 t.color = color_map[t.name]['color']
         # get the genes that come after the focus
-        after_genes = list(GeneOrder.objects.filter(chromosome=focus_pos.chromosome, number__gt=focus_pos.number, number__lte=focus_pos.number+num).values_list('gene', flat=True))
+        after_genes = list(GeneOrder.objects.filter(chromosome=focus_pos.chromosome_id, number__gt=focus_pos.number, number__lte=focus_pos.number+num).values_list('gene', flat=True))
         track['after'] = list(Featureloc.objects.only('fmin', 'fmax', 'strand').filter(feature__in=after_genes).order_by('fmin'))
         for g in track['after']:
             floc_ids.append(g.pk)
