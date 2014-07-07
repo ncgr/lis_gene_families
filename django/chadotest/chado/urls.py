@@ -73,4 +73,5 @@ urlpatterns = patterns('chado.views',
 
     # gene context
     url(r'context_viewer/(?P<node_id>\d+)/$', 'context_viewer', {'template_name' : 'chado/gene/context.html'}, name='context_viewer'),
+    url(r'context_gff_download/$', 'context_gff_download', {}, name='context_gff_download'),
     )

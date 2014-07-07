@@ -5,6 +5,7 @@
     <div class="row">
         <div class="col-lg-12">
             <h1>Context viewer</h1>
+            <a href="{% url 'context_gff_download' %}?flocs={{ floc_id_string }}">download gff</a>
         </div>
     </div>
 </div>
@@ -17,6 +18,11 @@
             </div>
             {% endfor %}
         {% endif %}
+        <ul>
+            {% for key, value in color_map.items %}
+            <li><a style="color:{{ value.color }};" href="{% url 'phylo_view' value.id %}">{{ key }}</a></li>
+            {% endfor %}
+        </ul>
         <table class="table table-bordered table-striped table-hover">
         {% for t in tracks %}
         <tr>

@@ -1642,3 +1642,12 @@ class FeaturesetMeets(models.Model):
     class Meta:
         db_table = u'featureset_meets'
 
+class GeneOrder(models.Model):
+    gene_order_id = models.IntegerField(primary_key=True)
+    chromosome = models.ForeignKey("Feature", related_name="%(class)s_chromosome")
+    gene = models.ForeignKey("Feature", related_name="%(class)s_gene")
+    number = models.IntegerField(null=True, blank=True)
+    class Meta:
+        db_table = u'gene_order'
+
+

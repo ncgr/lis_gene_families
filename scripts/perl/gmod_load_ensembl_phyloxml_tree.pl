@@ -163,7 +163,7 @@ while( my $tree = $treeio->next_tree ) {
         $nodes{$node->internal_id} = 1; # 1 is a placeholder
         # hash the leaf nodes, given them values of their unique feature database identifiers later
         if ($node->is_Leaf) {
-            my $key = $node->id;
+            my $key = lc( $node->id );
             $key .= "_pep" if (index($key, "_pep") == -1);
             $leafs{$key} = $node;
         }
@@ -177,13 +177,10 @@ while( my $tree = $treeio->next_tree ) {
     
     # get all the tree features in the db
     # probably not the best place to declare a subroutine...
-    sub GetTreeFeatures {
-        my $query_string = "SELECT feature_id, uniquename FROM feature WHERE uniquename IN ('" . join("','", keys( %leafs ) ) . "');";
-        $query = $conn->prepare($query_string);
-        $query->execute();
-    }
+    my $query_string = "SELECT feature_id, lower(uniquename) FROM feature WHERE lower(uniquename) IN ('" . join("','", keys( %leafs ) ) . "');";
+    $query = $conn->prepare($query_string);
+    $query->execute();
     
-    GetTreeFeatures();
     my $num_found = $query->rows();
     print "$num_found present in database\n";
     my %feature_map = ();
@@ -222,7 +219,7 @@ while( my $tree = $treeio->next_tree ) {
                     $organisms{lc( $value[0]->value)} = $organism_id;
                 } else {
                     # add the organism to the db
-                    my $query_string = "INSERT INTO organism (genus, species) VALUES ('";
+                    $query_string = "INSERT INTO organism (genus, species) VALUES ('";
                     $query_string .= ucfirst( lc( $genus ) );
                     $query_string .= "', '";
                     $query_string .= lc( $species );
@@ -237,13 +234,14 @@ while( my $tree = $treeio->next_tree ) {
             # add a feature to the db for the leaf
             my $query_string = "INSERT INTO feature (organism_id, name, uniquename, type_id) VALUES (";
             $query_string .= $organisms{lc( $value[0]->value )};
-            $query_string .= ", '$key', '$key', $type_id);";
+            $query_string .= ", '" . ucfirst($key) . "', '" . ucfirst($key) . "', $type_id);";
             if ( !$conn->do($query_string) ) {
                 Retreat("Failed to add feature to database\n");
             }
 
             # get the new feature's id
-            $feature_map{$key} = $conn->selectrow_array("SELECT feature_id FROM feature WHERE uniquename='$key';");
+            $query_string = "SELECT feature_id FROM feature WHERE uniquename='" . ucfirst($key) . "';";
+            $feature_map{$key} = $conn->selectrow_array($query_string);
         }
     } else {
         while (my @row = $query->fetchrow_array()) {
@@ -256,10 +254,10 @@ while( my $tree = $treeio->next_tree ) {
 
 
 
-    print "feature_map:\n";
-    for my $key (keys(%feature_map)) {
-        print "    $key\n";
-    }
+    #print "feature_map:\n";
+    #for my $key (keys(%feature_map)) {
+    #    print "    $key\n";
+    #}
 
 
 
@@ -319,8 +317,8 @@ while( my $tree = $treeio->next_tree ) {
                 # then it gets a label, feature, and type leaf
                 $values .= ",".$leaf_id;
                 $fields .= ",label,feature_id";
-                my $id = $node->id;
-                $values .= ",'".$id;
+                my $id = lc($node->id);
+                $values .= ",'".ucfirst($id);
                 #$values .= "',".$leafs{$id."_pep"};
                 $values .= "',".$feature_map{$id."_pep"};
 
@@ -330,7 +328,7 @@ while( my $tree = $treeio->next_tree ) {
                     my $seq = $node->sequence;
                     $sequence = $seq->[0]->seq();
                 }
-                if ( !$conn->do("INSERT INTO featureloc (feature_id, srcfeature_id, residue_info, rank) VALUES (" . $feature_map{$node->id."_pep"} . ",$consensus_feature,'$sequence',$rank);") ) {
+                if ( !$conn->do("INSERT INTO featureloc (feature_id, srcfeature_id, residue_info, rank) VALUES (" . $feature_map{lc($node->id)."_pep"} . ",$consensus_feature,'$sequence',$rank);") ) {
                     Retreat("Failed to insert featureloc for " . $feature_map{$node->id."_pep"} . "\n");
                 }
             }
