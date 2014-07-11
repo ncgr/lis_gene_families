@@ -813,8 +813,9 @@ def context_gff_download(request):
         family_ids = list(Featureprop.objects.filter(type=family_term, feature=f.feature_id).values_list('value', flat=True)) 
         families = list(Phylotree.objects.only('name').filter(pk__in=map(int, family_ids)).values_list('name', flat=True))
         families_str = ','.join(families)
-        print chromosome_map[f.srcfeature_id].name+"\t.\tgene\t"+str(f.fmin)+"\t"+str(f.fmax)+"\t.\t"+("+" if f.strand == 1 else "-")+"\t.\tID="+gene.uniquename+";Name="+gene.uniquename+";Family="+families_str
-        myfile.write(chromosome_map[f.srcfeature_id].name+"\t.\tgene\t"+str(f.fmin)+"\t"+str(f.fmax)+"\t.\t"+("+" if f.strand == 1 else "-")+"\t.\tID="+gene.uniquename+";Name="+gene.uniquename+";Family="+families_str+"\n")
+        #for some reason, this diagnostic is throwing errors in some contexts
+        #print chromosome_map[f.srcfeature_id].name+"\t.\tgene\t"+str(f.fmin)+"\t"+str(f.fmax)+"\t.\t"+("+" if f.strand == 1 else "-")+"\t.\tID="+gene.uniquename+";Name="+gene.uniquename+(";Family="+families_str if len(families) > 0 else "")
+        myfile.write(chromosome_map[f.srcfeature_id].name+"\t.\tgene\t"+str(f.fmin)+"\t"+str(f.fmax)+"\t.\t"+("+" if f.strand == 1 else "-")+"\t.\tID="+gene.uniquename+";Name="+gene.uniquename+(";Family="+families_str if len(families) > 0 else "")+"\n")
 
     # generate the file
     response = HttpResponse(myfile.getvalue(), content_type='text/plain')
