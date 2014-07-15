@@ -1,0 +1,95 @@
+{% extends 'chado/base.html' %}
+{% load static %}
+{% block css %}
+<style>
+.axis path,
+.axis line {
+    fill: none;
+    stroke: #eee;
+    shape-rendering: crispEdges;
+}
+ 
+.axis text {
+    font-family: sans-serif;
+    font-size: 11px;
+}
+
+.axis text:hover {
+    cursor:pointer;
+}
+ 
+.loading {
+    font-family: sans-serif;
+    font-size: 15px;
+}
+
+.legend:after {
+    content: "blah";
+    position: absolute;
+    top: 22px;
+    right: 12px;
+}
+
+.point:hover {
+    cursor:pointer;
+}
+
+.point::after {
+    width: 100px;
+    height: 100px;
+    background: #000000;
+}
+
+.focus {
+    stroke: #000;
+    stroke-width: 3;
+}
+
+.legend:hover {
+     cursor:pointer;
+}
+
+.track {
+    stroke: #000;
+}
+
+.tip {
+    fill: black;
+    font-size: 11px;
+}
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header" id="banner">
+    <div class="row">
+        <div class="col-lg-12">
+            <h1>Context viewer</h1>
+            <a href="{% url 'context_gff_download' %}?flocs={{ floc_id_string }}">download gff</a>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-lg-12">
+        {% if messages %}
+            {% for message in messages %}
+            <div class="alert{% if message.tags %} alert-{{ message.tags }}{% endif %}">
+                <strong>{{ message.tags|capfirst }}!</strong> {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+        <div id="contextviewer"></div>
+		<div id="contextcontent"></div>
+    </div>
+</div>
+{% endblock %}
+{% block javascript %}
+<script type="text/javascript" src="{% static 'js/jquery-1.10.2.min.js' %}"></script>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script type="text/javascript">
+var context_json = '{{ json|safe }}',
+	organism_link = "/chado/organism/",
+	feature_link = "/chado/feature/",
+	phylo_link = "/chado/phylo/";
+</script>
+<script src="{% static 'js/context.js' %}"></script>
+{% endblock %}

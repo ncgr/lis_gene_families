@@ -66,7 +66,7 @@ As mentioned previously, gff files must be loaded after their fasta file so thei
     #!/bin/bash
     for chr in `cat <your_prepreprocessed_gff_file> | cut -f1 | sort | uniq
     do
-        grep "$chr" <your_prepreprocessed_gff_file> > $chr
+        grep -w "^$chr" <your_prepreprocessed_gff_file> > $chr
     done
     ```
 As gff files are normally in parent child order, ordering an unordered gff file when the GMOD tool fails is outside the scope of this discussion.
