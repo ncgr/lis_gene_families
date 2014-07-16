@@ -251,7 +251,7 @@ var context_data = JSON.parse(context_json);
 			}
 			var genes = '<ul>';
             d3.selectAll("path").filter(function(e, j) { return !(typeof e === "number") && d.join() == e.family.join(); }).each(function(f) {
-				genes += '<li><a href="'+feature_link+d.id+'/">'+f.name+'</a>: '+f.fmin+' - '+f.fmax+'</li>';
+				genes += '<li><a href="'+feature_link+f.id+'/">'+f.name+'</a>: '+f.fmin+' - '+f.fmax+'</li>';
 			});
 			genes += '</ul>';
 			$("#contextcontent").html(fams.join()+genes);
