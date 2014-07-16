@@ -841,6 +841,10 @@ def context_viewer_json(node_id, num):
         flocs.append(focus_loc.pk)
         srcfeature = Feature.objects.only('name').get(pk=focus_loc.srcfeature_id)
         organism = Organism.objects.only('genus', 'species').get(pk=gene.organism_id)
+        # make sure the focus has a positive orientation
+        flip = 1
+        if focus_loc.strand == -1:
+            flip = -1
         tracks.append('{"chromosome_name":"'+srcfeature.name+'",'
                     +'"chromosome_id":'+str(focus_loc.srcfeature_id)+','
                     +'"species_name":"'+organism.genus[0]+'.'+organism.species+'",'
@@ -852,7 +856,7 @@ def context_viewer_json(node_id, num):
                     +'"fmax":'+str(focus_loc.fmax)+','
                     +'"x":'+str(num)+','
                     +'"y":'+str(y)+','
-                    +'"strand":'+str(focus_loc.strand)+','
+                    +'"strand":'+str(flip*focus_loc.strand)+','
                     +'"family":['+str(root.phylotree_id)+']}')
         # get the focus position
         focus_pos = GeneOrder.objects.get(gene=gene)
@@ -860,7 +864,8 @@ def context_viewer_json(node_id, num):
         before_genes = list(GeneOrder.objects.filter(chromosome=focus_pos.chromosome_id, number__lt=focus_pos.number, number__gte=focus_pos.number-num).values_list('gene', flat=True))
         before_locs = list(Featureloc.objects.only('fmin', 'fmax', 'strand').filter(feature__in=before_genes).order_by('fmin'))
         # add gene entries for the before_locs
-        x = num-len(before_locs)
+        offset = num-len(before_locs)
+        x = ( offset if flip == 1 else (num*2)-offset )
         for l in before_locs:
             flocs.append(l.pk)
             family_ids = list(Featureprop.objects.only('name').filter(type=family_term, feature=l.feature_id).values_list('value', flat=True))
@@ -870,17 +875,17 @@ def context_viewer_json(node_id, num):
                         +'"fmax":'+str(l.fmax)+','
                         +'"x":'+str(x)+','
                         +'"y":'+str(y)+','
-                        +'"strand":'+str(l.strand)+','
+                        +'"strand":'+str(flip*l.strand)+','
                         +'"family":['+','.join(family_ids)+']}')
             family_objects = list(Phylotree.objects.only('name').filter(pk__in=map(int, family_ids)))
             for f in family_objects:
                 if f.pk not in families:
                     families[f.pk] = f.name
-            x+=1
+            x+=flip
         # get the genes that come after the focus
         after_genes = list(GeneOrder.objects.filter(chromosome=focus_pos.chromosome_id, number__gt=focus_pos.number, number__lte=focus_pos.number+num).values_list('gene', flat=True))
         after_locs = list(Featureloc.objects.only('fmin', 'fmax', 'strand').filter(feature__in=after_genes).order_by('fmin'))
-        x = num+1
+        x = ( num+1 if flip == 1 else num-1 )
         for l in after_locs:
             flocs.append(l.pk)
             family_ids = list(Featureprop.objects.only('name').filter(type=family_term, feature=l.feature_id).values_list('value', flat=True))
@@ -890,13 +895,13 @@ def context_viewer_json(node_id, num):
                         +'"fmax":'+str(l.fmax)+','
                         +'"x":'+str(x)+','
                         +'"y":'+str(y)+','
-                        +'"strand":'+str(l.strand)+','
+                        +'"strand":'+str(flip*l.strand)+','
                         +'"family":['+','.join(family_ids)+']}')
             family_objects = list(Phylotree.objects.only('name').filter(pk__in=map(int, family_ids)))
             for f in family_objects:
                 if f.pk not in families:
                     families[f.pk] = f.name
-            x+=1
+            x+=flip
         y+=1
 
     # write the contents of the file

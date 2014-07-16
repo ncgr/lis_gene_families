@@ -189,7 +189,7 @@ var context_data = JSON.parse(context_json);
 
 		})
         .attr("class", function(d) { return (d.x == (num_genes-1)/2) ? "point focus" : "point"; })
-        .attr("transform", function(d) { return "translate(" + x(d.x) + "," + y(d.y) + ") rotate("+((d.strand == 1) ? "-90" : "90")+")"; })
+        .attr("transform", function(d) { return "translate(" + x(d.x) + "," + y(d.y) + ") rotate("+((d.strand == 1) ? "90" : "-90")+")"; })
         .style("fill", function(d) { return color(d.family); })
         .append("text").text("blah");
 
@@ -321,7 +321,12 @@ function draw_line(d) {
         .attr("x2", x(d.x))
         .attr("y1", y(d.y))
         .attr("y2", y(d.y))
-        .data([d.fmin-e.fmax])
+        .data(function() {
+			if( d.fmin > e.fmax ) {
+				return [d.fmin-e.fmax];
+			}
+			return [e.fmin-d.fmax];
+		})
         .moveToBack();
     });
 }
