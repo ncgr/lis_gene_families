@@ -444,7 +444,11 @@ def phylo_view_slide_ajax(request):
 	if request.is_ajax():
 		try:
                         import re;
-			node = Phylonode.objects.get(pk=request.GET['phylonode'])
+                        if 'phylonode' in request.GET:
+			    node = get_object_or_404(Phylonode, pk=request.GET['phylonode'])
+                        elif 'gene' in request.GET:
+                            node = get_object_or_404(Feature, pk=request.GET['gene'])
+                            node.label = node.name
 			slidedict = {}
             # external nodes
 			if node.label:
@@ -843,6 +847,7 @@ def context_viewer_json(node_id, num):
                     +'"species_id":'+str(gene.organism_id)+'}')
         # add the gene entry for the focus
         genes.append('{"name":"'+gene.name+'",'
+                    +'"id":'+str(gene.pk)+','
                     +'"fmin":'+str(focus_loc.fmin)+','
                     +'"fmax":'+str(focus_loc.fmax)+','
                     +'"x":'+str(num)+','
@@ -860,6 +865,7 @@ def context_viewer_json(node_id, num):
             flocs.append(l.pk)
             family_ids = list(Featureprop.objects.only('name').filter(type=family_term, feature=l.feature_id).values_list('value', flat=True))
             genes.append('{"name":"'+l.feature.name+'",'
+                        +'"id":'+str(l.feature_id)+','
                         +'"fmin":'+str(l.fmin)+','
                         +'"fmax":'+str(l.fmax)+','
                         +'"x":'+str(x)+','
@@ -879,6 +885,7 @@ def context_viewer_json(node_id, num):
             flocs.append(l.pk)
             family_ids = list(Featureprop.objects.only('name').filter(type=family_term, feature=l.feature_id).values_list('value', flat=True))
             genes.append('{"name":"'+l.feature.name+'",'
+                        +'"id":'+str(l.feature_id)+','
                         +'"fmin":'+str(l.fmin)+','
                         +'"fmax":'+str(l.fmax)+','
                         +'"x":'+str(x)+','
