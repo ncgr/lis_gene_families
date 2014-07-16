@@ -121,7 +121,7 @@ var context_data = JSON.parse(context_json);
 					l2 = '<a href="'+feature_link+context_data.tracks[d].chromosome_id+'/">'+context_data.tracks[d].chromosome_name+'</a>';
 				var genes = '<ul>';
 				d3.selectAll("path").filter(function(e) { return !(typeof e === "number") && d == e.y; }).each(function(f) {
-					genes += '<li><a href="'+feature_link+d.id+'/">'+f.name+'</a>: '+f.fmin+' - '+f.fmax+'</li>';
+					genes += '<li><a href="'+feature_link+f.id+'/">'+f.name+'</a>: '+f.fmin+' - '+f.fmax+'</li>';
 				});
 				genes += '</ul>';
 				$("#contextcontent").html(l1+' - '+l2+genes);
@@ -157,9 +157,39 @@ var context_data = JSON.parse(context_json);
             // remove a tooltip
             d3.select(".tip").remove();
         })
-        .on('click', function (d) { alert('click gene '+d); })
+        .on('click', function (d) {
+			$.ajax({
+                url:phylo_ajax_link,
+                data: {
+                // this is actually a phylonode_id
+                gene: d.id,
+                // all pages are protected against csrf so we need to pass the token for this page
+                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                },
+                contentType: "application/json;charset=utf-8",
+                dataType: "json",
+                success: function(data) {
+                // pull the data out of the json we get back
+                var html = '<h4>'+data.label+'</h4>'
+                for (var i = 0; i < data.links.length; i++) {
+                    for (var key in data.links[i]) {
+                        html += '<a href="'+data.links[i][key]+'">'+key+'</a><br/>'
+                    }
+                }
+                if (data.meta) {
+                    html += '<p>'+data.meta+'</p>'
+                }
+                $('#contextcontent').html(html);
+                },
+                error: function(ts) { 
+                // this is for debugging, not production!
+                    alert(ts.responseText);
+                }
+            });
+
+		})
         .attr("class", function(d) { return (d.x == (num_genes-1)/2) ? "point focus" : "point"; })
-        .attr("transform", function(d) { return "translate(" + x(d.x) + "," + y(d.y) + ") rotate("+((d.strand == 1) ? "-90" : "90")+")"; })
+        .attr("transform", function(d) { return "translate(" + x(d.x) + "," + y(d.y) + ") rotate("+((d.strand == 1) ? "90" : "-90")+")"; })
         .style("fill", function(d) { return color(d.family); })
         .append("text").text("blah");
 
@@ -291,7 +321,12 @@ function draw_line(d) {
         .attr("x2", x(d.x))
         .attr("y1", y(d.y))
         .attr("y2", y(d.y))
-        .data([d.fmin-e.fmax])
+        .data(function() {
+			if( d.fmin > e.fmax ) {
+				return [d.fmin-e.fmax];
+			}
+			return [e.fmin-d.fmax];
+		})
         .moveToBack();
     });
 }
