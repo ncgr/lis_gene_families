@@ -118,13 +118,24 @@ var context_data = JSON.parse(context_json);
             }).on("click", function(d){
 				// add the track's links to the content box
 				var l1 = '<a href="'+organism_link+context_data.tracks[d].species_id+'/">'+context_data.tracks[d].species_name+'</a>',
-					l2 = '<a href="'+feature_link+context_data.tracks[d].chromosome_id+'/">'+context_data.tracks[d].chromosome_name+'</a>';
+					l2 = '<a href="'+feature_link+context_data.tracks[d].chromosome_id+'/">'+context_data.tracks[d].chromosome_name+'</a>',
+					l3 = '<a href="'+search_link+'?families=';
 				var genes = '<ul>';
-				d3.selectAll("path").filter(function(e) { return !(typeof e === "number") && d == e.y; }).each(function(f) {
+				var families = [];
+				d3.selectAll("path")
+				.filter(function(e) { return !(typeof e === "number") && d == e.y; })
+				.sort(function(a, b) { return a.x - b.x; })
+				.each(function(f) {
 					genes += '<li><a href="'+feature_link+f.id+'/">'+f.name+'</a>: '+f.fmin+' - '+f.fmax+'</li>';
+					if( f.family.length > 0 ) {
+						families.push(f.family[0]);
+					} else {
+						families.push(-1);
+					}
 				});
 				genes += '</ul>';
-				$("#contextcontent").html(l1+' - '+l2+genes);
+				l3 += families.join(',')+'">Find similar tracks</a>';
+				$("#contextcontent").html(l3+'<br />'+l1+' - '+l2+genes);
 			});
 
     // add the genes
