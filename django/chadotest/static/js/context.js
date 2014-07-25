@@ -119,8 +119,9 @@ var context_data = JSON.parse(context_json);
 				// add the track's links to the content box
 				var l1 = '<a href="'+organism_link+context_data.tracks[d].species_id+'/">'+context_data.tracks[d].species_name+'</a>',
 					l2 = '<a href="'+feature_link+context_data.tracks[d].chromosome_id+'/">'+context_data.tracks[d].chromosome_name+'</a>',
-					l3 = '<a href="'+search_link;
-					l4 = '<a href="'+synteny_link;
+					l3 = '<a href="'+search_link,
+					l4 = '<a href="'+synteny_link,
+					l5 = '<a href="'+synteny_link2;
 				var genes = '<ul>';
 				var families = [];
 				d3.selectAll("path")
@@ -129,15 +130,17 @@ var context_data = JSON.parse(context_json);
 				.each(function(f) {
 					genes += '<li><a href="'+feature_link+f.id+'/">'+f.name+'</a>: '+f.fmin+' - '+f.fmax+'</li>';
 					if( f.x == (num_genes-1)/2 ) {
-						l3 += f.id+'/'
-						l4 += f.id+'/'
+						l3 += f.id+'/';
+						l4 += f.id+'/';
+						l5 += f.id+'/';
 					}
 				});
 				genes += '</ul>';
 				l3 += '">Find similar tracks</a>';
 				l4 += '">Synteny miner</a>';
+				l5 += '">Synteny miner spaced</a>';
 				//l3 += families.join(',')+'">Find similar tracks</a>';
-				$("#contextcontent").html(l4+'<br />'+l3+'<br />'+l1+' - '+l2+genes);
+				$("#contextcontent").html(l5+'<br />'+l4+'<br />'+l3+'<br />'+l1+' - '+l2+genes);
 			});
 
     // add the genes

@@ -1224,8 +1224,6 @@ def context_viewer_synteny(request, template_name, focus_id=None):
     # get the neighbors of focus via their ordering
     neighbors = GeneOrder.objects.filter(chromosome=focus_order.chromosome_id, number__gte=focus_order.number-num, number__lte=focus_order.number+num).order_by('number')
     neighbor_ids = neighbors.values_list('gene_id', flat=True)
-    print "neighbor_ids"
-    print neighbor_ids
     # actually get the gene families
     neighbor_families = Featureprop.objects.only('feature', 'value').filter(type=gene_family_type, feature__in=neighbor_ids)
     # dictionaryify the results
@@ -1267,7 +1265,6 @@ def context_viewer_synteny(request, template_name, focus_id=None):
     plots = []
     for ch, track_gene_ids in chromosome_gene_map.iteritems():
     #for ch in chromosome_ids:
-        print "chromosome: "+str(ch)
         #track_gene_ids = list(feature_locs.filter(srcfeature=ch).values_list('feature_id', flat=True))
         if len(track_gene_ids) > 1:
             plot = '{"chromosome_id":'+str(ch)+', "chromosome_name": "'+chromosome_id_name_map[ch]+'", '
@@ -1284,7 +1281,83 @@ def context_viewer_synteny(request, template_name, focus_id=None):
                 for y in family_indices[family]:
                     points.append('{"x":'+str(x)+', "y":'+str(y)+', "family":"'+str(family)+'"}')
             plot += '"points":['+','.join(points)+']}'
-            print plot
+            plots.append(plot)
+    json += ','.join(plots) + ']}'
+
+    return render(request, template_name, {'json' : json})
+
+def context_viewer_synteny2(request, template_name, focus_id=None):
+    print "called 2"
+    # get the focus gene of the query track
+    focus = Feature.objects.only('pk', 'name').get(pk=focus_id)
+    if not focus:
+        raise Http404
+    focus_order = list(GeneOrder.objects.filter(gene=focus))
+    if len(focus_order) == 0:
+        raise Http404
+    focus_order = focus_order[0]
+    # get the gene family type
+    gene_family_type = list(Cvterm.objects.only('pk').filter(name='gene family'))
+    if len(gene_family_type) == 0:
+        raise Http404
+    gene_family_type = gene_family_type[0]
+    # how many neighbors should there be?
+    num = 4
+    if 'num' in request.GET:
+        try:
+            num = int(request.GET['num'])
+        except:
+            pass
+    if num > 10:
+        num = 4
+    # get the neighbors of focus via their ordering
+    neighbor_orders = GeneOrder.objects.filter(chromosome=focus_order.chromosome_id, number__gte=focus_order.number-num, number__lte=focus_order.number+num).order_by('number')
+    neighbor_ids = neighbor_orders.values_list('gene_id', flat=True)
+    # actually get the gene families
+    neighbor_featureprops = Featureprop.objects.only('feature', 'value').filter(type=gene_family_type, feature__in=neighbor_ids)
+    # dictionaryify the results
+    neighbor_family_map = dict( (o.feature_id, o.value) for o in neighbor_featureprops )
+    neighbor_family_ids = neighbor_featureprops.values_list("value", flat=True)
+    # make a y axis lookup for the query track in the scatter plot
+    family_members = {}
+    for f in neighbor_family_ids:
+        family_members[f] = []
+    # populate the lookup
+    neighbor_json = []
+    for n in neighbor_orders:
+        if n.gene_id in neighbor_family_map:
+            neighbor_json.append('{"name":"'+n.gene.name+'", "id":'+str(n.gene_id)+'}')
+            family_members[neighbor_family_map[n.gene_id]].append(n.gene_id)
+    # get all the genes associated with those families
+    gene_families = Featureprop.objects.only('feature', 'value').filter(type=gene_family_type, value__in=neighbor_family_ids)
+    gene_family_map = dict( (o.feature_id, o.value) for o in gene_families )
+    # get all the feature locations associated with the genes
+    gene_locs = Featureloc.objects.only('feature', 'srcfeature', 'fmin', 'fmax').filter(feature__in=gene_family_map.keys())
+    # dictionaryify the positions
+    gene_position_map = dict( (o.feature_id, o.fmin+(o.fmax-o.fmin)) for o in gene_locs )
+    # get the genes' chromosomes
+    chromosome_ids = set(gene_locs.values_list('srcfeature_id', flat=True))
+    chromosome_gene_map = {}
+    for ch in chromosome_ids:
+        chromosome_gene_map[ch] = []
+    for f in gene_locs:
+        chromosome_gene_map[f.srcfeature_id].append(f.feature_id)
+    chromosome_names = list(Feature.objects.only('name').filter(pk__in=chromosome_ids))
+    # dictionaryify the results
+    chromosome_name_map = dict( (o.pk, o.name) for o in chromosome_names )
+    json = '{"query":{"chromosome_id": '+str(focus_order.chromosome_id)+', "chromosome_name": "'+chromosome_name_map[focus_order.chromosome_id]+'", "genes" : [' + ','.join(neighbor_json) + ']}'
+    # construct a scatter plot for each chromosome
+    json += ', "plots":['
+    plots = []
+    for ch, ch_gene_ids in chromosome_gene_map.iteritems():
+        if len(ch_gene_ids) > 1:
+            plot = '{"chromosome_id":'+str(ch)+', "chromosome_name": "'+chromosome_name_map[ch]+'", '
+            points = []
+            for gene_id in ch_gene_ids:
+                family = gene_family_map[gene_id]
+                for m in family_members[family]:
+                    points.append('{"x":'+str(gene_position_map[gene_id])+', "y":'+str(gene_position_map[m])+', "family":"'+str(family)+'"}')
+            plot += '"points":['+','.join(points)+']}'
             plots.append(plot)
     json += ','.join(plots) + ']}'
 
