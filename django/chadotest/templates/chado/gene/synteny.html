@@ -111,15 +111,13 @@ data.plots.forEach(function(d) {
 	svg.append("g")
 	    .attr("class", "y axis")
 	    .attr("transform", "translate("+plot_x+", 0)")
-	    .call(yAxis);
-	  //.append("text")
-	  //  .attr("class", "label")
-	  //  .attr("transform", "rotate(-90)")
-	  //  .attr("x", 0)
-	  //  //.attr("y", plot_y)
-	  //  .attr("dy", ".71em")
-	  //  .style("text-anchor", "end")
-	  //  .text(data.query.chromosome_name);
+	    .call(yAxis)
+	  .append("text")
+	    .attr("class", "label")
+		.attr("transform", "translate(6,"+(plot_y-l)+") rotate(-90)")
+	    .attr("dy", ".71em")
+	    .style("text-anchor", "end")
+	    .text(data.query.chromosome_name);
 	
 	svg.selectAll(d.chromosome_name)
 	    .data(d.points)

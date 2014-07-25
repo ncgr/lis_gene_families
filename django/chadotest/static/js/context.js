@@ -132,13 +132,6 @@ var context_data = JSON.parse(context_json);
 						l3 += f.id+'/'
 						l4 += f.id+'/'
 					}
-					/*
-					if( f.family.length > 0 ) {
-						families.push(f.family[0]);
-					} else {
-						families.push(-1);
-					}
-					*/
 				});
 				genes += '</ul>';
 				l3 += '">Find similar tracks</a>';
