@@ -1,3 +1,6 @@
+# to use the django debug toolbar, pip install then search this doc for "debug-toolbar" and uncomment the appropriate code
+# pip install django-debug-toolbar
+
 # Django settings for chadotest project.
 import os.path # used to create dynamic absolute paths (decoupling)
 
@@ -109,7 +112,12 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.messages.middleware.MessageMiddleware',
     # Uncomment the next line for simple clickjacking protection:
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # debug-toolbar
+    #'debug_toolbar.middleware.DebugToolbarMiddleware',
 )
+
+# debug-toolbar
+#INTERNAL_IPS = ('127.0.0.1')
 
 # set the session engine to use cookies
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
@@ -146,6 +154,8 @@ INSTALLED_APPS = (
     # add the chado app
     'chado',
     'd3viz_force_directed',
+    # debug-toolbar
+    #'debug_toolbar',
 )
 
 # A sample logging configuration. The only tangible logging
