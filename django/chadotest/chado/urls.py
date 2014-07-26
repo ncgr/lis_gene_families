@@ -79,4 +79,5 @@ urlpatterns = patterns('chado.views',
     url(r'^context_viewer/search/$', 'context_viewer_search2', {'template_name' : 'chado/gene/index.html'}, name='context_viewer_search'),
     url(r'^context_viewer/search/(?P<focus_id>\d+)/$', 'context_viewer_search2', {'template_name' : 'chado/gene/index.html'}, name='context_viewer_search'),
     url(r'^context_viewer/synteny/(?P<focus_id>\d+)/$', 'context_viewer_synteny', {'template_name' : 'chado/gene/synteny.html'}, name='context_viewer_synteny'),
+    url(r'^context_viewer/synteny2/(?P<focus_id>\d+)/$', 'context_viewer_synteny2', {'template_name' : 'chado/gene/synteny.html'}, name='context_viewer_synteny2'),
     )
