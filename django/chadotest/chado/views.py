@@ -755,7 +755,7 @@ def context_viewer(request, node_id, template_name):
             num = int(request.GET['num'])
         except:
             pass
-    if num > 10:
+    if num > 30:
         num = 4
 
     # the gene_family cvterm
@@ -810,7 +810,7 @@ def context_viewer_demo(request, node_id, template_name):
             num = int(request.GET['num'])
         except:
             pass
-    if num > 10:
+    if num > 30:
         num = 4
     # get all the nodes in the subtree
     root = get_object_or_404(Phylonode, pk=node_id)
@@ -958,7 +958,7 @@ def context_viewer_search2(request, template_name, focus_id=None):
             num = int(request.GET['num'])
         except:
             pass
-    if num > 10:
+    if num > 30:
         num = 4
     # get the neighbors of focus via their ordering
     neighbors = GeneOrder.objects.filter(chromosome=focus_order.chromosome, number__gte=focus_order.number-num, number__lte=focus_order.number+num).order_by('number')
@@ -1219,7 +1219,7 @@ def context_viewer_synteny(request, template_name, focus_id=None):
             num = int(request.GET['num'])
         except:
             pass
-    if num > 10:
+    if num > 30:
         num = 4
     # get the neighbors of focus via their ordering
     neighbors = GeneOrder.objects.filter(chromosome=focus_order.chromosome_id, number__gte=focus_order.number-num, number__lte=focus_order.number+num).order_by('number')
@@ -1308,7 +1308,7 @@ def context_viewer_synteny2(request, template_name, focus_id=None):
             num = int(request.GET['num'])
         except:
             pass
-    if num > 10:
+    if num > 30:
         num = 4
     # get the neighbors of focus via their ordering
     neighbor_orders = GeneOrder.objects.filter(chromosome=focus_order.chromosome_id, number__gte=focus_order.number-num, number__lte=focus_order.number+num).order_by('number')
