@@ -92,10 +92,6 @@
 <script type="text/javascript" src="http://d3js.org/d3.v3.min.js"></script>
 <script type="text/javascript">
 
-//$(document).ready(function() {
-//	console.log("ready!");
-//});
-
 var json = '{{ json|safe }}';
 
 
@@ -149,11 +145,6 @@ var scroll = d3.select("#legend").append("svg")
 	.attr("height", legend_h)
 	.append("g");
 
-//var brush = d3.svg.brush()
-//	.on("brushstart", function() { console.log("brushstart"); })
-//	.on("brush", function() { console.log("brush"); })
-//	.on("brushend", function() { console.log("brushend"); });
-
 // make the plots
 var i = 0;
 data.plots.forEach(function(d) {
@@ -191,7 +182,7 @@ data.plots.forEach(function(d) {
 	    .attr("class", "label")
 	    .attr("x", (plot_x+(l/2)))
 	    .attr("y", 10)
-	    .style("text-anchor", "end")
+	    .style("text-anchor", "middle")
 	    .text(d.chromosome_name);
 
 	// the y axis
@@ -220,33 +211,81 @@ data.plots.forEach(function(d) {
 	var ch_data = svg.selectAll(d.chromosome_name)
 	    .data(d.points);
 
-	// the plot's brush
-	//var brush = d3.svg.brush()
-	//	.x(x)
-	//	.y(y)
-	//	.on("brushstart", function() { console.log("brushstart"); })
-	//	.on("brush", function() { console.log("brush"); })
-	//	.on("brushend", function() { console.log("brushend"); });
-	svg.append("g")
-	    .attr("class", "brush")
-	    .call(d3.svg.brush().x(x).y(y)
-	    .on("brushstart", brushstart)
-	    .on("brush", function() { console.log("brushmove"); })
-	    .on("brushend", function() { console.log("brushend"); }));
-
 	// plot the points
-	ch_data.enter().append("circle")
+	var points = ch_data.enter().append("circle")
 	    .attr("class", "dot")
 	    .attr("r", 3.5)
 	    .attr("cx", function(e) { return x(e.x); })
 	    .attr("cy", function(e) { return y(e.y); })
 	    .style("fill", function(e) { return color(e.family); });
+
 	ch_data.enter().append("text")
     	.attr("class", "tip")
 		.attr("x", function(e) { return x(e.x); })
 		.attr("y", function(e) { return y(e.y); })
     	.attr("text-anchor", "left")
     	.html(function(e) { return e.name+": "+e.fmin+" - "+e.fmax; });
+
+	// the plot's brush
+	var brush = d3.svg.brush().x(x).y(y)
+	    .on("brush", brushmove)
+	    .on("brushend", brushend);
+
+	svg.append("g")
+	    .attr("class", "brush")
+	    .call(brush);
+
+	function brushmove() {
+		var extent = brush.extent();
+		points.classed("selected", function(d) {
+			is_brushed = extent[0][0] <= d.x && d.x <= extent[1][0];
+			return is_brushed;
+		});
+	}
+
+	function brushend() {
+		get_button = d3.selectAll(".clear-button");
+		if(get_button.empty() === true) {
+			clear_button = svg.append('text')
+				.attr("y", (plot_y+30))
+				.attr("x", (plot_x+(l/2)))
+				.attr("class", "clear-button")
+				.text("Clear Brush")
+	    		.style("text-anchor", "middle");
+		}
+		
+		var extent = brush.extent();
+		x.domain([extent[0][0], extent[1][0]]);
+		
+		transition_data();
+		reset_axis();
+		
+		points.classed("selected", false);
+		d3.select(".brush").call(brush.clear());
+		
+		clear_button.on('click', function(){
+			x.domain([min_x, max_x]);
+			transition_data();
+			reset_axis();
+			clear_button.remove();
+		});
+	}
+	
+	function transition_data() {
+		//svg.selectAll(".point")
+		//	.data(data)
+		points
+		.transition()
+			.duration(500)
+			// hack!
+			.attr("cx", function(d) { return x(d.x); });
+	}
+	
+	function reset_axis() {
+		svg.transition().duration(500)
+			.select(".x.axis")
+			.call(xAxis);
+	}
 
 	i++;
 });
@@ -301,29 +340,6 @@ function tip(d) {
     .attr("transform", "translate("+d.x+","+d.y+") rotate(-45)")
     .attr("text-anchor", "left")
     .html(d.name+": "+d.fmin+" - "+d.fmax);
-}
-
-// brush functions
-var brushCell;
-function brushstart() {
-	if (brushCell !== this) {
-      d3.select(brushCell).call(brush.clear());
-      //x.domain(domainByTrait[p.x]);
-      //y.domain(domainByTrait[p.y]);
-      brushCell = this;
-    }
-}
-
-function brushmove() {
-	var e = d3.event.target.extent();
-	circle.classed("selected", function(d) {
-		return e[0][0] <= d[0] && d[0] <= e[1][0]
-			&& e[0][1] <= d[1] && d[1] <= e[1][1];
-	});
-}
-
-function brushend() {
-	svg.classed("selecting", !d3.event.target.empty());
 }
 
 </script>
