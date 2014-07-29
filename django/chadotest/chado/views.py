@@ -1287,7 +1287,6 @@ def context_viewer_synteny(request, template_name, focus_id=None):
     return render(request, template_name, {'json' : json})
 
 def context_viewer_synteny2(request, template_name, focus_id=None):
-    print "called 2"
     # get the focus gene of the query track
     focus = Feature.objects.only('pk', 'name').get(pk=focus_id)
     if not focus:
@@ -1318,6 +1317,12 @@ def context_viewer_synteny2(request, template_name, focus_id=None):
     # dictionaryify the results
     neighbor_family_map = dict( (o.feature_id, o.value) for o in neighbor_featureprops )
     neighbor_family_ids = neighbor_featureprops.values_list("value", flat=True)
+    neighbor_families = list(Phylotree.objects.only('name').filter(pk__in=map(int, neighbor_family_ids)))
+    json = '{"families":['
+    families = []
+    for f in neighbor_families:
+        families.append('{"name":"'+f.name+'", "id":'+str(f.pk)+'}')
+    json += ','.join(families)+']'
     # make a y axis lookup for the query track in the scatter plot
     family_members = {}
     for f in neighbor_family_ids:
@@ -1334,7 +1339,11 @@ def context_viewer_synteny2(request, template_name, focus_id=None):
     # get all the feature locations associated with the genes
     gene_locs = Featureloc.objects.only('feature', 'srcfeature', 'fmin', 'fmax').filter(feature__in=gene_family_map.keys())
     # dictionaryify the positions
-    gene_position_map = dict( (o.feature_id, o.fmin+(o.fmax-o.fmin)) for o in gene_locs )
+    #gene_position_map = dict( (o.feature_id, o.fmin+(o.fmax-o.fmin)) for o in gene_locs )
+    gene_floc_map = dict( (o.feature_id, {'fmin':o.fmin, 'fmax':o.fmax, 'position': o.fmin+(o.fmax-o.fmin)}) for o in gene_locs )
+    # get the gene names
+    gene_names = Feature.objects.only('name').filter(pk__in=gene_family_map.keys())
+    gene_name_map = dict( (o.feature_id, o.name) for o in gene_names )
     # get the genes' chromosomes
     chromosome_ids = set(gene_locs.values_list('srcfeature_id', flat=True))
     chromosome_gene_map = {}
@@ -1345,7 +1354,7 @@ def context_viewer_synteny2(request, template_name, focus_id=None):
     chromosome_names = list(Feature.objects.only('name').filter(pk__in=chromosome_ids))
     # dictionaryify the results
     chromosome_name_map = dict( (o.pk, o.name) for o in chromosome_names )
-    json = '{"query":{"chromosome_id": '+str(focus_order.chromosome_id)+', "chromosome_name": "'+chromosome_name_map[focus_order.chromosome_id]+'", "genes" : [' + ','.join(neighbor_json) + ']}'
+    json += ', "query":{"chromosome_id": '+str(focus_order.chromosome_id)+', "chromosome_name": "'+chromosome_name_map[focus_order.chromosome_id]+'", "genes" : [' + ','.join(neighbor_json) + ']}'
     # construct a scatter plot for each chromosome
     json += ', "plots":['
     plots = []
@@ -1356,7 +1365,14 @@ def context_viewer_synteny2(request, template_name, focus_id=None):
             for gene_id in ch_gene_ids:
                 family = gene_family_map[gene_id]
                 for m in family_members[family]:
-                    points.append('{"x":'+str(gene_position_map[gene_id])+', "y":'+str(gene_position_map[m])+', "family":"'+str(family)+'"}')
+                    f = gene_floc_map[gene_id]
+                    points.append('{"x":'+str(f['position'])+', '
+                                 +'"y":'+str(gene_floc_map[m]['position'])+', '
+                                 +'"family":"'+str(family)+'", '
+                                 +'"id":'+str(gene_id)+', '
+                                 +'"fmin":'+str(f['fmin'])+', '
+                                 +'"fmax":'+str(f['fmax'])+', '
+                                 +'"name":"'+gene_name_map[gene_id]+'"}')
             plot += '"points":['+','.join(points)+']}'
             plots.append(plot)
     json += ','.join(plots) + ']}'
