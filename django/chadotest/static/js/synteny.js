@@ -146,12 +146,15 @@ data.plots.forEach(function(d) {
         });
     }
 
+	var clear_button;
     function brushend() {
-        get_button = d3.selectAll(".clear-button");
+		var b_x = plot_x+(l/2),
+			b_y = plot_y+30;
+        get_button = d3.selectAll(".clear-button").filter(function() { console.log(this); return this.x == b_x && this.y == b_y; });
         if(get_button.empty() === true) {
             clear_button = svg.append('text')
-                .attr("y", (plot_y+30))
-                .attr("x", (plot_x+(l/2)))
+                .attr("y", b_y)
+                .attr("x", b_x)
                 .attr("class", "clear-button")
                 .text("Clear Brush")
                 .style("text-anchor", "middle");
