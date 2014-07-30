@@ -135,12 +135,17 @@ data.plots.forEach(function(d) {
         .on("brush", brushmove)
         .on("brushend", brushend);
 
-    svg.append("g")
+    var brush_g = svg.append("g")
         .attr("class", "brush")
         .call(brush);
 
     function brushmove() {
         var extent = brush.extent();
+		extent[0][1] = min_y;
+		extent[1][1] = max_y;
+		brush.extent(extent);
+		brush_g.call(brush);
+		extent = brush.extent();
         points.classed("selected", function(d) {
             is_brushed = extent[0][0] <= d.x && d.x <= extent[1][0];
             return is_brushed;
@@ -169,7 +174,7 @@ data.plots.forEach(function(d) {
         reset_axis();
         
         points.classed("selected", false);
-        //d3.select(".brush").call(brush.clear());
+		brush_g.call(brush.clear());
         
         clear_button.on('click', function(){
             x.domain([min_x, max_x]);
@@ -180,12 +185,9 @@ data.plots.forEach(function(d) {
     }
     
     function transition_data() {
-        //svg.selectAll(".point")
-        //  .data(data)
         points
         .transition()
             .duration(500)
-            // hack!
             .attr("cx", function(d) { return x(d.x); });
     }
 
