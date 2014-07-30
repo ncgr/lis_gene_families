@@ -139,15 +139,15 @@ data.plots.forEach(function(d) {
         .attr("class", "brush")
         .call(brush);
 
+	var extent;
     function brushmove() {
-        var extent = brush.extent();
+        extent = brush.extent();
 		extent[0][1] = min_y;
 		extent[1][1] = max_y;
 		brush.extent(extent);
 		brush_g.call(brush);
-		extent = brush.extent();
-        points.classed("selected", function(d) {
-            is_brushed = extent[0][0] <= d.x && d.x <= extent[1][0];
+        points.classed("selected", function(e) {
+            is_brushed = extent[0][0] <= e.x && e.x <= extent[1][0];
             return is_brushed;
         });
     }
@@ -167,7 +167,6 @@ data.plots.forEach(function(d) {
                 .style("text-anchor", "middle");
         }
         
-        var extent = brush.extent();
         x.domain([extent[0][0], extent[1][0]]);
         
         transition_data();
@@ -185,10 +184,15 @@ data.plots.forEach(function(d) {
     }
     
     function transition_data() {
+		var domain = x.domain();
         points
         .transition()
             .duration(500)
-            .attr("cx", function(d) { return x(d.x); });
+            .attr("cx", function(e) { return x(e.x); })
+			.attr("visibility", function(e) {
+				if( e.x < domain[0] || e.x > domain[1] ) {
+					return "hidden";
+				} return "visible"; });
     }
 
     function reset_axis() {
