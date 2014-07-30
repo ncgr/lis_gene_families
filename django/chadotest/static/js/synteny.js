@@ -77,11 +77,12 @@ data.plots.forEach(function(d) {
         .orient("bottom")
         .tickValues([min_x, max_x]);
 
-    svg.append("g")
+    var xAxis_selection = svg.append("g")
         .attr("class", "x axis")
         .attr("transform", "translate(0," + plot_y + ")")
         .call(xAxis)
-      .append("text")
+
+    xAxis_selection.append("text")
         .attr("class", "label")
         .attr("x", (plot_x+(l/2)))
         .attr("y", 10)
@@ -189,8 +190,9 @@ data.plots.forEach(function(d) {
     }
 
     function reset_axis() {
+		xAxis.tickValues(x.domain());
         svg.transition().duration(500)
-            .select(".x.axis")
+            .selectAll(".x.axis").filter(function() { return this == xAxis_selection[0][0]; })
             .call(xAxis);
     }
 
