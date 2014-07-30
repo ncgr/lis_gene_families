@@ -148,13 +148,14 @@ data.plots.forEach(function(d) {
 
 	var clear_button;
     function brushend() {
-		var b_x = plot_x+(l/2),
-			b_y = plot_y+30;
-        get_button = d3.selectAll(".clear-button").filter(function() { console.log(this); return this.x == b_x && this.y == b_y; });
+        get_button = d3.selectAll(".clear-button").filter(function() {
+			if( clear_button ) {
+				return this == clear_button[0][0];
+			} return false; });
         if(get_button.empty() === true) {
             clear_button = svg.append('text')
-                .attr("y", b_y)
-                .attr("x", b_x)
+                .attr("y", (plot_y+30))
+                .attr("x", (plot_x+(l/2)))
                 .attr("class", "clear-button")
                 .text("Clear Brush")
                 .style("text-anchor", "middle");
@@ -167,7 +168,7 @@ data.plots.forEach(function(d) {
         reset_axis();
         
         points.classed("selected", false);
-        d3.select(".brush").call(brush.clear());
+        //d3.select(".brush").call(brush.clear());
         
         clear_button.on('click', function(){
             x.domain([min_x, max_x]);
