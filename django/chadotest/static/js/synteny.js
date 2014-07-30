@@ -3,9 +3,6 @@ var w = document.getElementById('synteny').offsetWidth,
     p = 100,
     plots_per_row = 3,
     l = (w-(p*4))/plots_per_row,
-    toolbar_w = document.getElementById('zoom').offsetWidth,
-    toolbar_p = (toolbar_w-l)/2,
-    scroll_h = document.getElementById('toolbar').offsetHeight-toolbar_w-toolbar_p,
     rect_h = 18,
     rect_p = 2,
     legend_w = document.getElementById('legend').offsetWidth-20;
@@ -27,22 +24,7 @@ var svg = d3.select("#synteny").append("svg")
   .append("g")
     .attr("transform", "translate(" + 0 + ",0)");
 
-// the zoom svg
-var zoom = d3.select("#zoom").append("svg")
-    .attr("width", toolbar_w)
-    .attr("height", toolbar_w)
-    .append("g");
-
-zoom.append("rect")
-    .attr("class", "rect")
-    .attr("x", toolbar_p)
-    .attr("y", toolbar_p)
-    .attr("width", l)
-    .attr("height", l);
-
 // the legend svg
-$('#legend').css('height', scroll_h);
-
 var scroll = d3.select("#legend").append("svg")
     .attr("width", legend_w)
     .attr("height", legend_h)

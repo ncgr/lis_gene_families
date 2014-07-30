@@ -32,14 +32,14 @@
 	top: 50px; /* below the main navbar */
 	bottom: 0;
 	right: 0;
+	margin: 0;
+	padding: 20px;
 	background-color: #F6F6F6;
 	border-left: 1px solid #eee;
 }
 
-#zoom {
-}
-
 #legend {
+	height: 100%;
 	overflow: auto;
 }
 
@@ -81,14 +81,12 @@
 		<div class="col-lg-9" id="synteny">
 		</div>
 		<div class="col-lg-3" id="toolbar">
-			<div id="zoom">
-			</div>
 			<div id="legend">
 			</div>
 		</div>
 {% endblock %}
 {% block javascript %}
-<script type="text/javascript" src="{% static 'js/jquery-1.10.2.min.js' %}"></script>
+<!--<script type="text/javascript" src="{% static 'js/jquery-1.10.2.min.js' %}"></script>-->
 <script type="text/javascript" src="http://d3js.org/d3.v3.min.js"></script>
 <script type="text/javascript">
 var json = '{{ json|safe }}';
