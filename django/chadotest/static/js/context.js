@@ -253,7 +253,7 @@ var context_data = JSON.parse(context_json);
             .style("opacity", 1);
             // remove tooltips
             d3.selectAll(".tip").remove();
-        })
+		})
         .on('click', function (d) {
 			// add the families' links to the content box
 			var fams = [];

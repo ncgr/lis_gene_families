@@ -3,7 +3,7 @@
 {% block css %}
 <style>
 
-#synteny {
+#contextviewer, #synteny {
 	  font: 10px sans-serif;
 }
 
@@ -36,6 +36,7 @@
 	padding: 20px;
 	background-color: #F6F6F6;
 	border-left: 1px solid #eee;
+	z-index: 200;
 }
 
 #legend {
@@ -53,6 +54,22 @@
   stroke: #fff;
   fill-opacity: .125;
   shape-rendering: crispEdges;
+}
+
+#contextviewer {
+	background-color: #f6f6f6;
+	border-bottom: 1px solid #eee;
+}
+
+.track {
+    stroke: #000;
+}
+
+.sticky {  
+    position: fixed;  
+    left: 0;  
+    top: 50px; /* below the main navbar */ 
+    z-index: 100;  
 }
 
 </style>
@@ -78,18 +95,36 @@
 </div>
 {% endblock %}
 {% block post-content %}
-		<div class="col-lg-9" id="synteny">
+	<div id="contextviewer"></div>
+	<div class="col-lg-9" id="synteny">
+	</div>
+	<div class="col-lg-3" id="toolbar">
+		<div id="legend">
 		</div>
-		<div class="col-lg-3" id="toolbar">
-			<div id="legend">
-			</div>
-		</div>
+	</div>
 {% endblock %}
 {% block javascript %}
-<!--<script type="text/javascript" src="{% static 'js/jquery-1.10.2.min.js' %}"></script>-->
+<script type="text/javascript" src="{% static 'js/jquery-1.10.2.min.js' %}"></script>
 <script type="text/javascript" src="http://d3js.org/d3.v3.min.js"></script>
 <script type="text/javascript">
 var json = '{{ json|safe }}';
+
+$(document).ready(function() {
+    // sticky navbar
+    var stickyContextTop = $('#contextviewer').offset().top;  
+    var stickyContext = function(){  
+        var scrollTop = $(window).scrollTop()+50; // pad for the main navbar
+        if (scrollTop > stickyContextTop) {   
+            $('#contextviewer').addClass('sticky');  
+        } else {  
+            $('#contextviewer').removeClass('sticky');   
+        } 
+    };
+    stickyContext();  
+    $(window).scroll(function() {  
+        stickyContext();  
+    });
+});
 </script>
 <script type="text/javascript" src="{% static 'js/synteny.js' %}"></script>
 {% endblock %}
