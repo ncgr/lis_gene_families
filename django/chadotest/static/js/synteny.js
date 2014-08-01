@@ -97,22 +97,6 @@ data.plots.forEach(function(d) {
     var ch_data = svg.selectAll(d.chromosome_name)
         .data(d.points);
 
-    // plot the points
-    var groups = ch_data.enter().append('g')
-		.attr("transform", function(e) {
-			return "translate("+x(e.x)+", "+y(e.y)+")" });
-		
-	groups.append("circle")
-        .attr("class", "dot")
-        .attr("r", 3.5)
-        .style("fill", function(e) { return color(e.family); });
-
-    groups.append("text")
-        .attr("class", "tip")
-		.attr("transform", "rotate(-45)")
-        .attr("text-anchor", "middle")
-        .html(function(e) { return e.name+": "+e.fmin+" - "+e.fmax; });
-
     // the plot's brush
     var brush = d3.svg.brush().x(x).y(y)
         .on("brush", brushmove)
@@ -187,6 +171,22 @@ data.plots.forEach(function(d) {
             .call(xAxis);
     }
 
+    // plot the points
+    var groups = ch_data.enter().append('g').attr("class", "gene")
+		.attr("transform", function(e) {
+			return "translate("+x(e.x)+", "+y(e.y)+")" });
+		
+	groups.append("circle")
+        .attr("class", "dot")
+        .attr("r", 3.5)
+        .style("fill", function(e) { return color(e.family); });
+
+    groups.append("text")
+        .attr("class", "tip")
+		.attr("transform", "rotate(-45)")
+        .attr("text-anchor", "middle")
+        .html(function(e) { return e.name+": "+e.fmin+" - "+e.fmax; });
+
     i++;
 });
 
@@ -204,7 +204,8 @@ legend.on("mouseover", function(d, i) {
 	d3.selectAll(".point").filter(function(e, j) { return e.family != d; }).style("opacity", .1);
 	d3.selectAll(".track").style("opacity", .1);
     // tip the genes in the selected family
-    d3.selectAll(".tip").filter(function(e, j) { return e.family == d; }).style("visibility", "visible");
+	d3.selectAll(".gene").filter(function(e) { return e.family == d; }).select("text").style("visibility", "visible");
+    //d3.selectAll(".tip").filter(function(e, j) { return e.family == d; }).style("visibility", "visible");
 }).on("mouseout", function(d, i) {
     // unfade the legend
     d3.selectAll(".legend").filter(function(e) { return d != e; }).style("opacity", 1);
@@ -213,7 +214,7 @@ legend.on("mouseover", function(d, i) {
 	d3.selectAll(".point").filter(function(e, j) { return e.family != d; }).style("opacity", 1);
 	d3.selectAll(".track").style("opacity", 1);
     // remove tooltips
-    d3.selectAll(".tip").filter(function(e, j) { return e.family == d; }).style("visibility", "hidden");
+	d3.selectAll(".gene").filter(function(e) { return e.family == d; }).select("text").style("visibility", "hidden");
 });
 
 legend.append("rect")
@@ -247,6 +248,12 @@ d3.selection.prototype.moveToBack = function() {
     }); 
 };
 
+d3.selection.prototype.moveToFront = function() {
+	return this.each(function() {
+		this.parentNode.appendChild(this);
+	});
+};
+
 // add the query track
 var num_genes = d3.max(data.query.genes, function(d) { return d.x; })+1,
     top_pad = 150;
@@ -276,16 +283,27 @@ var yAxis = d3.svg.axis().scale(y).orient("left")
 		} return '';
     });
 
-query.append("g")
+var query_axis = query.append("g")
     .attr("class", "axis")
     .attr("transform", "translate("+(left_pad-pad)+", 0)")
     .call(yAxis);
+
+// interact with the axis
+query_axis.selectAll("text")
+	.on("mouseover", function(d, i) {
+	    // show the tooltips
+		query.selectAll('.tip').style("visibility", "visible");
+	})
+	.on("mouseout",  function(d) {
+	    // hide tooltips
+		query.selectAll('.tip').style("visibility", "hidden");
+	});
 
 
 // add the genes
 var query_groups = query.selectAll(".point")
     .data(data.query.genes)
-	.enter().append('g')
+	.enter().append('g').attr("class", "gene")
 	.attr("transform", function(d) {
 		return "translate("+x(d.x)+", "+y(d.y)+")";
 	});;
@@ -327,11 +345,8 @@ function draw_line(d) {
 
 		track_group.append("line")
         .attr("class", "track")
-        //.attr("x1", x(e.x))
 		.attr("x1", 0)
         .attr("x2", track_length)
-        //.attr("y1", y(d.y))
-        //.attr("y2", y(d.y))
 		.attr("y1", 0)
 		.attr("y2", 0)
         .data(function() {
@@ -342,7 +357,7 @@ function draw_line(d) {
 		});
 
 		track_group.append("text")
-		    //.attr("class", "tip")
+		    .attr("class", "tip")
 			.attr("transform", "translate("+(track_length/2)+", 7) rotate(45)")
 		    .attr("text-anchor", "left")
 		    .html(function() {
@@ -354,3 +369,23 @@ function draw_line(d) {
         track_group.moveToBack();
     });
 }
+
+// mouseover genes
+d3.selectAll(".gene").on("mouseover", function(d, i) {
+	var point  = d3.select(this).select(".point");
+	if( !point.empty() ) {
+		d3.selectAll(".point").filter(function(e, j) { return e != d; }).style("opacity", .1);
+		d3.selectAll(".track").style("opacity", .1);
+	} else {
+		d3.selectAll(".dot").filter(function(e, j) { return e != d; }).style("opacity", .1);
+	}
+    // tip the genes in the selected family
+	d3.select(this).select("text").style("visibility", "visible");
+}).on("mouseout", function(d, i) {
+    // unfade the genes 
+	d3.selectAll(".point").style("opacity", 1);
+	d3.selectAll(".track").style("opacity", 1);
+	d3.selectAll(".dot").style("opacity", 1);
+    // remove tooltips
+	d3.select(this).select("text").style("visibility", "hidden");
+});
