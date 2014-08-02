@@ -42,6 +42,17 @@ svg.append("text")
 // the data loading function
 //d3.json(data_url, function (context_data) {
 var context_data = JSON.parse(context_json);
+
+var family_sizes = {};
+
+for( var i = 0; i < context_data.genes.length; i++ ) {
+	var family = context_data.genes[i].family.join();
+	if( family in family_sizes ) {
+		family_sizes[ family ] += 1;
+	} else {
+		family_sizes[ family ] = 1;
+	}
+}
     // count the number of tracks and genes per track
     var num_tracks = context_data.tracks.length,
         num_genes = d3.max(context_data.genes, function(d) { return +d.x; })+1,
@@ -204,9 +215,22 @@ var context_data = JSON.parse(context_json);
             });
 
 		})
-        .attr("class", function(d) { return (d.x == (num_genes-1)/2) ? "point focus" : "point"; })
+        .attr("class", function(d) {
+			var family = d.family.join();
+			if( d.x == (num_genes-1)/2 ) {
+				return "point focus";
+			} else if ( family == '' ) {
+				return "point no_fam";
+			} else if ( family_sizes[ family ] == 1 ) {
+				return "point single";
+			} return "point"; })
         .attr("transform", function(d) { return "translate(" + x(d.x) + "," + y(d.y) + ") rotate("+((d.strand == 1) ? "90" : "-90")+")"; })
-        .style("fill", function(d) { return color(d.family); })
+        .style("fill", function(d) {
+			var family = d.family.join();
+			if( family == '' || family_sizes[ family ] == 1 ) {
+				return "#ffffff";
+			} return color(d.family);
+		})
         .append("text").text("blah");
 
     // add lines from each gene to it's left neighbor
@@ -296,6 +320,18 @@ var context_data = JSON.parse(context_json);
             }
             return fams.join();
         });
+
+	for( family in family_sizes ) {
+		if( family_sizes[ family ] == 1 ) {
+			//legend.append("rect")
+			//	.attr("class", "single")
+			//    .attr("x", w-18)
+			//    .attr("y", top_pad-10)
+			//    .attr("width", 18)
+			//    .attr("height", rect_h)
+			//    .style("fill", "#ffffff");
+		}
+	}
 //});
 
 // add tooltips
