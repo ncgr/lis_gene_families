@@ -1,4 +1,4 @@
-//var w = d3.max([1000,document.getElementById('synteny').offsetWidth]),
+// var w = d3.max([1000,document.getElementById('synteny').offsetWidth]),
 var w = document.getElementById('synteny').offsetWidth,
     p = 100,
     plots_per_row = 3,
@@ -17,13 +17,6 @@ var num_plots = data.plots.length,
     num_fams = data.families.length,
     legend_h = num_fams*(rect_h+rect_p);
 
-// the plot matrix svg
-var svg = d3.select("#synteny").append("svg")
-    .attr("width", w )
-    .attr("height", h )
-  .append("g")
-    .attr("transform", "translate(" + 0 + ",0)");
-
 // the legend svg
 var scroll = d3.select("#legend").append("svg")
     .attr("width", legend_w)
@@ -31,12 +24,38 @@ var scroll = d3.select("#legend").append("svg")
     .append("g");
 
 // make the plots
+var omit = {};
+function plot() {
+	$("#synteny").html('');
+
+// the plot matrix svg
+var svg = d3.select("#synteny").append("svg")
+    .attr("width", w )
+    .attr("height", h )
+  .append("g")
+    .attr("transform", "translate(" + 0 + ",0)");
+
 var i = 0;
 data.plots.forEach(function(d) {
+
+	if( !(d.chromosome_id in omit) ) {
 
     // where is the plot located?
     var plot_x = ((i)%plots_per_row)*(p+l)+p,
         plot_y = Math.ceil((i+1)/3)*(l+p);
+
+	// pplot the remove button
+	svg.append("image")
+		.attr("class", "remove")
+		.attr("x", (plot_x+l+5))
+		.attr("y", (plot_y-l-27-5))
+		.attr("width", 27)
+		.attr("height", 27)
+		.attr("xlink:href", remove_image)
+		.on("click", function() {
+			omit[ d.chromosome_id ] = true;
+			plot();
+		});
 
     // the plot's rectangle
     svg.append("rect")
@@ -106,6 +125,25 @@ data.plots.forEach(function(d) {
         .attr("class", "brush")
         .call(brush);
 
+    // plot the points
+    var groups = ch_data.enter().append('g').attr("class", "gene")
+		.attr("transform", function(e) {
+			return "translate("+x(e.x)+", "+y(e.y)+")" });
+		
+	groups.append("circle")
+        .attr("class", "dot")
+        .attr("r", 3.5)
+        .style("fill", function(e) { return color(e.family); });
+
+    groups.append("text")
+        .attr("class", "tip")
+		.attr("transform", "rotate(-45)")
+        .attr("text-anchor", "middle")
+        .html(function(e) { return e.name+": "+e.fmin+" - "+e.fmax; });
+
+    i++;
+	}
+
 	var extent;
     function brushmove() {
         extent = brush.extent();
@@ -170,25 +208,9 @@ data.plots.forEach(function(d) {
             .selectAll(".x.axis").filter(function() { return this == xAxis_selection[0][0]; })
             .call(xAxis);
     }
-
-    // plot the points
-    var groups = ch_data.enter().append('g').attr("class", "gene")
-		.attr("transform", function(e) {
-			return "translate("+x(e.x)+", "+y(e.y)+")" });
-		
-	groups.append("circle")
-        .attr("class", "dot")
-        .attr("r", 3.5)
-        .style("fill", function(e) { return color(e.family); });
-
-    groups.append("text")
-        .attr("class", "tip")
-		.attr("transform", "rotate(-45)")
-        .attr("text-anchor", "middle")
-        .html(function(e) { return e.name+": "+e.fmin+" - "+e.fmax; });
-
-    i++;
 });
+}
+ plot();
 
 var legend = scroll.selectAll(".legend")
     .data(color.domain())

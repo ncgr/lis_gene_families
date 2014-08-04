@@ -71,6 +71,10 @@
     z-index: 100;  
 }
 
+.remove {
+	cursor: pointer;
+
+
 </style>
 {% endblock %}
 {% block content %}
@@ -109,6 +113,7 @@
 <script type="text/javascript" src="http://d3js.org/d3.v3.min.js"></script>
 <script type="text/javascript">
 var json = '{{ json|safe }}';
+var remove_image = "{% static 'gif/close.png' %}";
 
 $(document).ready(function() {
     // sticky navbar
