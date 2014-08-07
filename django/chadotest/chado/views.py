@@ -1370,11 +1370,12 @@ def context_viewer_synteny2(request, template_name, focus_id=None):
                     f = gene_floc_map[gene_id]
                     points.append('{"x":'+str(f['position'])+', '
                                  +'"y":'+str(gene_floc_map[m]['position'])+', '
-                                 +'"family":"'+str(family)+'", '
+                                 +'"family":'+str(family)+', '
                                  +'"id":'+str(gene_id)+', '
                                  +'"fmin":'+str(f['fmin'])+', '
                                  +'"fmax":'+str(f['fmax'])+', '
-                                 +'"name":"'+gene_name_map[gene_id]+'"}')
+                                 +'"name":"'+gene_name_map[gene_id]+'", '
+                                 +'"strand":'+str(f['strand'])+'}')
                 if gene_id in neighbor_family_map:
                     f = gene_floc_map[gene_id]
                     neighbor_json[gene_id] += '"fmin":'+str(f['fmin'])+', "fmax":'+str(f['fmax'])+', "strand":'+str(f['strand'])+'}'
