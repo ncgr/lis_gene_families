@@ -44,7 +44,7 @@
 	overflow: auto;
 }
 
-.tip {
+.tip, .query_tip, .result_tip {
     fill: black;
 	visibility: hidden;
 }
@@ -110,6 +110,8 @@
 {% endblock %}
 {% block javascript %}
 <script type="text/javascript" src="{% static 'js/jquery-1.10.2.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/enhancement.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/smith.js' %}"></script>
 <script type="text/javascript" src="http://d3js.org/d3.v3.min.js"></script>
 <script type="text/javascript">
 var json = '{{ json|safe }}';
