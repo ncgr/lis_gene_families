@@ -473,6 +473,8 @@ function context_plot( alignment, chromosome_id, selected ) {
 	    .attr("text-anchor", "left")
 	    .html(function(d) { return d.name+": "+d.fmin+" - "+d.fmax; });
 
+	query_groups.each(draw_line);
+
 	// add the result genes
 	if( !(plot === undefined || alignment === undefined || selected === undefined) ) {
 		var flip = ( alignment[2] ? -1 : 1 );
@@ -494,10 +496,15 @@ function context_plot( alignment, chromosome_id, selected ) {
 			.attr("transform", "translate(0, -7) rotate(-45)")
 		    .attr("text-anchor", "left")
 		    .html(function(d) { return d.name+": "+d.fmin+" - "+d.fmax; });
+
+		result_groups.each(function(d) {
+			draw_temp_line( d, alignment[2] );
+		});
 	}
 
 	// add lines from each gene to it's left neighbor
-	query.selectAll("path").filter(function(d, i) { return d.x != 0; }).each(draw_line);
+	//query.selectAll("path").filter(function(d, i) { return d.x != 0; }).each(draw_line);
+	//query.selectAll(".gene").each(function(d) { console.log(d); });
 	
 	// make thickness of lines a function of their length
 	var tracks = d3.selectAll(".track");
@@ -506,12 +513,16 @@ function context_plot( alignment, chromosome_id, selected ) {
 	var width = d3.scale.linear()
 	    .domain([min_width, max_width])
 	    .range([.1, 5]);
-	tracks.attr("stroke-width", function(d) { return width(d); });
+	tracks.attr("stroke-width", function(d) { 
+		console.log(this);
+		var diff = x.invert(d3.select(this).attr("x2"))-x.invert(d3.select(this).attr("x1"));
+		return width(d)/diff; });
 	
 	// draw a line between the given gene and it's left neighbor
 	function draw_line(d) {
 	    d3.selectAll("path")
-	    .filter(function(e, j) { return e.x == d.x-1 && e.y == d.y; })
+	    .filter(function(e, j) { 
+			return e.x == d.x-1 && e.y == d.y; })
 	    .each(function(e) {
 	        var track_group = query.append('g')
 				.attr("transform", "translate("+x(start_offset+e.x)+", "+y(d.y)+")");
@@ -524,6 +535,54 @@ function context_plot( alignment, chromosome_id, selected ) {
 	        .attr("x2", track_length)
 			.attr("y1", 0)
 			.attr("y2", 0)
+	        .data(function() {
+				if( d.fmin > e.fmax ) {
+					return [d.fmin-e.fmax];
+				}
+				return [e.fmin-d.fmax];
+			});
+	
+			track_group.append("text")
+			    .attr("class", "query_tip")
+				.attr("transform", "translate("+(track_length/2)+", 7) rotate(45)")
+			    .attr("text-anchor", "left")
+			    .html(function() {
+					if( e.fmax < d.fmin ) {
+						return d.fmin-e.fmax;
+					} return e.fmin-d.fmax;
+				});
+	
+	        track_group.moveToBack();
+	    });
+	}
+
+	function draw_temp_line(d, flipped) {
+		var d_x, neighbor, closest = -1;
+		d_x = x_map[d.id];
+		for( k in x_map ) {
+			if( x_map[ k ] > closest && x_map[ k ] < d_x ) {
+				closest = x_map[ k ];
+				neighbor = k;
+			}
+		}
+	    d3.selectAll("path")
+	    .filter(function(e, j) { 
+			if( !( neighbor === undefined ) ) {
+				return e.id == neighbor;
+			} return false;
+		})
+	    .each(function(e) {
+	        var track_group = query.append('g')
+				.attr("transform", "translate("+x(closest)+", "+y(1)+")");
+	
+			var track_length = x(d_x)-x(closest);
+	
+			track_group.append("line")
+	        .attr("class", "track")
+			.attr("x1", 0)
+	        .attr("x2", track_length)
+			.attr("y1", 1)
+			.attr("y2", 1)
 	        .data(function() {
 				if( d.fmin > e.fmax ) {
 					return [d.fmin-e.fmax];

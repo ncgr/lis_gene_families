@@ -23,6 +23,12 @@
 	margin: 0;
 	padding: 0;
 }
+
+#viewer {
+	background-color: #f6f6f6;
+	border-bottom: 1px solid #eee;
+}
+
 #legend {
 	position: fixed;
 	top: 50px;
@@ -32,16 +38,19 @@
 	background: #F6F6F6;
 }
 
+.sticky {  
+    position: fixed;  
+    left: 0;  
+    top: 50px; /* below the main navbar */ 
+    /*z-index: 100;  */
+}
 </style>
 {% endblock %}
 {% block content %}
 <div class="page-header" id="banner">
     <div class="row">
         <div class="col-lg-12">
-            <h1>Context viewer</h1>
-            <a href="{% url 'context_gff_download' %}?flocs={{ floc_id_string }}">download gff</a>
-            <br>
-            <a href="http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://{{ request.get_host }}{% url 'context_gff_download' %}?flocs={{ floc_id_string }}">view in CMTV</a>
+            <h1>Synteny Miner</h1>
         </div>
     </div>
 </div>
@@ -58,7 +67,11 @@
 </div>
 {% endblock %}
 {% block bottom %}
-<div class="col-lg-9" id="viewer"></div>
+<div id="remember">
+	<div id="viewer"></div>
+</div>
+<div class="col-lg-9" id="synteny">
+</div>
 <div class="col-lg-3" id="legend">
 </div>
 <div id="toggle"></div>
@@ -66,14 +79,40 @@
 {% block javascript %}
 <script type="text/javascript" src="{% static 'js/jquery-1.10.2.min.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/jquery-ui-1.10.3.custom.min.js' %}"></script>
-<script src="http://d3js.org/d3.v3.min.js"></script>
+<script type="text/javascript" src="http://d3js.org/d3.v3.min.js"></script>
 <script type="text/javascript" src="{% static 'js/context.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/context_synteny.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/context_viewer.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/context_legend.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/smith.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/enhancement.js' %}"></script>
 <script type="text/javascript">
-	// make sure the toggle div is not showing when the page loads
-	$(document).ready(function(e) {
+	// shared variables
+	var json = '{{ json|safe }}',
+		data = JSON.parse(json),
+		color = d3.scale.category20(),
+		family_names = get_family_name_map( data );
+	var remove_image = "{% static 'gif/close.png' %}";
+	
+	$(document).ready(function() {
+		// hide the toggle div
         $('#toggle').hide();
+		// make the viewer sticky
+	    var stickyContextTop = $('#viewer').offset().top;  
+	    var stickyContext = function(){  
+	        var scrollTop = $(window).scrollTop()+50; // pad for the main navbar
+	        if (scrollTop > stickyContextTop) {   
+				$("#remember").height($("#viewer").height());
+	            $('#viewer').addClass('sticky');  
+				} else {
+				$("#remember").height($("#viewer").height());
+	            $('#viewer').removeClass('sticky');   
+	        } 
+	    };
+	    stickyContext();  
+	    $(window).scroll(function() {  
+	        stickyContext();  
+	    });
 	});
 
 	// hide the toggle div when the click isn't in it or on a gene
@@ -98,19 +137,13 @@
 		}
 	}
 
-	// shared variables
-	var context_json = '{{ json|safe }}',
-		data = JSON.parse(context_json),
-		color = d3.scale.category20(),
-		family_names = get_family_name_map( data );
-
-	// context viewer callback functions
-	function gene_clicked( gene_selection ) {
+	// gene clicked callback function
+	function gene_clicked( selection ) {
 		$.ajax({
 	        url:'/chado/phylo_slide/node/slide/',
 	        data: {
 	        // this is actually a phylonode_id
-	        gene: gene_selection.id,
+	        gene: selection.id,
 	        // all pages are protected against csrf so we need to pass the token for this page
 	            csrfmiddlewaretoken: '{{ csrf_token }}'
 	        },
@@ -118,11 +151,11 @@
 	        dataType: "json",
 	        success: function(data) {
 				// pull the data out of the json we get back
-	        	var html = '<h4><a href="/chado/feature/'+gene_selection.id+'/">'+gene_selection.name+'</a></h4>'
+	        	var html = '<h4><a href="/chado/feature/'+selection.id+'/">'+selection.name+'</a></h4>'
 				// append the gene's families (if any)
 				html += 'Family: ';
-				if( gene_selection.family != '' ) {
-					html += '<a href="/chado/phylo/'+gene_selection.family+'/">'+family_names[gene_selection.family]+'</a>';
+				if( selection.family != '' ) {
+					html += '<a href="/chado/phylo/'+selection.family+'/">'+family_names[selection.family]+'</a>';
 				} else {
 					html += 'None';
 				}
@@ -144,7 +177,34 @@
 	    });
 		show_toggle();
 	}
-	var track_length = get_track_length( data );
+	
+	// plot callback functions
+	function brush_callback( query_selection, result_selection, result_genes) {
+		// make ordered list of query families
+		var query_genes = query_selection.genes.sort(function(a, b) {
+			return a.x-b.x;
+		});
+		var query = [];
+		for( var i = 0; i < query_genes.length; i++ ) {
+			query.push(query_genes[i].family);
+		}
+		// make ordered list of result families
+		result_genes.sort(function(a, b) {
+			return a.x-b.x;
+		});
+		result = [];
+		result_genes.each(function(e) {
+			result.push(e.family);
+		});
+		var alignment = align( query, result );
+		// use coordinate translation function
+		//context_plot( alignment, d.chromosome_id, selected );
+	}
+	
+	// create the scatter plot matrix
+	context_synteny( "synteny", color, data, gene_clicked, brush_callback );
+
+	// axis clicked callback function
 	function axis_clicked( axis_selection, gene_selection, rail_selection ) {
 		// add the track's links to the content box
 		var html = '<h4><a href="/chado/organism/'+data.groups[axis_selection].species_id+'/">'+data.groups[axis_selection].species_name+'</a> - <a href="/chado/feature/'+data.groups[axis_selection].chromosome_id+'/">'+data.groups[axis_selection].chromosome_name+'</a></h4>';
@@ -174,10 +234,11 @@
 		show_toggle();
 	}
 
-	// make the context viewer
-	context_viewer( 'viewer', color, data, gene_clicked, axis_clicked );
+	// create the viewer
+	// need to write coordinate translation function
+	//context_viewer( "viewer", color, data, gene_clicked, axis_clicked );
 
-	// context legend click callback
+	// legend click callback
 	function legend_click( family_selection, gene_selection ) {
 		html = '<h4><a href="/chado/phylo/'+family_selection.id+'/">'+family_names[ family_selection ]+'</a></h4>';
 		html += 'Genes:<ul>';
@@ -189,7 +250,7 @@
 		show_toggle();
 	}
 
-	// make the context legend
+	// make the legend
 	context_legend( 'legend', color, data, legend_click );
 </script>
 {% endblock %}
