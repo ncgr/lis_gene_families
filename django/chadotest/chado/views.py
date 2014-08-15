@@ -755,8 +755,8 @@ def context_viewer(request, node_id, template_name):
             num = int(request.GET['num'])
         except:
             pass
-    if num > 30:
-        num = 4
+    if num > 40:
+        num = 40
 
     # the gene_family cvterm
     family_term = list(Cvterm.objects.filter(name='gene family')[:1])[0]
@@ -810,8 +810,8 @@ def context_viewer_demo(request, node_id, template_name):
             num = int(request.GET['num'])
         except:
             pass
-    if num > 30:
-        num = 4
+    if num > 40:
+        num = 40
     # get all the nodes in the subtree
     root = get_object_or_404(Phylonode, pk=node_id)
     nodes = Phylonode.objects.filter(phylotree=root.phylotree, left_idx__gt=root.left_idx, right_idx__lt=root.right_idx)
@@ -958,8 +958,8 @@ def context_viewer_search2(request, template_name, focus_id=None):
             num = int(request.GET['num'])
         except:
             pass
-    if num > 30:
-        num = 4
+    if num > 40:
+        num = 40
     # get the neighbors of focus via their ordering
     neighbors = GeneOrder.objects.filter(chromosome=focus_order.chromosome, number__gte=focus_order.number-num, number__lte=focus_order.number+num).order_by('number')
     neighbor_ids = neighbors.values_list('gene_id', flat=True)
@@ -1219,8 +1219,8 @@ def context_viewer_synteny(request, template_name, focus_id=None):
             num = int(request.GET['num'])
         except:
             pass
-    if num > 30:
-        num = 4
+    if num > 40:
+        num = 40
     # get the neighbors of focus via their ordering
     neighbors = GeneOrder.objects.filter(chromosome=focus_order.chromosome_id, number__gte=focus_order.number-num, number__lte=focus_order.number+num).order_by('number')
     neighbor_ids = neighbors.values_list('gene_id', flat=True)
@@ -1307,8 +1307,8 @@ def context_viewer_synteny2(request, template_name, focus_id=None):
             num = int(request.GET['num'])
         except:
             pass
-    if num > 30:
-        num = 4
+    if num > 40:
+        num = 40
     # get the neighbors of focus via their ordering
     neighbor_orders = GeneOrder.objects.filter(chromosome=focus_order.chromosome_id, number__gte=focus_order.number-num, number__lte=focus_order.number+num).order_by('number')
     neighbor_ids = neighbor_orders.values_list('gene_id', flat=True)
