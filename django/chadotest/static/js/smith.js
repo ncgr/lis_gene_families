@@ -16,13 +16,14 @@
 // let's compute scores over and over again...
 var s = function( first, second ) {
 	if( first === second ) {
-		return 2;
+		return 4;
 	} return -1;
 }
 
 var gap = -1;
 
 var smith = function( sequence, reference ) {
+	console.log("called");
     var rows = reference.length + 1;
     var cols = sequence.length + 1;
     var a = Array.matrix( rows, cols, 0 );
