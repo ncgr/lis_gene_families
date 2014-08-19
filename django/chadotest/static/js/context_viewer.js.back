@@ -1,0 +1,243 @@
+function context_viewer( container_id, color, data, gene_clicked, axis_clicked ) {
+
+	// a helper function that moves things to the back
+	d3.selection.prototype.moveToBack = function() { 
+	    return this.each(function() { 
+	        var firstChild = this.parentNode.firstChild; 
+	        if (firstChild) { 
+	            this.parentNode.insertBefore(this, firstChild); 
+	        } 
+	    }); 
+	};
+
+	// the data loading function
+	//var data = JSON.parse(json);
+
+	// make a family size map
+	var family_sizes = {};
+	for( var i = 0; i < data.genes.length; i++ ) {
+		var family = data.genes[i].family.join();
+		if( family in family_sizes ) {
+			family_sizes[ family ] += 1;
+		} else {
+			family_sizes[ family ] = 1;
+		}
+	}
+	
+	// make a family id name map
+	var family_names = {};
+	for( var i = 0; i < data.families.length; i++ ) {
+		var fam = data.families[i];
+		family_names[fam.id.toString()] = fam.name;
+	}
+
+	// define dimensions of graph and a bunch of other stuff
+	var w = d3.max([1000,document.getElementById(container_id).offsetWidth]),
+		rect_h = 18,
+		rect_pad = 2,
+		top_pad = 150,
+	    pad = 20,
+	    l_pad = 150,
+	    left_pad = 200,
+		num_tracks = data.tracks.length,
+	    num_genes = d3.max(data.genes, function(d) { return +d.x; })+1,
+		num_fams = data.families.length,
+		y_h = num_tracks*30,
+		h = d3.max([y_h, num_fams*(rect_h+rect_pad)])+pad+top_pad;
+ 
+	// define the scatter plot
+	var viewer = d3.select("#"+container_id)
+	        .append("svg")
+	        .attr("width", w)
+	        .attr("height", h);
+
+	// initialize the x and y scales
+	var x = d3.scale.linear().domain([0, num_genes-1]).range([left_pad, w-pad-l_pad]),
+		y = d3.scale.linear().domain([0, num_tracks-1]).range([top_pad, y_h+top_pad]);
+
+	// make groups for the genes
+	var gene_groups = viewer.selectAll(".gene")
+	    .data(data.genes)
+		.enter()
+		.append("g")
+		.attr("class", "gene")
+		.attr("transform", function(e) {
+			return "translate("+x(e.x)+", "+y(e.y)+")";
+		});
+
+	// add genes to the groups
+	gene_groups.append("path")
+	    .attr("d", d3.svg.symbol().type("triangle-up").size(200))
+	    .attr("class", function(d) {
+			var family = d.family.join();
+			if( d.x == (num_genes-1)/2 ) {
+				return "point focus";
+			} else if ( family == '' ) {
+				return "point no_fam";
+			} else if ( family_sizes[ family ] == 1 ) {
+				return "point single";
+			} return "point"; })
+	    .attr("transform", function(d) { return "rotate("+((d.strand == 1) ? "90" : "-90")+")"; })
+	    .style("fill", function(d) {
+			var family = d.family.join();
+			if( family == '' || family_sizes[ family ] == 1 ) {
+				return "#ffffff";
+			} return color(d.family);
+		});
+
+	gene_groups
+	    .on("mouseover", function(d) {
+			show_tips( d3.select(this) );
+	    })
+	    .on("mouseout", function(d) {
+			hide_tips( d3.select(this) );
+	    })
+	    .on('click', function (d) {
+			gene_clicked(d);
+		})
+
+	// add the tooltips
+	gene_groups.append("text")
+		.attr("class", "tip")
+		.attr("transform", "translate(3, -16) rotate(-45)")
+		.attr("text-anchor", "left")
+		.html(function(e) {
+			return e.name+": "+e.fmin+" - "+e.fmax;
+		});
+
+	// add rails to the tracks
+	add_rails();
+	var rail_groups = d3.selectAll(".rail");
+
+	// draw a line between the given gene and it's closest left neighbor
+	function add_rails() {
+		// find the neighbor
+		gene_groups.each(function(d) {
+			var closest;
+			var neighbors = gene_groups.filter(function(e) {
+				return e.y == d.y;
+			});
+			neighbors.each(function(e) {
+				if( e.x < d.x && (closest === undefined || e.x > closest.x ) ) {
+					closest = e;
+				}
+			});
+
+			// draw the line
+			if( closest !== undefined ) {
+				var length = x(d.x)-x(closest.x);
+
+				var rail_group = viewer.append("g")
+					.attr("class", "rail")
+					.attr("transform", function() {
+						return "translate("+x(closest.x)+", "+y(closest.y)+")";
+					})
+					.attr("y", closest.y) // does nothing besides hold the datum
+	    	    	.data(function() {
+						if( d.fmin > closest.fmax ) {
+							return [d.fmin-closest.fmax];
+						}
+						return [closest.fmin-d.fmax];
+					});
+
+	    	    rail_group.append("line")
+					.attr("class", "line")
+	    	    	.attr("x1", 0)
+	    	    	.attr("x2", length)
+	    	    	.attr("y1", 0)
+	    	    	.attr("y2", 0);
+
+				rail_group.append("text")
+					.attr("class", "tip")
+					.attr("transform", "translate("+(length/2)+", 10) rotate(45)")
+					.attr("text-anchor", "left")
+					.html(function(e) {
+						return rail_group.data();
+					});
+
+				rail_group.moveToBack();
+	    	}
+
+			// make thickness of lines a function of their "length"
+			var rail_groups = d3.selectAll(".rail");
+			var max_width = d3.max(rail_groups.data());
+			var min_width = d3.min(rail_groups.data());
+			var width = d3.scale.linear()
+			    .domain([min_width, max_width])
+			    .range([.1, 5]);
+			rail_groups.attr("stroke-width", function(e) { return width(e); });
+		});
+	}
+
+	// y-axis helper list
+	var list = [];
+	for (var i = 0; i < num_tracks; i++) {
+		    list.push(i);
+	}
+	var yAxis = d3.svg.axis().scale(y).orient("left")
+		.tickValues(list) // we don't want d3 taking liberties to make things pretty
+	    //.ticks(num_tracks, 1)
+	    .tickFormat(function (d, i) {
+	        return data.tracks[d].species_name+" - "+data.tracks[d].chromosome_name;
+	    });
+
+	// draw the axis of the graph
+	viewer.append("g")
+	    .attr("class", "axis")
+	    .attr("transform", "translate("+(left_pad-pad)+", 0)")
+	    .call(yAxis);
+
+	// interact with the yaxis
+	d3.selectAll(".axis text")
+        .on("mouseover", function(d, y) {
+			var gene_selection = gene_groups.filter(function(e) {
+				return e.y == y;
+			});
+			var rail_selection = rail_groups.filter(function(e) {
+				return d3.select(this).attr("y") == y;
+			});
+			show_tips( gene_selection, rail_selection );
+        })
+        .on("mouseout",  function(d, y) {
+			var gene_selection = gene_groups.filter(function(e) {
+				return e.y == y;
+			});
+			var rail_selection = rail_groups.filter(function(e) {
+				return d3.select(this).attr("y") == y;
+			});
+			hide_tips( gene_selection, rail_selection );
+        }).on("click", function(d, y){
+			var gene_selection = gene_groups.filter(function(e) {
+				return e.y == y;
+			});
+			var rail_selection = rail_groups.filter(function(e) {
+				return d3.select(this).attr("y") == y;
+			});
+			axis_clicked( d, gene_selection, rail_selection );
+		});
+
+	function show_tips( gene_selection, rail_selection ) {
+	    gene_groups.style("opacity", .1);
+		if( gene_selection !== undefined ) {
+			gene_selection.style("opacity", 1);
+			gene_selection.selectAll(".tip").style("visibility", "visible");
+		}
+		rail_groups.style("opacity", .1);
+		if( rail_selection !== undefined ) {
+			rail_selection.style("opacity", 1);
+			rail_selection.selectAll(".tip").style("visibility", "visible");
+		}
+	}
+	
+	// unfade the tracks
+	function hide_tips( gene_selection, rail_selection ) {
+		gene_groups.style("opacity", 1);
+		if( gene_selection !== undefined ) {
+			gene_selection.selectAll(".tip").style("visibility", "hidden");
+		}
+		rail_groups.style("opacity", 1);
+		if( rail_selection !== undefined ) {
+			rail_selection.selectAll(".tip").style("visibility", "hidden");
+		}
+	}
+}

@@ -444,7 +444,11 @@ def phylo_view_slide_ajax(request):
 	if request.is_ajax():
 		try:
                         import re;
-			node = Phylonode.objects.get(pk=request.GET['phylonode'])
+                        if 'phylonode' in request.GET:
+			    node = get_object_or_404(Phylonode, pk=request.GET['phylonode'])
+                        elif 'gene' in request.GET:
+                            node = get_object_or_404(Feature, pk=request.GET['gene'])
+                            node.label = node.name
 			slidedict = {}
             # external nodes
 			if node.label:
@@ -501,7 +505,8 @@ def phylo_view_slide_ajax(request):
                                 consensus_feature = Feature.objects.get(uniquename=node.phylotree.name+'-consensus');
                                 slidedict['links'].append({'MSA':'/chado/msa/'+str(consensus_feature.feature_id)})
                                 # load the context viewer with each node in the subtree as a focus gene 
-                                slidedict['links'].append({'Context Viewer':'chado/context_viewer/'+str(node.pk)})
+                                slidedict['links'].append({'Context Viewer':'/chado/context_viewer/'+str(node.pk)})
+                                slidedict['links'].append({'Context Viewer Fancy':'/chado/context_viewer/demo/'+str(node.pk)})
 			return HttpResponse(simplejson.dumps(slidedict), content_type = 'application/javascript; charset=utf8')
 		except:
 			return HttpResponse("bad request")
@@ -795,6 +800,823 @@ def context_viewer(request, node_id, template_name):
     return render(request, template_name, {'tracks' : tracks, 'color_map' : color_map, 'floc_id_string' : ','.join(map(str,floc_ids))})
 
 
+def context_viewer_demo_refactor(request, node_id, template_name):
+    # make sure the node actually exists
+    get_object_or_404(Phylonode, pk=node_id)
+    # how many genes will be displayed?
+    num = 4
+    if 'num' in request.GET:
+        try:
+            num = int(request.GET['num'])
+        except:
+            pass
+    if num > 10:
+        num = 4
+    # get all the nodes in the subtree
+    root = get_object_or_404(Phylonode, pk=node_id)
+    nodes = Phylonode.objects.filter(phylotree=root.phylotree, left_idx__gt=root.left_idx, right_idx__lt=root.right_idx)
+    peptide_ids = nodes.values_list('feature', flat=True)
+    # work our way to the genes and their locations
+    mrna_ids = list(FeatureRelationship.objects.filter(subject__in=peptide_ids).values_list('object', flat=True))
+    gene_ids = list(FeatureRelationship.objects.filter(subject__in=mrna_ids).values_list('object', flat=True))
+    focus_genes = list(Feature.objects.only('pk','name').filter(pk__in=gene_ids))
+    focus_genes = [ g for g in focus_genes ]
+    # generate the context view using the focus genes
+    json, floc_id_string = context_viewer_json_refactor(focus_genes, num)
+    return render(request, template_name, {'json' : json, 'floc_id_string' : floc_id_string})
+
+# focus_genes is a list of tuples, the first element is a gene object, the second is the orientation (-1 flip, 1 leave as is, 0 flip if on reverse strand)
+def context_viewer_json_refactor(focus_genes, num):
+
+    # what we'll use to construct the json
+    groups = []
+    #families = {root.phylotree_id:root.phylotree.name}
+    families = {}
+    flocs = []
+
+    # the gene_family cvterm
+    y = 0
+    family_term = list(Cvterm.objects.filter(name='gene family')[:1])[0]
+    for gene in focus_genes:
+        genes = []
+        # get the focus featureloc
+        focus_loc = list(Featureloc.objects.only('fmin', 'fmax', 'strand').filter(feature=gene)[:1])[0]
+        flocs.append(focus_loc.pk)
+        srcfeature = Feature.objects.only('name').get(pk=focus_loc.srcfeature_id)
+        organism = Organism.objects.only('genus', 'species').get(pk=gene.organism_id)
+        family_id = list(Featureprop.objects.only('name').filter(type=family_term, feature=gene.feature_id).values_list('value', flat=True))
+        if len(family_id) > 0:
+            family_id = family_id[0]
+        family_object = list(Phylotree.objects.only('name').filter(pk=int(family_id)))
+        if len(family_object) > 0:
+            f = family_object[0]
+            if f.pk not in families:
+                families[f.pk] = '{"name":"'+f.name+'", "id":"'+str(f.pk)+'"}'
+        # make sure the focus has a positive orientation
+        flip = 1
+        if focus_loc.strand == -1:
+            flip = -1
+        group = '{"chromosome_name":"'+srcfeature.name+'", "chromosome_id":'+str(srcfeature.feature_id)+', "species_name":"'+organism.genus[0]+'.'+organism.species+'", "species_id":'+str(gene.organism_id)+', "genes":['
+        # add the gene entry for the focus
+        genes.append('{"name":"'+gene.name+'",'
+                    +'"id":'+str(gene.pk)+','
+                           +'"fmin":'+str(focus_loc.fmin)+','
+                           +'"fmax":'+str(focus_loc.fmax)+','
+                           +'"x":'+str(num)+','
+                           +'"y":'+str(y)+','
+                           +'"strand":'+str(flip*focus_loc.strand)+','
+                           +'"family":"'+family_id+'"}')
+                           #+'"family":['+str(root.phylotree_id)+']}')
+        # get the focus position
+        focus_pos = GeneOrder.objects.get(gene=gene)
+        # get the genes that come before the focus
+        before_genes = list(GeneOrder.objects.filter(chromosome=focus_pos.chromosome_id, number__lt=focus_pos.number, number__gte=focus_pos.number-num).values_list('gene', flat=True))
+        before_locs = list(Featureloc.objects.only('fmin', 'fmax', 'strand').filter(feature__in=before_genes).order_by('fmin'))
+        # add gene entries for the before_locs
+        offset = num-len(before_locs)
+        x = ( offset if flip == 1 else (num*2)-offset )
+        for l in before_locs:
+            flocs.append(l.pk)
+            family_id = list(Featureprop.objects.only('name').filter(type=family_term, feature=l.feature_id).values_list('value', flat=True))
+            if len(family_id) > 0:
+                family_id = family_id[0]
+                family_object = list(Phylotree.objects.only('name').filter(pk=int(family_id)))
+                if len(family_object) > 0:
+                    f = family_object[0]
+                    if f.pk not in families:
+                        families[f.pk] = '{"name":"'+f.name+'", "id":'+str(f.pk)+'}'
+            else:
+                family_id = ''
+            genes.append('{"name":"'+l.feature.name+'",'
+                        +'"id":'+str(l.feature_id)+','
+                               +'"fmin":'+str(l.fmin)+','
+                               +'"fmax":'+str(l.fmax)+','
+                               +'"x":'+str(x)+','
+                               +'"y":'+str(y)+','
+                               +'"strand":'+str(flip*l.strand)+','
+                               +'"family":"'+family_id+'"}')
+            x+=flip
+        # get the genes that come after the focus
+        after_genes = list(GeneOrder.objects.filter(chromosome=focus_pos.chromosome_id, number__gt=focus_pos.number, number__lte=focus_pos.number+num).values_list('gene', flat=True))
+        after_locs = list(Featureloc.objects.only('fmin', 'fmax', 'strand').filter(feature__in=after_genes).order_by('fmin'))
+        x = ( num+1 if flip == 1 else num-1 )
+        for l in after_locs:
+            flocs.append(l.pk)
+            family_id = list(Featureprop.objects.only('name').filter(type=family_term, feature=l.feature_id).values_list('value', flat=True))
+            if len(family_id) > 0:
+                family_id = family_id[0]
+                family_object = list(Phylotree.objects.only('name').filter(pk=int(family_id)))
+                if len(family_object) > 0:
+                    f = family_object[0]
+                    if f.pk not in families:
+                        families[f.pk] = '{"name":"'+f.name+'", "id":'+str(f.pk)+'}'
+            else:
+                family_id = ''
+            genes.append('{"name":"'+l.feature.name+'",'
+                        +'"id":'+str(l.feature_id)+','
+                        +'"fmin":'+str(l.fmin)+','
+                        +'"fmax":'+str(l.fmax)+','
+                        +'"x":'+str(x)+','
+                        +'"y":'+str(y)+','
+                        +'"strand":'+str(flip*l.strand)+','
+                        +'"family":"'+family_id+'"}')
+            x+=flip
+        y+=1
+        group += ','.join(genes)+']}'
+        groups.append(group)
+
+    # write the contents of the file
+    json = '{"families":['+','.join(families.values())+'], "groups":['+','.join(groups)+']}'
+
+    return json, ','.join(map(str, flocs))
+
+
+def context_viewer_demo(request, node_id, template_name):
+    # make sure the node actually exists
+    get_object_or_404(Phylonode, pk=node_id)
+    # how many genes will be displayed?
+    num = 4
+    if 'num' in request.GET:
+        try:
+            num = int(request.GET['num'])
+        except:
+            pass
+    if num > 10:
+        num = 4
+    # get all the nodes in the subtree
+    root = get_object_or_404(Phylonode, pk=node_id)
+    nodes = Phylonode.objects.filter(phylotree=root.phylotree, left_idx__gt=root.left_idx, right_idx__lt=root.right_idx)
+    peptide_ids = nodes.values_list('feature', flat=True)
+    # work our way to the genes and their locations
+    mrna_ids = list(FeatureRelationship.objects.filter(subject__in=peptide_ids).values_list('object', flat=True))
+    gene_ids = list(FeatureRelationship.objects.filter(subject__in=mrna_ids).values_list('object', flat=True))
+    focus_genes = list(Feature.objects.only('pk','name').filter(pk__in=gene_ids))
+    focus_genes_and_orientations = [ (g, 0) for g in focus_genes ]
+    # generate the context view using the focus genes
+    json, floc_id_string = context_viewer_json(focus_genes_and_orientations, num)
+    return render(request, template_name, {'json' : json, 'floc_id_string' : floc_id_string})
+
+# focus_genes is a list of tuples, the first element is a gene object, the second is the orientation (-1 flip, 1 leave as is, 0 flip if on reverse strand)
+def context_viewer_json(focus_genes, num):
+    ## get all the nodes in the subtree
+    #root = get_object_or_404(Phylonode, pk=node_id)
+    #nodes = Phylonode.objects.filter(phylotree=root.phylotree, left_idx__gt=root.left_idx, right_idx__lt=root.right_idx)
+    #peptide_ids = nodes.values_list('feature', flat=True)
+
+    ## work our way to the genes and their locations
+    #mrna_ids = list(FeatureRelationship.objects.filter(subject__in=peptide_ids).values_list('object', flat=True))
+    #gene_ids = list(FeatureRelationship.objects.filter(subject__in=mrna_ids).values_list('object', flat=True))
+    #focus_genes = list(Feature.objects.only('pk','name').filter(pk__in=gene_ids))
+
+    # what we'll use to construct the json
+    tracks = []
+    #families = {root.phylotree_id:root.phylotree.name}
+    families = {}
+    genes = []
+    flocs = []
+
+    # the gene_family cvterm
+    y = 0
+    family_term = list(Cvterm.objects.filter(name='gene family')[:1])[0]
+    for gene in focus_genes:
+        # get the focus featureloc
+        focus_loc = list(Featureloc.objects.only('fmin', 'fmax', 'strand').filter(feature=gene[0])[:1])[0]
+        flocs.append(focus_loc.pk)
+        srcfeature = Feature.objects.only('name').get(pk=focus_loc.srcfeature_id)
+        organism = Organism.objects.only('genus', 'species').get(pk=gene[0].organism_id)
+        family_ids = list(Featureprop.objects.only('name').filter(type=family_term, feature=gene[0].feature_id).values_list('value', flat=True))
+        family_objects = list(Phylotree.objects.only('name').filter(pk__in=map(int, family_ids)))
+        for f in family_objects:
+            if f.pk not in families:
+                families[f.pk] = f.name
+        # make sure the focus has a positive orientation
+        flip = 1
+        if (gene[1] == 0 and focus_loc.strand == -1) or gene[1] == -1:
+            flip = -1
+        tracks.append('{"chromosome_name":"'+srcfeature.name+'",'
+                    +'"chromosome_id":'+str(srcfeature.feature_id)+','
+                    +'"species_name":"'+organism.genus[0]+'.'+organism.species+'",'
+                    +'"species_id":'+str(gene[0].organism_id)+'}')
+        # add the gene entry for the focus
+        genes.append('{"name":"'+gene[0].name+'",'
+                    +'"id":'+str(gene[0].pk)+','
+                    +'"fmin":'+str(focus_loc.fmin)+','
+                    +'"fmax":'+str(focus_loc.fmax)+','
+                    +'"x":'+str(num)+','
+                    +'"y":'+str(y)+','
+                    +'"strand":'+str(flip*focus_loc.strand)+','
+                    +'"family":['+','.join(family_ids)+']}')
+                    #+'"family":['+str(root.phylotree_id)+']}')
+        # get the focus position
+        focus_pos = GeneOrder.objects.get(gene=gene[0])
+        # get the genes that come before the focus
+        before_genes = list(GeneOrder.objects.filter(chromosome=focus_pos.chromosome_id, number__lt=focus_pos.number, number__gte=focus_pos.number-num).values_list('gene', flat=True))
+        before_locs = list(Featureloc.objects.only('fmin', 'fmax', 'strand').filter(feature__in=before_genes).order_by('fmin'))
+        # add gene entries for the before_locs
+        offset = num-len(before_locs)
+        x = ( offset if flip == 1 else (num*2)-offset )
+        for l in before_locs:
+            flocs.append(l.pk)
+            family_ids = list(Featureprop.objects.only('name').filter(type=family_term, feature=l.feature_id).values_list('value', flat=True))
+            genes.append('{"name":"'+l.feature.name+'",'
+                        +'"id":'+str(l.feature_id)+','
+                        +'"fmin":'+str(l.fmin)+','
+                        +'"fmax":'+str(l.fmax)+','
+                        +'"x":'+str(x)+','
+                        +'"y":'+str(y)+','
+                        +'"strand":'+str(flip*l.strand)+','
+                        +'"family":['+','.join(family_ids)+']}')
+            family_objects = list(Phylotree.objects.only('name').filter(pk__in=map(int, family_ids)))
+            for f in family_objects:
+                if f.pk not in families:
+                    families[f.pk] = f.name
+            x+=flip
+        # get the genes that come after the focus
+        after_genes = list(GeneOrder.objects.filter(chromosome=focus_pos.chromosome_id, number__gt=focus_pos.number, number__lte=focus_pos.number+num).values_list('gene', flat=True))
+        after_locs = list(Featureloc.objects.only('fmin', 'fmax', 'strand').filter(feature__in=after_genes).order_by('fmin'))
+        x = ( num+1 if flip == 1 else num-1 )
+        for l in after_locs:
+            flocs.append(l.pk)
+            family_ids = list(Featureprop.objects.only('name').filter(type=family_term, feature=l.feature_id).values_list('value', flat=True))
+            genes.append('{"name":"'+l.feature.name+'",'
+                        +'"id":'+str(l.feature_id)+','
+                        +'"fmin":'+str(l.fmin)+','
+                        +'"fmax":'+str(l.fmax)+','
+                        +'"x":'+str(x)+','
+                        +'"y":'+str(y)+','
+                        +'"strand":'+str(flip*l.strand)+','
+                        +'"family":['+','.join(family_ids)+']}')
+            family_objects = list(Phylotree.objects.only('name').filter(pk__in=map(int, family_ids)))
+            for f in family_objects:
+                if f.pk not in families:
+                    families[f.pk] = f.name
+            x+=flip
+        y+=1
+
+    # write the contents of the file
+    json = '{"tracks":['+(','.join(tracks))+'],"families":['
+    fams = []
+    for key, value in families.iteritems():
+        fams.append('{"name":"'+value+'","id":'+str(key)+'}')
+    json += ','.join(fams)+'],"genes":['+','.join(genes)+']}'
+
+    return json, ','.join(map(str, flocs))
+
+def context_viewer_search2(request, template_name, focus_id=None):
+    # get the focus gene of the query track
+    focus = Feature.objects.only('pk', 'name').get(pk=focus_id)
+    if not focus:
+        raise Http404
+    focus_order = list(GeneOrder.objects.filter(gene=focus))
+    if len(focus_order) == 0:
+        raise Http404
+    focus_order = focus_order[0]
+    focus_loc = list(Featureloc.objects.only('strand').filter(feature=focus))
+    if len(focus_loc) == 0:
+        raise Http404
+    flip = 1
+    if focus_loc[0].strand == -1:
+        flip = -1
+    # get the gene family type
+    gene_family_type = list(Cvterm.objects.only('pk').filter(name='gene family'))
+    if len(gene_family_type) == 0:
+        raise Http404
+    gene_family_type = gene_family_type[0]
+    # how many neighbors should there be?
+    num = 4
+    if 'num' in request.GET:
+        try:
+            num = int(request.GET['num'])
+        except:
+            pass
+    if num > 10:
+        num = 4
+    # get the neighbors of focus via their ordering
+    neighbors = GeneOrder.objects.filter(chromosome=focus_order.chromosome, number__gte=focus_order.number-num, number__lte=focus_order.number+num).order_by('number')
+    neighbor_ids = neighbors.values_list('gene_id', flat=True)
+    print "neighbor_ids"
+    print neighbor_ids
+    # actually get the gene families
+    neighbor_families = Featureprop.objects.only('value').filter(type=gene_family_type, feature__in=neighbor_ids)
+    # dictionaryify the results
+    neighbor_families_dict = dict( (o.feature_id, o.value) for o in neighbor_families )
+    print "neighbor_families_dict"
+    print neighbor_families_dict
+    # make a list of family ids to query against
+    family_ids = []
+    for i in neighbor_ids:
+        if i in neighbor_families_dict:
+            family_ids.append(neighbor_families_dict[i])
+        else:
+            family_ids.append(-1)
+    print "family_ids"
+    print family_ids
+    # just in case the query track was missing some genes
+    if len(family_ids) < num*2+1:
+        offset = focus_order.number-neighbors[0].number
+        if offset != num:
+            head = [ -1 for i in range(num-offset) ]
+            family_ids = head + family_ids
+        else:
+            offset = neighbors[-1].number-focus_order.number
+            tail = [ -1 for i in range(num-offset) ]
+            family_ids = family_ids + tail
+    print "just in case family ids"
+    print family_ids
+    # get all the genes associated with those families
+    gene_families = Featureprop.objects.only('feature', 'value').filter(type=gene_family_type, value__in=family_ids)
+    gene_family_map = {}
+    for f in gene_families:
+        gene_family_map[ f.feature_id ] = f.value
+    feature_ids = gene_families.values_list('feature_id', flat=True)
+    # get all the feature locations associated with the genes
+    feature_locs = Featureloc.objects.only('feature', 'srcfeature').filter(feature__in=feature_ids)
+    # get the features' chromosomes
+    chromosome_ids = set(feature_locs.values_list('srcfeature_id', flat=True))
+    # look for tracks on each chromosome
+    focus_genes_and_orientations = [(focus, 0)]
+    track_length = num*2+1
+    for ch in chromosome_ids:
+        track_gene_ids = list(feature_locs.filter(srcfeature=ch).values_list('feature_id', flat=True))
+        # get the ordering number of each track gene on the chromosome
+        gene_orders = list(GeneOrder.objects.filter(chromosome=ch, gene__in=track_gene_ids).order_by('number'))
+        # find genes that are close enough to make a track
+        candidates = []
+        for i in range(len(gene_orders)-1):
+            gap = 0
+            included = 1
+            for j in range(i+1, len(gene_orders)):
+                new_gap = gene_orders[ j ].number-gene_orders[ i ].number+1
+                if new_gap > track_length:
+                    j -= 1
+                    # the set needs to have more than one member to be considered
+                    if included > 1:
+                        # make sure it's not a subset of an existing set
+                        repeat = False
+                        for c in candidates:
+                            repeat = gene_orders[ j ].number <= gene_orders[ c[ 1 ] ].number
+                            if repeat:
+                                break
+                        if not repeat:
+                            candidates.append((i, j, gap))
+                    break
+                else:
+                    gap = new_gap
+                    included += 1
+        # align the new genes with the query track
+        for c in candidates:
+            play = track_length-c[ 2 ]
+            first_number = gene_orders[ c[ 0 ] ].number
+            best_play = 0
+            best_hits = 0
+            orientation = 1
+            # two assumptions are being made here
+            # 1) there is a family id for every gene on the query track (-1 for genes without families)
+            # 2) the family ids are in the order they appeared on the track
+            # even if there isn't play we should choose an orientation
+            for i in range(play+1):
+                # check the same orientation
+                hits = 0
+                for j in range(c[ 0 ], c[ 1 ]+1):
+                    first = family_ids[ gene_orders[ j ].number-first_number+i ]
+                    second = gene_family_map[ gene_orders[ j ].gene_id ]
+                    if first == second:
+                        hits += 1
+                if hits > best_hits:
+                    best_hits = hits
+                    best_play = i
+                    orientation = 1
+                # check the reverse orientation
+                hits = 0
+                for j in range(c[ 0 ], c[ 1 ]+1):
+                    first = family_ids[ (track_length-1)-(gene_orders[ j ].number-first_number+i) ]
+                    second = gene_family_map[ gene_orders[ j ].gene_id ]
+                    if first == second:
+                        hits += 1
+                if hits > best_hits:
+                    best_hits = hits
+                    best_play = i
+                    orientation = -1
+            print "chromosome: "+str(ch)+", hits: "+str(best_hits)
+            # make a track using the best alignment... mind the gap
+            focus_id = list(GeneOrder.objects.filter(chromosome=ch, number=(first_number-best_play)+num).values_list('gene_id', flat=True))
+            # this is unfortunate
+            if len(focus_id) > 0:
+                focus = Feature.objects.only('pk', 'name').get(pk=focus_id[0])
+                focus_genes_and_orientations.append((focus, flip*orientation))
+
+    # generate the context view using the focus genes
+    json, floc_id_string = context_viewer_json(focus_genes_and_orientations, num)
+    return render(request, template_name, {'json' : json, 'floc_id_string' : floc_id_string})
+
+def context_viewer_search(request, template_name):
+    # make sure there's the right number of gene families
+    if 'families' not in request.GET:
+        raise Http404
+    family_ids = request.GET['families'].split(',')
+    num = len(family_ids)
+    if num > 21 or num%2 == 0:
+        raise Http404
+    # get the focus gene of the query track
+    #if 'focus' not in request.GET:
+    #    raise Http404
+    #query_focus = Feature.objects.only('pk', 'name').get(pk=request.GET['focus'])
+    #if not query_focus:
+    #    raise Http404
+    #query_focus_loc = Featureloc.objects.only('strand').filter(feature=query_focus.feature_id)
+    #if not query_focus:
+    #    raise Http404
+    #if query_focus_loc.strand == -1:
+    #    feature_ids = feature_ids[::-1]
+    # actually get the gene families
+    gene_family_type = list(Cvterm.objects.only('pk').filter(name='gene family'))
+    if len(gene_family_type) == 0:
+        raise Http404
+    gene_family_type = gene_family_type[0]
+    # get all the genes associated with those families
+    gene_families = Featureprop.objects.only('feature', 'value').filter(type=gene_family_type, value__in=family_ids)
+    gene_family_map = {}
+    for f in gene_families:
+        gene_family_map[ f.feature_id ] = f.value
+    feature_ids = gene_families.values_list('feature_id', flat=True)
+    # get all the feature locations associated with the genes
+    feature_locs = Featureloc.objects.only('feature', 'srcfeature').filter(feature__in=feature_ids)
+    # get the features' chromosomes
+    chromosome_ids = set(feature_locs.values_list('srcfeature_id', flat=True))
+    # look for tracks on each chromosome
+    #tracks = []
+    focus_genes_and_orientations = []
+    for ch in chromosome_ids:
+        track_gene_ids = list(feature_locs.filter(srcfeature=ch).values_list('feature_id', flat=True))
+        # get the ordering number of each track gene on the chromosome
+        gene_orders = list(GeneOrder.objects.filter(chromosome=ch, gene__in=track_gene_ids).order_by('number'))
+        # find genes that are close enough to make a track
+        candidates = []
+        for i in range(len(gene_orders)-1):
+            gap = 0
+            included = 1
+            for j in range(i+1, len(gene_orders)):
+                new_gap = gene_orders[ j ].number-gene_orders[ i ].number+1
+                if new_gap > num:
+                    j -= 1
+                    # the set needs to have more than one member to be considered
+                    if included > 1:
+                        # make sure it's not a subset of an existing set
+                        repeat = False
+                        for c in candidates:
+                            repeat = gene_orders[ j ].number <= gene_orders[ c[ 1 ] ].number
+                            if repeat:
+                                break
+                        if not repeat:
+                            candidates.append((i, j, gap))
+                    break
+                else:
+                    gap = new_gap
+                    included += 1
+        # align the new genes with the query track
+        for c in candidates:
+            #if c[ 2 ] == num:
+            #    print "adding a full track"
+            #    tracks.append(list(GeneOrder.objects.filter(chromosome=c, number__gte=gene_orders[ c[ 0 ] ].number, number__lte=gene_orders[ c[ 1 ] ].number)))
+            #else:
+            play = num-c[ 2 ]
+            first_number = gene_orders[ c[ 0 ] ].number
+            best_play = 0
+            best_hits = 0
+            orientation = 1
+            # two assumptions are being made here
+            # 1) there is a family id for every gene on the query track (-1 for genes without families)
+            # 2) the family ids are in the order they appeared on the track
+            # even if there isn't play we should choose an orientation
+            for i in range(play+1):
+                # check the same orientation
+                hits = 0
+                for j in range(c[ 0 ], c[ 1 ]+1):
+                    first = family_ids[ gene_orders[ j ].number-first_number+i ]
+                    second = gene_family_map[ gene_orders[ j ].gene_id ]
+                    if first == second:
+                        hits += 1
+                if hits > best_hits:
+                    best_hits = hits
+                    best_play = i
+                    orientation = 1
+                # check the reverse orientation
+                hits = 0
+                for j in range(c[ 0 ], c[ 1 ]+1):
+                    first = family_ids[ (num-1)-(gene_orders[ j ].number-first_number+i) ]
+                    second = gene_family_map[ gene_orders[ j ].gene_id ]
+                    if first == second:
+                        hits += 1
+                if hits > best_hits:
+                    best_hits = hits
+                    best_play = i
+                    orientation = -1
+            # make a track using the best alignment... mind the gap
+            #tracks.append(list(GeneOrder.objects.filter(chromosome=c, number__gte=first_number-best_play, number__lte=first_number-best_play+c[ 2 ]-1)))
+            focus_id = list(GeneOrder.objects.filter(chromosome=ch, number=(first_number-best_play)+((num-1)/2)).values_list('gene_id', flat=True))
+            # this is unfortunate
+            if len(focus_id) > 0:
+                focus = Feature.objects.only('pk', 'name').get(pk=focus_id[0])
+                focus_genes_and_orientations.append((focus, orientation))
+
+    # generate the context view using the focus genes
+    json, floc_id_string = context_viewer_json(focus_genes_and_orientations, (num-1)/2)
+    return render(request, template_name, {'json' : json, 'floc_id_string' : floc_id_string})
+
+def context_viewer_synteny(request, template_name, focus_id=None):
+    # get the focus gene of the query track
+    focus = Feature.objects.only('pk', 'name').get(pk=focus_id)
+    if not focus:
+        raise Http404
+    focus_order = list(GeneOrder.objects.filter(gene=focus))
+    if len(focus_order) == 0:
+        raise Http404
+    focus_order = focus_order[0]
+    focus_loc = list(Featureloc.objects.only('strand').filter(feature=focus))
+    if len(focus_loc) == 0:
+        raise Http404
+    flip = 1
+    if focus_loc[0].strand == -1:
+        flip = -1
+    # get the gene family type
+    gene_family_type = list(Cvterm.objects.only('pk').filter(name='gene family'))
+    if len(gene_family_type) == 0:
+        raise Http404
+    gene_family_type = gene_family_type[0]
+    # how many neighbors should there be?
+    num = 4
+    if 'num' in request.GET:
+        try:
+            num = int(request.GET['num'])
+        except:
+            pass
+    if num > 10:
+        num = 4
+    # get the neighbors of focus via their ordering
+    neighbors = GeneOrder.objects.filter(chromosome=focus_order.chromosome_id, number__gte=focus_order.number-num, number__lte=focus_order.number+num).order_by('number')
+    neighbor_ids = neighbors.values_list('gene_id', flat=True)
+    # actually get the gene families
+    neighbor_families = Featureprop.objects.only('feature', 'value').filter(type=gene_family_type, feature__in=neighbor_ids)
+    # dictionaryify the results
+    neighbor_families_dict = dict( (o.feature_id, o.value) for o in neighbor_families )
+    family_ids = neighbor_families.values_list("value", flat=True)
+    # make an y axis lookup for the query track in the scatter plot
+    family_indices = {}
+    for f in family_ids:
+        family_indices[f] = []
+    # populate the lookup
+    y = 0
+    genes = []
+    for i in range(len(neighbors)):
+        if neighbors[i].gene_id in neighbor_families_dict:
+            genes.append('{"name":"'+neighbors[i].gene.name+'", "id":'+str(neighbors[i].gene_id)+'}')
+            family_indices[neighbor_families_dict[neighbors[i].gene_id]].append(y)
+            y += 1
+    # get all the genes associated with those families
+    gene_families = Featureprop.objects.only('feature', 'value').filter(type=gene_family_type, value__in=family_ids)
+    gene_family_map = {}
+    for f in gene_families:
+        gene_family_map[ f.feature_id ] = f.value
+    feature_ids = gene_families.values_list('feature_id', flat=True)
+    # get all the feature locations associated with the genes
+    feature_locs = Featureloc.objects.only('feature', 'srcfeature').filter(feature__in=feature_ids)
+    # get the features' chromosomes
+    chromosome_ids = set(feature_locs.values_list('srcfeature_id', flat=True))
+    chromosome_gene_map = {}
+    for ch in chromosome_ids:
+        chromosome_gene_map[ch] = []
+    for f in feature_locs:
+        chromosome_gene_map[f.srcfeature_id].append(f.feature_id)
+    chromosome_names = list(Feature.objects.only('name').filter(pk__in=chromosome_ids))
+    # dictionaryify the results
+    chromosome_id_name_map = dict( (o.pk, o.name) for o in chromosome_names )
+    json = '{"query":{"chromosome_id": '+str(focus_order.chromosome_id)+', "chromosome_name": "'+chromosome_id_name_map[focus_order.chromosome_id]+'", "genes" : [' + ','.join(genes) + ']}'
+    # construct a scatter plot for each chromosome
+    json += ', "plots":['
+    plots = []
+    for ch, track_gene_ids in chromosome_gene_map.iteritems():
+    #for ch in chromosome_ids:
+        #track_gene_ids = list(feature_locs.filter(srcfeature=ch).values_list('feature_id', flat=True))
+        if len(track_gene_ids) > 1:
+            plot = '{"chromosome_id":'+str(ch)+', "chromosome_name": "'+chromosome_id_name_map[ch]+'", '
+            # get the ordering number of each track gene on the chromosome
+            gene_orders = list(GeneOrder.objects.filter(chromosome=ch, gene__in=track_gene_ids).order_by('number'))
+            # get the gene families
+            ch_neighbor_families = Featureprop.objects.only('feature', 'value').filter(type=gene_family_type, feature__in=track_gene_ids)
+            # dictionaryify the results
+            ch_gene_families_dict = dict( (o.feature_id, o.value) for o in ch_neighbor_families )
+            # make the scatter plot points
+            points = []
+            for x in range(len(gene_orders)):
+                family = ch_gene_families_dict[gene_orders[x].gene_id]
+                for y in family_indices[family]:
+                    points.append('{"x":'+str(x)+', "y":'+str(y)+', "family":"'+str(family)+'"}')
+            plot += '"points":['+','.join(points)+']}'
+            plots.append(plot)
+    json += ','.join(plots) + ']}'
+
+    return render(request, template_name, {'json' : json})
+
+def context_viewer_synteny2(request, template_name, focus_id=None):
+    # get the focus gene of the query track
+    focus = Feature.objects.only('pk', 'name').get(pk=focus_id)
+    if not focus:
+        raise Http404
+    focus_order = list(GeneOrder.objects.filter(gene=focus))
+    if len(focus_order) == 0:
+        raise Http404
+    focus_order = focus_order[0]
+    # get the gene family type
+    gene_family_type = list(Cvterm.objects.only('pk').filter(name='gene family'))
+    if len(gene_family_type) == 0:
+        raise Http404
+    gene_family_type = gene_family_type[0]
+    # how many neighbors should there be?
+    num = 4
+    if 'num' in request.GET:
+        try:
+            num = int(request.GET['num'])
+        except:
+            pass
+    if num > 10:
+        num = 4
+    # get the neighbors of focus via their ordering
+    neighbor_orders = GeneOrder.objects.filter(chromosome=focus_order.chromosome_id, number__gte=focus_order.number-num, number__lte=focus_order.number+num).order_by('number')
+    neighbor_ids = neighbor_orders.values_list('gene_id', flat=True)
+    # actually get the gene families
+    neighbor_featureprops = Featureprop.objects.only('feature', 'value').filter(type=gene_family_type, feature__in=neighbor_ids)
+    # dictionaryify the results
+    neighbor_family_map = dict( (o.feature_id, o.value) for o in neighbor_featureprops )
+    neighbor_family_ids = neighbor_featureprops.values_list("value", flat=True)
+    neighbor_families = list(Phylotree.objects.only('name').filter(pk__in=map(int, neighbor_family_ids)))
+    json = '{"families":['
+    families = []
+    for f in neighbor_families:
+        families.append('{"name":"'+f.name+'", "id":'+str(f.pk)+'}')
+    json += ','.join(families)+']'
+    # make a y axis lookup for the query track in the scatter plot
+    family_members = {}
+    for f in neighbor_family_ids:
+        family_members[f] = []
+    # populate the lookup
+    neighbor_json = {}
+    x = 0
+    for n in neighbor_orders:
+        if n.gene_id in neighbor_family_map:
+            neighbor_json[n.gene_id] = '{"name":"'+n.gene.name+'", "id":'+str(n.gene_id)+', "x":'+str(x)+', "y":0, "family":'+str(neighbor_family_map[n.gene_id])+','
+            x+=1
+            family_members[neighbor_family_map[n.gene_id]].append(n.gene_id)
+    # get all the genes associated with those families
+    gene_families = Featureprop.objects.only('feature', 'value').filter(type=gene_family_type, value__in=neighbor_family_ids)
+    gene_family_map = dict( (o.feature_id, o.value) for o in gene_families )
+    # get all the feature locations associated with the genes
+    gene_locs = Featureloc.objects.only('feature', 'srcfeature', 'fmin', 'fmax', 'strand').filter(feature__in=gene_family_map.keys())
+    # dictionaryify the positions
+    #gene_position_map = dict( (o.feature_id, o.fmin+(o.fmax-o.fmin)) for o in gene_locs )
+    gene_floc_map = dict( (o.feature_id, {'fmin':o.fmin, 'fmax':o.fmax, 'position': o.fmin+(o.fmax-o.fmin), 'strand': o.strand}) for o in gene_locs )
+    # get the gene names
+    gene_names = Feature.objects.only('name').filter(pk__in=gene_family_map.keys())
+    gene_name_map = dict( (o.feature_id, o.name) for o in gene_names )
+    # get the genes' chromosomes
+    chromosome_ids = set(gene_locs.values_list('srcfeature_id', flat=True))
+    chromosome_gene_map = {}
+    for ch in chromosome_ids:
+        chromosome_gene_map[ch] = []
+    for f in gene_locs:
+        chromosome_gene_map[f.srcfeature_id].append(f.feature_id)
+    chromosome_names = list(Feature.objects.only('name').filter(pk__in=chromosome_ids))
+    # dictionaryify the results
+    chromosome_name_map = dict( (o.pk, o.name) for o in chromosome_names )
+    json += ', "query":{"chromosome_id": '+str(focus_order.chromosome_id)+', "chromosome_name": "'+chromosome_name_map[focus_order.chromosome_id]+'", "genes" : [' #+ ','.join(neighbor_json) + ']}'
+    # construct a scatter plot for each chromosome
+    #json += ', "plots":['
+    plots = []
+    for ch, ch_gene_ids in chromosome_gene_map.iteritems():
+        if len(ch_gene_ids) > 1:
+            plot = '{"chromosome_id":'+str(ch)+', "chromosome_name": "'+chromosome_name_map[ch]+'", '
+            points = []
+            for gene_id in ch_gene_ids:
+                family = gene_family_map[gene_id]
+                for m in family_members[family]:
+                    f = gene_floc_map[gene_id]
+                    points.append('{"x":'+str(f['position'])+', '
+                                 +'"y":'+str(gene_floc_map[m]['position'])+', '
+                                 +'"family":'+str(family)+', '
+                                 +'"id":'+str(gene_id)+', '
+                                 +'"fmin":'+str(f['fmin'])+', '
+                                 +'"fmax":'+str(f['fmax'])+', '
+                                 +'"name":"'+gene_name_map[gene_id]+'", '
+                                 +'"strand":'+str(f['strand'])+'}')
+                if gene_id in neighbor_family_map:
+                    f = gene_floc_map[gene_id]
+                    neighbor_json[gene_id] += '"fmin":'+str(f['fmin'])+', "fmax":'+str(f['fmax'])+', "strand":'+str(f['strand'])+'}'
+            plot += '"points":['+','.join(points)+']}'
+            plots.append(plot)
+    json += ','.join(neighbor_json.values())+']},'
+    json += '"plots":[' + ','.join(plots) + ']}'
+
+    return render(request, template_name, {'json' : json})
+
+def context_viewer_synteny3(request, template_name, focus_id=None):
+    # get the focus gene of the query track
+    focus = Feature.objects.only('pk', 'name').get(pk=focus_id)
+    if not focus:
+        raise Http404
+    focus_order = list(GeneOrder.objects.filter(gene=focus))
+    if len(focus_order) == 0:
+        raise Http404
+    focus_order = focus_order[0]
+    # get the gene family type
+    gene_family_type = list(Cvterm.objects.only('pk').filter(name='gene family'))
+    if len(gene_family_type) == 0:
+        raise Http404
+    gene_family_type = gene_family_type[0]
+    # how many neighbors should there be?
+    num = 4
+    if 'num' in request.GET:
+        try:
+            num = int(request.GET['num'])
+        except:
+            pass
+    if num > 10:
+        num = 4
+    # get the neighbors of focus via their ordering
+    neighbor_orders = GeneOrder.objects.filter(chromosome=focus_order.chromosome_id, number__gte=focus_order.number-num, number__lte=focus_order.number+num).order_by('number')
+    neighbor_ids = neighbor_orders.values_list('gene_id', flat=True)
+    # actually get the gene families
+    neighbor_featureprops = Featureprop.objects.only('feature', 'value').filter(type=gene_family_type, feature__in=neighbor_ids)
+    # dictionaryify the results
+    neighbor_family_map = dict( (o.feature_id, o.value) for o in neighbor_featureprops )
+    neighbor_family_ids = neighbor_featureprops.values_list("value", flat=True)
+    neighbor_families = list(Phylotree.objects.only('name').filter(pk__in=map(int, neighbor_family_ids)))
+    json = '{"families":['
+    families = []
+    for f in neighbor_families:
+        families.append('{"name":"'+f.name+'", "id":'+str(f.pk)+'}')
+    json += ','.join(families)+']'
+    # make a y axis lookup for the query track in the scatter plot
+    family_members = {}
+    for f in neighbor_family_ids:
+        family_members[f] = []
+    # populate the lookup
+    neighbor_json = {}
+    x = 0
+    for n in neighbor_orders:
+        if n.gene_id in neighbor_family_map:
+            #neighbor_json[n.gene_id] = '{"name":"'+n.gene.name+'", "id":'+str(n.gene_id)+', "x":'+str(x)+', "y":0, "family":'+str(neighbor_family_map[n.gene_id])+','
+            neighbor_json[n.gene_id] = '{"name":"'+n.gene.name+'", "id":'+str(n.gene_id)+', "family":'+str(neighbor_family_map[n.gene_id])+','
+            x+=1
+            family_members[neighbor_family_map[n.gene_id]].append(n.gene_id)
+    # get all the genes associated with those families
+    gene_families = Featureprop.objects.only('feature', 'value').filter(type=gene_family_type, value__in=neighbor_family_ids)
+    gene_family_map = dict( (o.feature_id, o.value) for o in gene_families )
+    # get all the feature locations associated with the genes
+    gene_locs = Featureloc.objects.only('feature', 'srcfeature', 'fmin', 'fmax', 'strand').filter(feature__in=gene_family_map.keys())
+    # dictionaryify the positions
+    #gene_position_map = dict( (o.feature_id, o.fmin+(o.fmax-o.fmin)) for o in gene_locs )
+    gene_floc_map = dict( (o.feature_id, {'fmin':o.fmin, 'fmax':o.fmax, 'position': o.fmin+(o.fmax-o.fmin), 'strand': o.strand}) for o in gene_locs )
+    # get the gene names
+    gene_names = Feature.objects.only('name').filter(pk__in=gene_family_map.keys())
+    gene_name_map = dict( (o.feature_id, o.name) for o in gene_names )
+    # get the genes' chromosomes
+    chromosome_ids = set(gene_locs.values_list('srcfeature_id', flat=True))
+    chromosome_gene_map = {}
+    for ch in chromosome_ids:
+        chromosome_gene_map[ch] = []
+    for f in gene_locs:
+        chromosome_gene_map[f.srcfeature_id].append(f.feature_id)
+    chromosome_names = list(Feature.objects.only('name').filter(pk__in=chromosome_ids))
+    # dictionaryify the results
+    chromosome_name_map = dict( (o.pk, o.name) for o in chromosome_names )
+    json += ', "groups":[{"species_name": "name", "species_id": 0, "chromosome_id": '+str(focus_order.chromosome_id)+', "chromosome_name": "'+chromosome_name_map[focus_order.chromosome_id]+'", "genes" : ['
+    # construct a scatter plot for each chromosome
+    plots = []
+    for ch, ch_gene_ids in chromosome_gene_map.iteritems():
+        if len(ch_gene_ids) > 1:
+            plot = '{"species_name": "name", "species_id": 0, "chromosome_id":'+str(ch)+', "chromosome_name": "'+chromosome_name_map[ch]+'", '
+            points = []
+            for gene_id in ch_gene_ids:
+                family = gene_family_map[gene_id]
+                for m in family_members[family]:
+                    f = gene_floc_map[gene_id]
+                    points.append('{"x":'+str(f['position'])+', '
+                                 +'"y":'+str(gene_floc_map[m]['position'])+', '
+                                 +'"family":'+str(family)+', '
+                                 +'"id":'+str(gene_id)+', '
+                                 +'"fmin":'+str(f['fmin'])+', '
+                                 +'"fmax":'+str(f['fmax'])+', '
+                                 +'"name":"'+gene_name_map[gene_id]+'", '
+                                 +'"strand":'+str(f['strand'])+'}')
+                if gene_id in neighbor_family_map:
+                    f = gene_floc_map[gene_id]
+                    neighbor_json[gene_id] += '"x":'+str(f['position'])+', "y": '+str(f['position'])+', "fmin":'+str(f['fmin'])+', "fmax":'+str(f['fmax'])+', "strand":'+str(f['strand'])+'}'
+            plot += '"genes":['+','.join(points)+']}'
+            plots.append(plot)
+    json += ','.join(neighbor_json.values())+']},'
+    json += ','.join(plots) + ']}'
+
+    return render(request, template_name, {'json' : json})
+
 def context_gff_download(request):
     if 'flocs' not in request.GET:
         raise Http404
@@ -813,7 +1635,6 @@ def context_gff_download(request):
         family_ids = list(Featureprop.objects.filter(type=family_term, feature=f.feature_id).values_list('value', flat=True)) 
         families = list(Phylotree.objects.only('name').filter(pk__in=map(int, family_ids)).values_list('name', flat=True))
         families_str = ','.join(families)
-        print chromosome_map[f.srcfeature_id].name+"\t.\tgene\t"+str(f.fmin)+"\t"+str(f.fmax)+"\t.\t"+("+" if f.strand == 1 else "-")+"\t.\tID="+gene.uniquename+";Name="+gene.uniquename+";Family="+families_str
         myfile.write(chromosome_map[f.srcfeature_id].name+"\t.\tgene\t"+str(f.fmin)+"\t"+str(f.fmax)+"\t.\t"+("+" if f.strand == 1 else "-")+"\t.\tID="+gene.uniquename+";Name="+gene.uniquename+";Family="+families_str+"\n")
 
     # generate the file
@@ -822,94 +1643,5 @@ def context_gff_download(request):
     response['Content-Disposition'] = 'attachment; filename=context.gff'
 
     return response
-
-
-# these are  previous attempts at the context view
-
-#def context_viewer(request, node_id, template_name):
-#    # get all the nodes in the subtree
-#    root = get_object_or_404(Phylonode, pk=node_id)
-#    nodes = Phylonode.objects.filter(phylotree=root.phylotree, left_idx__gt=root.left_idx, right_idx__lt=root.right_idx)
-#    peptide_ids = nodes.values_list('feature', flat=True)
-#
-#    # the colors for the gene families
-#    before_colors = ['#afd45a', '#6cbfa9', '#7ea9d8', '#484848', '#ad8dc1', '#d783a7', '#f26f64', '#faa938', '#f0e24a', '#323232']
-#    focus_color = '#72ae35'
-#    after_colors = ['#39945c', '#3c73a4', '#67569b', '#ac3f65', '#d11b12', '#dea736', '#f55621', '#e4ddc9', '#fbc6d1', '#5ac9f7']
-#    color_map = {}
-#
-#    # work our way to the genes and their locations
-#    mrna_ids = list(FeatureRelationship.objects.filter(subject__in=peptide_ids).values_list('object', flat=True))
-#    gene_ids = list(FeatureRelationship.objects.filter(subject__in=mrna_ids).values_list('object', flat=True))
-#    gene_locs = list(Featureloc.objects.filter(feature__in=gene_ids, srcfeature__isnull=False))
-#
-#
-#    # make the tracks
-#    tracks = []
-#    num = 4
-#    if 'num' in request.GET:
-#        try:
-#            num = int(request.GET['num'])
-#        except:
-#            pass
-#    if num > 10:
-#        num = 4
-#    for focus in gene_locs:
-#        focus.family = root.phylotree
-#        color_map[focus.family.name] = {'color' : focus_color, 'id' : focus.family.pk}
-#        focus.family.color = focus_color;
-#        track = {'focus' : focus}
-#        backwards_before = Featureloc.objects.filter(fmin__lt=focus.fmin, srcfeature=focus.srcfeature, feature__type__name='gene').order_by('-fmin')[:num]
-#        track['before'] = list(backwards_before)
-#        for g in track['before']:
-#            gene_ids.append(g.feature.pk)
-#            mrna_ids = FeatureRelationship.objects.filter(object=g.feature).values_list('subject', flat=True)
-#            peptide_ids = FeatureRelationship.objects.filter(object__in=mrna_ids).values_list('subject', flat=True)
-#            g.families = list(Phylotree.objects.filter(pk__in=Phylonode.objects.filter(feature__in=peptide_ids).values_list('phylotree', flat=True)))
-#            for t in g.families:
-#                if t.name not in color_map:
-#                    color_map[t.name] = {'color' : before_colors.pop(), 'id' : t.pk}
-#                t.color = color_map[t.name]['color']
-#        track['before'].reverse()
-#        track['after'] = list(Featureloc.objects.filter(fmin__gt=focus.fmin, srcfeature=focus.srcfeature, feature__type__name='gene').order_by('fmin')[:num])
-#        for g in track['after']:
-#            gene_ids.append(g.feature.pk)
-#            mrna_ids = FeatureRelationship.objects.filter(object=g.feature).values_list('subject', flat=True)
-#            peptide_ids = FeatureRelationship.objects.filter(object__in=mrna_ids).values_list('subject', flat=True)
-#            g.families = list(Phylotree.objects.filter(pk__in=Phylonode.objects.filter(feature__in=peptide_ids).values_list('phylotree', flat=True)))
-#            for t in g.families:
-#                if t.name not in color_map:
-#                    color_map[t.name] = {'color' : after_colors.pop(), 'id' : t.pk}
-#                t.color = color_map[t.name]['color']
-#        tracks.append(track)
-#
-#    return render(request, template_name, {'tracks' : tracks, 'color_map' : color_map, 'gene_id_string' : ','.join(map(str,gene_ids))})
-#
-#
-#def context_gff_download(request):
-#    if 'genes' not in request.GET:
-#        print "genes not found!"
-#        raise Http404
-#
-#    #try:
-#    print "getting genes"
-#    genes = list(Feature.objects.filter(pk__in=map(int, request.GET['genes'].split(','))))
-#    #except:
-#    #    raise Http404
-#
-#    # write the file gff file
-#    myfile = StringIO.StringIO()
-#    myfile.write("##gff-version 3\n")
-#    for g in genes:
-#        featureloc = list(Featureloc.objects.only('srcfeature', 'fmin', 'fmax', 'strand').filter(feature=g)[:1])[0]
-#        print featureloc.srcfeature.name+"\t.\tgene\t"+str(featureloc.fmin)+"\t"+str(featureloc.fmax)+"\t.\t"+("+" if featureloc.strand == 1 else "-")+"\t.\tID="+g.uniquename+"Name="+g.uniquename
-#        myfile.write(featureloc.srcfeature.name+"\t.\tgene\t"+str(featureloc.fmin)+"\t"+str(featureloc.fmax)+"\t.\t"+("+" if featureloc.strand == 1 else "-")+"\t.\tID="+g.uniquename+"Name="+g.uniquename+"\n");
-#
-#    # generate the file
-#    response = HttpResponse(myfile.getvalue(), content_type='text/plain')
-#    response['Content-Length'] = myfile.tell()
-#    response['Content-Disposition'] = 'attachment; filename=context.gff'
-#
-#    return response
 
 

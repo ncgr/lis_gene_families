@@ -248,16 +248,26 @@ $treeio = Bio::TreeIO->new(-fh => $io, -format => 'newick');
 
 while( my $tree = $treeio->next_tree ) {
     my $root_phylonode;
-    my $lindex = 0;
-    my $rindex = 0;
+	#my $lindex = 0;
+    #my $rindex = 0;
+	my $index = 1;
+	my $indexes = ();
     for my $node ( $tree->get_nodes ) {
+        # get the next available index
+        while ( exists $indexes{$index} ) {
+            $index++;
+        }
+        $indexes{$index} = 0;
         # get the node's parent
         my $parent = $node->ancestor;
         # construct the insert commands
-        $lindex = $rindex-1;
-        $rindex = $lindex-1;
+        my $rindex = $index+2*($node->descendent_count())+1;
+        $indexes{$rindex} = 0;
+		#$lindex = $rindex-1;
+		#$rindex = $lindex-1;
         my $fields = "(phylotree_id,left_idx,right_idx,distance,type_id";
-        my $values = "($phylotree,$lindex,$rindex,".$node->branch_length;
+		#my $values = "($phylotree,$lindex,$rindex,".$node->branch_length;
+        my $values = "($phylotree,$index,$rindex,".$node->branch_length;
         # if a node has a parent
         if ($parent) {
             # and it's a leaf
