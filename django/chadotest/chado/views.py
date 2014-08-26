@@ -315,7 +315,8 @@ def msa_consensus_download(request, feature_id):
 
     # write the file to be downloaded
     myfile = StringIO.StringIO()
-    myfile.write(">"+consensus.name+"\n"+consensus.residues+"\n")
+    if consensus.residues:
+        myfile.write(">"+consensus.name+"\n"+consensus.residues+"\n")
     for f in featurelocs:
         myfile.write(">"+f.feature.name+"\n"+f.residue_info+"\n")
 
@@ -1390,6 +1391,8 @@ def context_viewer_synteny(request, template_name, focus_id=None):
     chromosome_names = list(Feature.objects.only('name').filter(pk__in=chromosome_ids))
     # dictionaryify the results
     chromosome_id_name_map = dict( (o.pk, o.name) for o in chromosome_names )
+    #adf: quick hack to try to get the synteny viewer working again; I think it didn't work, but I'd like to test again when on the ncgr network
+    #chromosome_id_name_map = dict( (o.pk, 'feature_'+str(o.pk)) for o in chromosome_names )
     json = '{"query":{"chromosome_id": '+str(focus_order.chromosome_id)+', "chromosome_name": "'+chromosome_id_name_map[focus_order.chromosome_id]+'", "genes" : [' + ','.join(genes) + ']}'
     # construct a scatter plot for each chromosome
     json += ', "plots":['
