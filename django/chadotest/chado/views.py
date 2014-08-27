@@ -315,7 +315,8 @@ def msa_consensus_download(request, feature_id):
 
     # write the file to be downloaded
     myfile = StringIO.StringIO()
-    myfile.write(">"+consensus.name+"\n"+consensus.residues+"\n")
+    if consensus.residues:
+        myfile.write(">"+consensus.name+"\n"+consensus.residues+"\n")
     for f in featurelocs:
         myfile.write(">"+f.feature.name+"\n"+f.residue_info+"\n")
 
@@ -755,8 +756,8 @@ def context_viewer(request, node_id, template_name):
             num = int(request.GET['num'])
         except:
             pass
-    if num > 10:
-        num = 4
+    if num > 40:
+        num = 40
 
     # the gene_family cvterm
     family_term = list(Cvterm.objects.filter(name='gene family')[:1])[0]
@@ -941,8 +942,8 @@ def context_viewer_demo(request, node_id, template_name):
             num = int(request.GET['num'])
         except:
             pass
-    if num > 10:
-        num = 4
+    if num > 40:
+        num = 40
     # get all the nodes in the subtree
     root = get_object_or_404(Phylonode, pk=node_id)
     nodes = Phylonode.objects.filter(phylotree=root.phylotree, left_idx__gt=root.left_idx, right_idx__lt=root.right_idx)
@@ -1089,8 +1090,8 @@ def context_viewer_search2(request, template_name, focus_id=None):
             num = int(request.GET['num'])
         except:
             pass
-    if num > 10:
-        num = 4
+    if num > 40:
+        num = 40
     # get the neighbors of focus via their ordering
     neighbors = GeneOrder.objects.filter(chromosome=focus_order.chromosome, number__gte=focus_order.number-num, number__lte=focus_order.number+num).order_by('number')
     neighbor_ids = neighbors.values_list('gene_id', flat=True)
@@ -1350,8 +1351,8 @@ def context_viewer_synteny(request, template_name, focus_id=None):
             num = int(request.GET['num'])
         except:
             pass
-    if num > 10:
-        num = 4
+    if num > 40:
+        num = 40
     # get the neighbors of focus via their ordering
     neighbors = GeneOrder.objects.filter(chromosome=focus_order.chromosome_id, number__gte=focus_order.number-num, number__lte=focus_order.number+num).order_by('number')
     neighbor_ids = neighbors.values_list('gene_id', flat=True)
@@ -1390,6 +1391,8 @@ def context_viewer_synteny(request, template_name, focus_id=None):
     chromosome_names = list(Feature.objects.only('name').filter(pk__in=chromosome_ids))
     # dictionaryify the results
     chromosome_id_name_map = dict( (o.pk, o.name) for o in chromosome_names )
+    #adf: quick hack to try to get the synteny viewer working again; I think it didn't work, but I'd like to test again when on the ncgr network
+    #chromosome_id_name_map = dict( (o.pk, 'feature_'+str(o.pk)) for o in chromosome_names )
     json = '{"query":{"chromosome_id": '+str(focus_order.chromosome_id)+', "chromosome_name": "'+chromosome_id_name_map[focus_order.chromosome_id]+'", "genes" : [' + ','.join(genes) + ']}'
     # construct a scatter plot for each chromosome
     json += ', "plots":['
@@ -1438,8 +1441,8 @@ def context_viewer_synteny2(request, template_name, focus_id=None):
             num = int(request.GET['num'])
         except:
             pass
-    if num > 10:
-        num = 4
+    if num > 40:
+        num = 40
     # get the neighbors of focus via their ordering
     neighbor_orders = GeneOrder.objects.filter(chromosome=focus_order.chromosome_id, number__gte=focus_order.number-num, number__lte=focus_order.number+num).order_by('number')
     neighbor_ids = neighbor_orders.values_list('gene_id', flat=True)
@@ -1635,7 +1638,9 @@ def context_gff_download(request):
         family_ids = list(Featureprop.objects.filter(type=family_term, feature=f.feature_id).values_list('value', flat=True)) 
         families = list(Phylotree.objects.only('name').filter(pk__in=map(int, family_ids)).values_list('name', flat=True))
         families_str = ','.join(families)
-        myfile.write(chromosome_map[f.srcfeature_id].name+"\t.\tgene\t"+str(f.fmin)+"\t"+str(f.fmax)+"\t.\t"+("+" if f.strand == 1 else "-")+"\t.\tID="+gene.uniquename+";Name="+gene.uniquename+";Family="+families_str+"\n")
+        #for some reason, this diagnostic is throwing errors in some contexts
+        #print chromosome_map[f.srcfeature_id].name+"\t.\tgene\t"+str(f.fmin)+"\t"+str(f.fmax)+"\t.\t"+("+" if f.strand == 1 else "-")+"\t.\tID="+gene.uniquename+";Name="+gene.uniquename+(";Family="+families_str if len(families) > 0 else "")
+        myfile.write(chromosome_map[f.srcfeature_id].name+"\t.\tgene\t"+str(f.fmin)+"\t"+str(f.fmax)+"\t.\t"+("+" if f.strand == 1 else "-")+"\t.\tID="+gene.uniquename+";Name="+gene.uniquename+(";Family="+families_str if len(families) > 0 else "")+"\n")
 
     # generate the file
     response = HttpResponse(myfile.getvalue(), content_type='text/plain')
