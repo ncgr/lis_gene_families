@@ -20,9 +20,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
         #'NAME': '8-15-13_fixed-msas',                      # Or path to database file if using sqlite3.
-        'NAME': 'chado_context_viewer',                      # Or path to database file if using sqlite3.
-        'USER': 'adf',
-        'PASSWORD': 'changeme',
+        'NAME': '',                      # Or path to database file if using sqlite3.
+        'USER': '',
+        'PASSWORD': '',
         'HOST': '127.0.0.1',                      # Empty for localhost through domain sockets or '127.0.0.1' for localhost through TCP.
         'PORT': '5432',                      # Set to empty string for default.
     }
