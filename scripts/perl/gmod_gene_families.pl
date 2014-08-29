@@ -103,11 +103,11 @@ my $query_string;
 my $cv_id = $conn->selectrow_array("SELECT cv_id FROM cv WHERE name='LIS_properties' LIMIT 1;");
 # does it exist?
 if( !$cv_id ) {
-    $query_string = "INSERT INTO cv (name) VALUES ('NCGR_properties');";
+    $query_string = "INSERT INTO cv (name) VALUES ('LIS_properties');";
     if ( !$conn->do($query_string) ) {
-        Retreat("Failed to add an entry into the cv table  for NCGR_properties\n");
+        Retreat("Failed to add an entry into the cv table  for LIS_properties\n");
     }
-    $cv_id = $conn->selectrow_array("SELECT cv_id FROM cv WHERE name='NCGR_properties' LIMIT 1;");
+    $cv_id = $conn->selectrow_array("SELECT cv_id FROM cv WHERE name='LIS_properties' LIMIT 1;");
 }
 
 # get the dbxref entry for gene family
