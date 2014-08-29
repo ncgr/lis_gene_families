@@ -138,11 +138,12 @@ By default the file name is used as the value for the `name` and `uniquename` fi
     ```
     gmod_bulk_load_msas.sh
     ```
-
+```
 #!/bin/bash
 
-for f in `ls *`; do echo "Loading $f"; gmod_load_msa.pl $f --dbname 'dbname' --username 'username' --password 'password' --host 'host' --port 'port' [--check_exists] [--errorfile '$f.errors.txt']; done
-
+for f in `ls *`; do echo "Loading $f"; gmod_load_msa.pl $f --dbname 'dbname' --username 'username' --password 'password' --host 'host' --port 'port' [--check_exists] [--errorfile '$f.errors.txt']; 
+done
+```
 This script will try to load all the files in the current directory as MSAs, using the filename as the name of the entry in the `feature` table and the name of the error file with ".errors.txt" appended on.
 
 ### Phylogenetic trees
@@ -192,10 +193,12 @@ By default the file name is used as the value for the `name` field of the entry 
     gmod_bulk_load_trees.sh 
     ```
 
+
+```
 #!/bin/bash
-
-for f in `ls *`; do echo "Loading tree $f"; gmod_load_tree.pl  $f --dbid 'dbid' --dbname 'dbname' --username 'username' --password 'password' --host 'host' --port 'port' [--errorfile '$f.errors.txt']; done
-
+for f in `ls *`; do echo "Loading tree $f"; gmod_load_tree.pl  $f --dbid 'dbid' --dbname 'dbname' --username 'username' --password 'password' --host 'host' --port 'port' [--errorfile '$f.errors.txt']; 
+done
+```
 This script will try to load all the files in the current directory as phylogenetic trees, using the filename as the name of the entry in the `phylotree` table and the name of the error file with ".errors.txt" appended on.
 
 6. NOTE: If you have already loaded a tree using the loader 'gmod_load_tree.pl' then you dont have to run this script 'gmod_index_trees.pl' because the tree indexes are already correctly inserted in phylonode table. 
