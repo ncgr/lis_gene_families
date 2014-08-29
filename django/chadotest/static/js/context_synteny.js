@@ -111,7 +111,8 @@ function context_synteny( container_id, color, data, gene_clicked, brush_callbac
 		    	    .style("text-anchor", "end")
 		    	    .text(data.groups[0].chromosome_name);
 
-				var ch_data = matrix.selectAll(d.chromosome_name)
+                // bind the chromosome's data to an element that doesn't... and never will exist
+				var ch_data = matrix.selectAll("chr_"+d.chromosome_id)
 		    	    .data(d.genes);
 	
 				// the plot's brush
