@@ -1588,15 +1588,20 @@ def context_viewer_synteny3(request, template_name, focus_id=None):
         chromosome_gene_map[ch] = []
     for f in gene_locs:
         chromosome_gene_map[f.srcfeature_id].append(f.feature_id)
-    chromosome_names = list(Feature.objects.only('name').filter(pk__in=chromosome_ids))
+    chromosome_names = Feature.objects.only('name').filter(pk__in=chromosome_ids)
+    # get the chromosome organisms
+    organism_ids = chromosome_names.values_list('organism_id', flat=True)
+    organisms = list(Organism.objects.only('genus', 'species').filter(pk__in=organism_ids))
     # dictionaryify the results
-    chromosome_name_map = dict( (o.pk, o.name) for o in chromosome_names )
-    json += ', "groups":[{"species_name": "name", "species_id": 0, "chromosome_id": '+str(focus_order.chromosome_id)+', "chromosome_name": "'+chromosome_name_map[focus_order.chromosome_id]+'", "genes" : ['
+    organism_map = dict( (o.pk, o.genus[0]+"."+o.species) for o in organisms )
+    # dictionaryify the results
+    chromosome_name_map = dict( (o.pk, [o.name, o.organism_id, organism_map[o.organism_id]]) for o in chromosome_names )
+    json += ', "groups":[{"species_name": "'+str(chromosome_name_map[focus_order.chromosome_id][2])+'", "species_id": '+str(chromosome_name_map[focus_order.chromosome_id][1])+', "chromosome_id": '+str(focus_order.chromosome_id)+', "chromosome_name": "'+chromosome_name_map[focus_order.chromosome_id][0]+'", "genes" : ['
     # construct a scatter plot for each chromosome
     plots = []
     for ch, ch_gene_ids in chromosome_gene_map.iteritems():
         if len(ch_gene_ids) > 1:
-            plot = '{"species_name": "name", "species_id": 0, "chromosome_id":'+str(ch)+', "chromosome_name": "'+chromosome_name_map[ch]+'", '
+            plot = '{"species_name": "name", "species_id": 0, "chromosome_id":'+str(ch)+', "chromosome_name": "'+chromosome_name_map[ch][0]+'", '
             points = []
             for gene_id in ch_gene_ids:
                 family = gene_family_map[gene_id]

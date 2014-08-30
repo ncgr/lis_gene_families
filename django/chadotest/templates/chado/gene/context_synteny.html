@@ -42,7 +42,7 @@
     position: fixed;  
     left: 0;  
     top: 50px; /* below the main navbar */ 
-    /*z-index: 100;  */
+    z-index: 100;
 }
 </style>
 {% endblock %}
@@ -68,7 +68,7 @@
 {% endblock %}
 {% block bottom %}
 <div id="remember">
-	<div id="viewer"></div>
+	<div class="col-lg-9" id="viewer"></div>
 </div>
 <div class="col-lg-9" id="synteny">
 </div>
@@ -236,7 +236,33 @@
 
 	// create the viewer
 	// need to write coordinate translation function
-	//context_viewer( "viewer", color, data, gene_clicked, axis_clicked );
+    // a helper function
+    function clone(obj) {
+        if (null == obj || "object" != typeof obj) return obj;
+        var copy = obj.constructor();
+        for (var attr in obj) {
+            if (obj.hasOwnProperty(attr)) copy[attr] = obj[attr];
+        }
+        return copy;
+    }
+    // give the context viewer it's own copy of the data
+    var context_data = clone(data);
+    // the viewer only needs the query group
+    context_data.groups = [context_data.groups[0]];
+    // a helper function for sorting a group's genes
+    function compare(a, b) {
+        return a.fmin-b.fmin;
+    }
+    // sort the query group's genes
+    context_data.groups[0].genes.sort(compare);
+    // unpadte the corrdinates of the query group's genes
+    for( var i = 0; i < context_data.groups[0].genes.length; i++ ) {
+        context_data.groups[0].genes[i].y = 0;
+        context_data.groups[0].genes[i].x = i;
+    }
+    // make the initial context viewer
+    // add a flag that enables colors
+	context_viewer( "viewer", color, context_data, gene_clicked, axis_clicked );
 
 	// legend click callback
 	function legend_click( family_selection, gene_selection ) {
