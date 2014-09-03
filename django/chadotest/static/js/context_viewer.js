@@ -1,7 +1,7 @@
 
 var viewer;
 
-function context_viewer( container_id, color, data, gene_clicked, axis_clicked ) {
+function context_viewer( container_id, color, data, gene_clicked, axis_clicked, selective_coloring ) {
 	// clear the contents of the target element first
 	document.getElementById(container_id).innerHTML = "";
 
@@ -66,7 +66,7 @@ function context_viewer( container_id, color, data, gene_clicked, axis_clicked )
 				} return "point"; })
 		    .attr("transform", function(d) { return "rotate("+((d.strand == 1) ? "90" : "-90")+")"; })
 		    .style("fill", function(d) {
-				if( d.family == '' || family_sizes[ d.family ] == 1 ) {
+				if( d.family == '' || ( selective_coloring !== undefined && selective_coloring && family_sizes[ d.family ] == 1 ) ) {
 					return "#ffffff";
 				} return color(d.family);
 			})
