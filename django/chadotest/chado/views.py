@@ -31,7 +31,7 @@ import operator
 
 def index(request, template_name):
     organisms = Organism.objects.all()
-    consensus = get_object_or_404(Cvterm, name="consensus")
+    consensus = get_object_or_404(Cvterm, name="consensus_region")
     msas = Feature.objects.filter(type_id=consensus)
     return render(request, template_name, {'organisms' : organisms, 'msas' : msas})
 
@@ -125,7 +125,7 @@ def search_msa(request, depth, template_name, who):
         else:
             features = Feature.objects.filter(pk__in=Phylonode.objects.filter(phylotree__pk__in=prev_results).values_list('feature_id', flat=True))
         msa_ids = Featureloc.objects.filter(feature__in=features).values_list('srcfeature', flat=True)
-        result_msas = Feature.objects.filter(type__name='consensus', pk__in=msa_ids)
+        result_msas = Feature.objects.filter(type__name='consensus_region', pk__in=msa_ids)
         nav = get_nav(request, depth, 'msa_'+who)
         depth += 1
         selected = get_results(request, depth, 'msa')
@@ -287,7 +287,7 @@ def organism_view(request, organism_id, template_name):
 
 
 def msa_index(request, template_name):
-    return render(request, template_name, {'msas' : paginate(request, Feature.objects.filter(type__name='consensus'), 'msa_num'), 'result_nums' : RESULT_NUMS})
+    return render(request, template_name, {'msas' : paginate(request, Feature.objects.filter(type__name='consensus_region'), 'msa_num'), 'result_nums' : RESULT_NUMS})
 
 
 def msa_view(request, feature_id, template_name):
@@ -503,7 +503,7 @@ def phylo_view_slide_ajax(request):
                                 #hack: use the naming convention to get the consensus feature; trees don't appear to
                                 #be easily connected with their MSAs otherwise
                                 #consensus_feature = features.get(uniquename=node.phylotree.name+'-consensus');
-                                consensus_feature = Feature.objects.get(uniquename=node.phylotree.name+'-consensus');
+                                consensus_feature = Feature.objects.get(uniquename='consn|'+node.phylotree.name);
                                 slidedict['links'].append({'MSA':'/chado/msa/'+str(consensus_feature.feature_id)})
                                 # load the context viewer with each node in the subtree as a focus gene 
                                 slidedict['links'].append({'Context Viewer':'/chado/context_viewer/'+str(node.pk)})
