@@ -13,6 +13,11 @@
  *    Terence Chao, 2009
  */
 
+// define the default accessor
+function default_accessor( item ) {
+    return item;
+}
+
 // let's compute scores over and over again...
 var s = function( first, second ) {
 	if( first === second ) {
@@ -22,8 +27,7 @@ var s = function( first, second ) {
 
 var gap = -1;
 
-var smith = function( sequence, reference ) {
-	console.log("called");
+var smith = function( sequence, reference, accessor ) {
     var rows = reference.length + 1;
     var cols = sequence.length + 1;
     var a = Array.matrix( rows, cols, 0 );
@@ -39,7 +43,7 @@ var smith = function( sequence, reference ) {
     for( i=1; i<rows; i++ ) {
         for( j=1; j<cols; j++ ) {
             choice[0] = 0;
-            choice[1] = a[i-1][j-1] + s( reference[i-1], sequence[j-1] );
+            choice[1] = a[i-1][j-1] + s( accessor(reference[i-1]), accessor(sequence[j-1]) );
             choice[2] = a[i-1][j] + gap;
             choice[3] = a[i][j-1] + gap;
             a[i][j] = choice.max();
@@ -65,18 +69,18 @@ var smith = function( sequence, reference ) {
         score_diag = a[i-1][j-1];
         score_up = a[i][j-1];
         score_left = a[i-1][j];
-        if( score === (score_diag + s( reference[i-1], sequence[j-1] )) ) {
-            ref.unshift( reference[i-1] );
-            seq.unshift( sequence[j-1] );
+        if( score === (score_diag + s( accessor(reference[i-1]), accessor(sequence[j-1]) )) ) {
+            ref.unshift( clone(reference[i-1]));
+            seq.unshift( clone(sequence[j-1]));
             i -= 1;
             j -= 1;
         } else if( score === (score_left + gap) ) {
-            ref.unshift( reference[i-1] );
-            seq.unshift( -1 );
+            ref.unshift( clone(reference[i-1]));
+            seq.unshift( null );
             i -= 1;
         } else if( score === (score_up + gap) ) {
-            ref.unshift( -1 );
-            seq.unshift( sequence[j-1] );
+            ref.unshift( null );
+            seq.unshift( clone(sequence[j-1]));
             j -= 1;
 		} else {
 			break;
@@ -91,14 +95,14 @@ var smith = function( sequence, reference ) {
 	//}
     
     while( i>0 ) {
-        ref.unshift( reference[i-1] );
-        seq.unshift( -1 );
+        ref.unshift( clone(reference[i-1]));
+        seq.unshift( null );
         i -= 1;
     }
     
     while( j>0 ) {
-        ref.unshift( -1 );
-        seq.unshift( sequence[j-1] );
+        ref.unshift( null );
+        seq.unshift( clone(sequence[j-1]));
         j -= 1;
     }
     
@@ -106,12 +110,24 @@ var smith = function( sequence, reference ) {
 };
 
 // returns the higher scoring alignment - forward or reverse
-var align = function( sequence, reference ) {
-	var forward = smith( sequence, reference );
-	reference.reverse();
-	var reverse = smith( sequence, reference );
+var align = function( sequence, reference, accessor ) {
+    if( accessor === undefined ) {
+        accessor = default_accessor;
+    }
+	var forward = smith( sequence, reference, accessor );
+    reference_clone = reference.slice(0);
+	reference_clone.reverse();
+	var reverse = smith( sequence, reference_clone, accessor );
 	if( forward[2] >= reverse[2] ) {
-		return [forward[0], forward[1], false];
-	} 
-	return [reverse[0], reverse[1], true];
+		return [forward[0], forward[1]];
+	} else {
+        // clone each object in the array
+        // flip the strand for each selected gene
+        for( var i = 0; i < reverse[1].length; i++ ) {
+            if( reverse[1][i] != null ) {
+                reverse[1][i].strand = -1*reverse[1][i].strand;
+            }
+        }
+	    return [reverse[0], reverse[1]];
+    }
 }
