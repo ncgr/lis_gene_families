@@ -1,7 +1,7 @@
 
 var viewer;
 
-function context_viewer( container_id, color, data, gene_clicked, axis_clicked ) {
+function context_viewer( container_id, color, data, gene_clicked, axis_clicked, selective_coloring ) {
 	// clear the contents of the target element first
 	document.getElementById(container_id).innerHTML = "";
 
@@ -22,7 +22,17 @@ function context_viewer( container_id, color, data, gene_clicked, axis_clicked )
 	    left_pad = 200,
 		num_tracks = data.groups.length,
 	    num_genes = get_track_length( data ),
-		h = num_tracks*30+bottom_pad+top_pad;
+		h = num_tracks*30+bottom_pad+top_pad,
+        min_x = d3.min(data.groups, function(group) {
+            return d3.min(group.genes, function(gene) {
+                return +gene.x;
+            });
+        }),
+        max_x = d3.max(data.groups, function(group) {
+            return d3.max(group.genes, function(gene) {
+                return +gene.x;
+            });
+        });
  
 	// define the scatter plot
 	viewer = d3.select("#"+container_id)
@@ -31,8 +41,10 @@ function context_viewer( container_id, color, data, gene_clicked, axis_clicked )
 	        .attr("height", h);
 
 	// initialize the x and y scales
-	var x = d3.scale.linear().domain([0, num_genes-1]).range([left_pad, w-pad-l_pad]),
+	var x = d3.scale.linear().domain([min_x, max_x]).range([left_pad, w-pad-l_pad]),
 		y = d3.scale.linear().domain([0, num_tracks-1]).range([top_pad, h-bottom_pad]);
+	//var x = d3.scale.linear().domain([0, num_genes-1]).range([left_pad, w-pad-l_pad]),
+	//	y = d3.scale.linear().domain([0, num_tracks-1]).range([top_pad, h-bottom_pad]);
 
 	// for constructing the y-axis
 	var tick_values = [];
@@ -57,16 +69,16 @@ function context_viewer( container_id, color, data, gene_clicked, axis_clicked )
 		gene_groups.append("path")
 		    .attr("d", d3.svg.symbol().type("triangle-up").size(200))
 		    .attr("class", function(d) {
-				if( d.x == (num_genes-1)/2 ) {
+				if( d.x == (num_genes-1)/2 && ( selective_coloring !== undefined && selective_coloring ) ) {
 					return "point focus";
 				} else if ( d.family == '' ) {
 					return "point no_fam";
-				} else if ( family_sizes[ d.family ] == 1 ) {
+				} else if ( family_sizes[ d.family ] == 1 &&  selective_coloring !== undefined && selective_coloring ) {
 					return "point single";
 				} return "point"; })
 		    .attr("transform", function(d) { return "rotate("+((d.strand == 1) ? "90" : "-90")+")"; })
 		    .style("fill", function(d) {
-				if( d.family == '' || family_sizes[ d.family ] == 1 ) {
+				if( d.family == '' || ( selective_coloring !== undefined && selective_coloring && family_sizes[ d.family ] == 1 ) ) {
 					return "#ffffff";
 				} return color(d.family);
 			})

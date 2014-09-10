@@ -90,6 +90,7 @@
 	// shared variables
 	var json = '{{ json|safe }}',
 		data = JSON.parse(json),
+        context_data = JSON.parse(json),
 		color = d3.scale.category20(),
 		family_names = get_family_name_map( data );
 	var remove_image = "{% static 'gif/close.png' %}";
@@ -177,32 +178,11 @@
 	    });
 		show_toggle();
 	}
-	
-	// plot callback functions
-	function brush_callback( query_selection, result_selection, result_genes) {
-		// make ordered list of query families
-		var query_genes = query_selection.genes.sort(function(a, b) {
-			return a.x-b.x;
-		});
-		var query = [];
-		for( var i = 0; i < query_genes.length; i++ ) {
-			query.push(query_genes[i].family);
-		}
-		// make ordered list of result families
-		result_genes.sort(function(a, b) {
-			return a.x-b.x;
-		});
-		result = [];
-		result_genes.each(function(e) {
-			result.push(e.family);
-		});
-		var alignment = align( query, result );
-		// use coordinate translation function
-		//context_plot( alignment, d.chromosome_id, selected );
-	}
-	
-	// create the scatter plot matrix
-	context_synteny( "synteny", color, data, gene_clicked, brush_callback );
+
+    // define the accessor used by the smith-waterman algorithm
+    function get_family( item ) {
+        return item.family;
+    }
 
 	// axis clicked callback function
 	function axis_clicked( axis_selection, gene_selection, rail_selection ) {
@@ -233,20 +213,74 @@
 		$("#toggle").html(html);
 		show_toggle();
 	}
-
-	// create the viewer
-	// need to write coordinate translation function
-    // a helper function
-    function clone(obj) {
-        if (null == obj || "object" != typeof obj) return obj;
-        var copy = obj.constructor();
-        for (var attr in obj) {
-            if (obj.hasOwnProperty(attr)) copy[attr] = obj[attr];
+	
+	// plot callback functions
+	function brush_callback( selected_group ) {
+        // make the sure the context data only has the query and selected group
+        context_data.groups = [ context_data.groups[0], selected_group ];
+        // perform the alignment
+		var alignment = align( context_data.groups[0].genes, selected_group.genes, get_family );
+        // clear the genes in the selected group
+        context_data.groups[1].genes = [];
+        // update the context data with the alignment
+        merge_alignments( context_data, [selected_group], [alignment] );
+        /*
+		// update the context data with the alignment
+        var query_count = 0,
+            query_length = context_data.groups[0].genes.length,
+            pre_query = 0,
+            insertion_count = 0;
+        for( var i = 0; i < alignment[0].length; i++ ) {
+            // keep track of how many selected genes come before the query genes
+            if( alignment[0][i] == null && query_count == 0 ) {
+                pre_query++;
+            // it must be an insertion
+            } else if( alignment[0][i] == null ) {
+                // position the genes that come after the query genes
+                if( query_count > query_length ) {
+                    alignment[1][i].x = query_count++;
+                    alignment[1][i].y = 1;
+                    context_data.groups[1].genes.push(alignment[1][i]);
+                // track how many genes were inserted
+                } else {
+                    insertion_count++;
+                }
+            // a deletion
+            } else if( alignment[1][i] == null ) {
+                query_count++;
+            // an alignment
+            } else {
+                // position the genes that came before the query
+                if( pre_query > 0 ) {
+                    for( var j = 0; j < pre_query; j++ ) {
+                        alignment[1][j].x = -1*(pre_query-(j+1));
+                        alignment[1][j].y = 1;
+                        context_data.groups[1].genes.push(alignment[1][j]);
+                    }
+                    pre_query = 0;
+                // position the genes that go between query genes
+                } else if( insertion_count > 0 ) {
+                    var step = 1/(insertion_count+1);
+                    for( var j = i-insertion_count; j < i; j++ ) {
+                        alignment[1][j].x = query_count+(step*(i-j))-1;
+                        alignment[1][j].y = 1;
+                        context_data.groups[1].genes.push(alignment[1][j]);
+                    }
+                    insertion_count = 0;
+                }
+                alignment[1][i].x = query_count++;
+                alignment[1][i].y = 1;
+                context_data.groups[1].genes.push(alignment[1][i]);
+            }
         }
-        return copy;
-    }
-    // give the context viewer it's own copy of the data
-    var context_data = clone(data);
+        */
+        // plot the new context viewer
+		context_viewer( "viewer",color, context_data, gene_clicked, axis_clicked );
+	}
+	
+	// create the scatter plot matrix
+	context_synteny( "synteny", color, data, gene_clicked, brush_callback );
+
     // the viewer only needs the query group
     context_data.groups = [context_data.groups[0]];
     // a helper function for sorting a group's genes
@@ -277,6 +311,6 @@
 	}
 
 	// make the legend
-	context_legend( 'legend', color, data, legend_click );
+	context_legend( 'legend', color, data, legend_click, false );
 </script>
 {% endblock %}

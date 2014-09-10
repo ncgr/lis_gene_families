@@ -233,8 +233,21 @@ function context_synteny( container_id, color, data, gene_clicked, brush_callbac
 						}
 					} return false;;
 				});
-
-				brush_callback( data.groups[0], d, selected );
+                // sort the selection
+                selected.sort(function(a, b) {
+                    return a.x-b.x;
+                });
+                // mung genes selection data into list
+                var selected_genes = [];
+                selected.each(function(e) {
+                    selected_genes.push(e);
+                });
+                // create a duplicate of the current group object to return
+                var duplicate_group = clone(d);
+                // give the duplicate the selected genes
+                duplicate_group.genes = selected_genes;
+                // hand the group object to the callback
+				brush_callback( duplicate_group );
 			}
 		});
 	}

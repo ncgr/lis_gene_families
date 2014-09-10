@@ -1,4 +1,4 @@
-function context_legend( container_id, color, data, legend_click ) {
+function context_legend( container_id, color, data, legend_click, selective_coloring ) {
 	// clear the contents of the target element first
 	document.getElementById(container_id).innerHTML = "";
 
@@ -8,11 +8,15 @@ function context_legend( container_id, color, data, legend_click ) {
 	// determine how many families will be in the legend
 	var family_size_map = get_family_size_map( data );
 	var num_fams = 0;
-	for( fam in family_size_map ) {
-		if( family_size_map[ fam ] > 1 ) {
-			num_fams++;
-		}
-	}
+    if( selective_coloring === undefined || selective_coloring !== undefined && selective_coloring ) {
+	    for( fam in family_size_map ) {
+	    	if( family_size_map[ fam ] > 1 ) {
+	    		num_fams++;
+	    	}
+	    }
+    } else {
+        num_fams = data.families.length;
+    }
 
 	// helpful variables
 	var rect_h = 18,
