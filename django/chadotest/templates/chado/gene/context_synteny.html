@@ -222,6 +222,9 @@
 		var alignment = align( context_data.groups[0].genes, selected_group.genes, get_family );
         // clear the genes in the selected group
         context_data.groups[1].genes = [];
+        // update the context data with the alignment
+        merge_alignments( context_data, [selected_group], [alignment] );
+        /*
 		// update the context data with the alignment
         var query_count = 0,
             query_length = context_data.groups[0].genes.length,
@@ -270,6 +273,7 @@
                 context_data.groups[1].genes.push(alignment[1][i]);
             }
         }
+        */
         // plot the new context viewer
 		context_viewer( "viewer",color, context_data, gene_clicked, axis_clicked );
 	}
