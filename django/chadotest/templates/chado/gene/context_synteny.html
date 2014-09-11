@@ -217,63 +217,11 @@
 	// plot callback functions
 	function brush_callback( selected_group ) {
         // make the sure the context data only has the query and selected group
-        context_data.groups = [ context_data.groups[0], selected_group ];
+        context_data.groups = [ context_data.groups[0] ];
         // perform the alignment
 		var alignment = align( context_data.groups[0].genes, selected_group.genes, get_family );
-        // clear the genes in the selected group
-        context_data.groups[1].genes = [];
         // update the context data with the alignment
         merge_alignments( context_data, [selected_group], [alignment] );
-        /*
-		// update the context data with the alignment
-        var query_count = 0,
-            query_length = context_data.groups[0].genes.length,
-            pre_query = 0,
-            insertion_count = 0;
-        for( var i = 0; i < alignment[0].length; i++ ) {
-            // keep track of how many selected genes come before the query genes
-            if( alignment[0][i] == null && query_count == 0 ) {
-                pre_query++;
-            // it must be an insertion
-            } else if( alignment[0][i] == null ) {
-                // position the genes that come after the query genes
-                if( query_count > query_length ) {
-                    alignment[1][i].x = query_count++;
-                    alignment[1][i].y = 1;
-                    context_data.groups[1].genes.push(alignment[1][i]);
-                // track how many genes were inserted
-                } else {
-                    insertion_count++;
-                }
-            // a deletion
-            } else if( alignment[1][i] == null ) {
-                query_count++;
-            // an alignment
-            } else {
-                // position the genes that came before the query
-                if( pre_query > 0 ) {
-                    for( var j = 0; j < pre_query; j++ ) {
-                        alignment[1][j].x = -1*(pre_query-(j+1));
-                        alignment[1][j].y = 1;
-                        context_data.groups[1].genes.push(alignment[1][j]);
-                    }
-                    pre_query = 0;
-                // position the genes that go between query genes
-                } else if( insertion_count > 0 ) {
-                    var step = 1/(insertion_count+1);
-                    for( var j = i-insertion_count; j < i; j++ ) {
-                        alignment[1][j].x = query_count+(step*(i-j))-1;
-                        alignment[1][j].y = 1;
-                        context_data.groups[1].genes.push(alignment[1][j]);
-                    }
-                    insertion_count = 0;
-                }
-                alignment[1][i].x = query_count++;
-                alignment[1][i].y = 1;
-                context_data.groups[1].genes.push(alignment[1][i]);
-            }
-        }
-        */
         // plot the new context viewer
 		context_viewer( "viewer",color, context_data, gene_clicked, axis_clicked );
 	}
