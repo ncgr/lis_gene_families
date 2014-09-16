@@ -1234,26 +1234,42 @@ def context_viewer_search3( request, template_name, focus_id=None ):
         num = max_num
 
     # get the neighbors of focus via their ordering
-    neighbor_orders = GeneOrder.objects.filter( chromosome=focus_order.chromosome_id, number__gte=focus_order.number-num, number__lte=focus_order.number+num ).order_by( 'number' )
+    neighbor_orders = GeneOrder.objects.only( ).filter( chromosome=focus_order.chromosome_id, number__gte=focus_order.number-num, number__lte=focus_order.number+num ).order_by( 'number' )
     neighbor_ids = neighbor_orders.values_list( 'gene_id', flat=True )
 
     # actually get the gene families
-    neighbor_families = Featureprop.objects.only( 'value' ).filter( type=gene_family_type, feature__in=neighbor_ids ).values_list( 'value', flat=True )
+    neighbor_families = Featureprop.objects.only( 'value' ).filter( type=gene_family_type, feature__in=neighbor_ids )#.values_list( 'value', flat=True )
+    neighbor_family_map = dict( ( o.feature_id, o.value ) for o in neighbor_families )
+    neighbor_families = neighbor_families.values_list( 'value', flat=True )
     family_ids = []
     for n in neighbor_families:
         if n not in family_ids:
             family_ids.append( n )
 
     # make the first (query) track
-    #order
-    #family
-    #x and y
-    #floc (fmin, fmax, strand)
-    #organism (name and id)
-    #chromosome (name and id)
+    # get the gene names
+    neighbor_features = Feature.objects.only( 'name' ).filter( pk__in=neighbor_ids )
+    neighbor_name_map = dict( (o.pk, o.name ) for o in neighbor_features )
+    # get the gene flocs
+    neighbor_flocs = Featureloc.objects.only( 'fmin', 'fmax', 'strand' ).filter( feature__in=neighbor_ids )
+    neighbor_floc_map = dict( ( o.feature_id, o ) for o in neighbor_flocs )
+    # get the track chromosome
+    chromosome = Feature.objects.only( 'name' ).filter( pk=neighbor_floc_map[ int( focus_id ) ].srcfeature_id )
+    chromosome = chromosome[ 0 ]
+    # get the track organism
+    organism = Organism.objects.only( 'genus', 'species' ).filter( pk=chromosome.organism_id )
+    organism = organism[ 0 ]
+    # generate the json for the genes
+    genes = []
+    for i in range( len( neighbor_orders ) ):
+        g = neighbor_orders[ i ].gene_id
+        family = str( neighbor_family_map[ g ] ) if g in neighbor_family_map else ''
+        floc = neighbor_floc_map[ g ]
+        genes.append('{"name":"'+neighbor_name_map[ g ]+'", "id":'+str( g )+', "family":"'+family+'", "fmin":'+str( floc.fmin )+', "fmax":'+str( floc.fmax )+', "strand":'+str( floc.strand )+', "x":'+str( i )+', "y":0}')
+    query_group = '{"species_name":"'+organism.genus[ 0 ]+'.'+organism.species+'", "species_id":'+str( organism.pk )+', "chromosome_name":"'+chromosome.name+'", "chromosome_id":'+str( chromosome.pk )+', "genes":['+','.join( genes )+']}'
 
     # find all genes with the same families
-    related_gene_ids = Featureprop.objects.only( 'feature' ).filter( type=gene_family_type, value__in=neighbor_families).values_list('feature', flat=True )
+    related_gene_ids = Featureprop.objects.only( 'feature' ).filter( type=gene_family_type, value__in=neighbor_families ).values_list('feature', flat=True )
     #related_genes = Feature.objects.only().filter( pk__in=related_gene_ids )
     #id_gene_map = dict( ( o.pk, o ) for o in related_genes )
 
@@ -1341,8 +1357,8 @@ def context_viewer_search3( request, template_name, focus_id=None ):
 
     #json = '{"families":[{"name":"name", "id":"123"}], "groups":[{"species_name":"name", "species_id":123, "chromosome_name":"name", "chromosome_id":123, "genes":[{"name":"name", "id":123, "family":123, "x":0, "y":0, "fmin":0, "fmax":0, "strand":1}]}]}'
 
-    groups = []
-    y = 0
+    groups = [ query_group ]
+    y = 1
     for chromosome_id, candidates in chromosome_candidates.iteritems():
         for c in candidates:
             # get all the gene ids
