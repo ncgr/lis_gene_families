@@ -70,6 +70,9 @@
 <script type="text/javascript" src="{% static 'js/context.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/context_viewer.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/context_legend.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/smith.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/enhancement.js' %}"></script>
+
 <script type="text/javascript">
 	// shared variables
 	var json = '{{ json|safe }}',
@@ -181,8 +184,23 @@
 
     }
 
+    // define the accessor used by the smith-waterman algorithm
+    function get_family( item ) {
+        return item.family;
+    }
+
+    // align all the tracks with the query track
+    alignments = [];
+    for( var i = 1; i < data.groups.length; i++ ) {
+        alignments.push( align( data.groups[ 0 ].genes, data.groups[ i ].genes, get_family ) );
+    }
+    // merge the alignments
+    var result_tracks = data.groups.slice( 1 );
+    data.groups = [ data.groups[ 0 ] ];
+    merge_alignments( data, result_tracks, alignments );
+
 	// make the context viewer
-	context_viewer( 'viewer', color, data, gene_clicked, axis_clicked, true );
+	context_viewer( 'viewer', color, data, gene_clicked, axis_clicked );
 
 	// context legend click callback
 	function legend_click( family_selection, gene_selection ) {
