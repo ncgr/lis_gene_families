@@ -432,6 +432,10 @@ def phylo_view_d3(request, phylotree_id, template_name):
     return render(request, template_name, {'tree' : tree, 'newick' : newick, 'num_leafs' : Phylonode.objects.filter(phylotree=tree).count})
 
 
+def phylo_view_slide_name(request, phylotree_name, template_name):
+    tree = Phylotree.objects.get(name=phylotree_name)
+    return phylo_view_slide(request, tree.phylotree_id, template_name)
+
 def phylo_view_slide(request, phylotree_id, template_name):
     # get trees stuffs
     tree = get_object_or_404(Phylotree, pk=phylotree_id)

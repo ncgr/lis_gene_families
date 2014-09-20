@@ -17,6 +17,7 @@ urlpatterns = patterns('chado.views',
     # phylo tree
     url(r'^phylo/$', 'phylo_index', {'template_name' : 'chado/phylo/index.html'}, name='phylo_index'),
     url(r'^phylo/(?P<phylotree_id>\d+)/$', 'phylo_view_slide', {'template_name' : 'chado/phylo/view_slide.html'}, name='phylo_view'),
+    url(r'^phylo/consn\|(?P<phylotree_name>\d+)/$', 'phylo_view_slide_name', {'template_name' : 'chado/phylo/view_slide.html'}, name='phylo_view'),
     #url(r'^phylo/(?P<phylotree_id>\d+)/(?P<phylonode_id>\d+)/$', 'phylo_view', {'template_name' : 'chado/phylo/view.html'}, name='phylo_view'),
     url(r'^phylo/(?P<phylotree_id>\d+)/newick/$', 'phylo_newick', {'template_name' : 'chado/phylo/newick.html'}, name='phylo_newick'),
     url(r'^phylo/(?P<phylotree_id>\d+)/download/$', 'phylo_newick_download', name='phylo_newick_download'),
