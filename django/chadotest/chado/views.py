@@ -510,8 +510,8 @@ def phylo_view_slide_ajax(request):
                                 consensus_feature = Feature.objects.get(uniquename='consn|'+node.phylotree.name);
                                 slidedict['links'].append({'MSA':'/chado/msa/'+str(consensus_feature.feature_id)})
                                 # load the context viewer with each node in the subtree as a focus gene 
+                                #slidedict['links'].append({'Context Viewer':'/chado/context_viewer/demo'+str(node.pk)})
                                 slidedict['links'].append({'Context Viewer':'/chado/context_viewer/'+str(node.pk)})
-                                slidedict['links'].append({'Context Viewer Fancy':'/chado/context_viewer/demo/'+str(node.pk)})
 			return HttpResponse(simplejson.dumps(slidedict), content_type = 'application/javascript; charset=utf8')
 		except:
 			return HttpResponse("bad request")

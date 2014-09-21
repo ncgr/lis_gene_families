@@ -73,10 +73,10 @@ urlpatterns = patterns('chado.views',
     url(r'^search/(?P<depth>\d+)/feature/remove_all/$', 'search_remove_all_ajax', {'who' : 'feature'}, name='search_feature_remove_all_ajax'),
 
     # gene context
-    url(r'^context_viewer/(?P<node_id>\d+)/$', 'context_viewer', {'template_name' : 'chado/gene/context.html'}, name='context_viewer'),
+    url(r'^context_viewer/demo/(?P<node_id>\d+)/$', 'context_viewer', {'template_name' : 'chado/gene/context.html'}, name='context_viewer'),
     url(r'^context_viewer/json/(?P<node_id>\d+)/$', 'context_viewer_json', name='context_viewer_json'),
     url(r'^context_gff_download/$', 'context_gff_download', {}, name='context_gff_download'),
-    url(r'^context_viewer/demo/(?P<node_id>\d+)/$', 'context_viewer_demo_refactor', {'template_name' : 'chado/gene/index.html'}, name='context_viewer_demo'),
+    url(r'^context_viewer/(?P<node_id>\d+)/$', 'context_viewer_demo_refactor', {'template_name' : 'chado/gene/index.html'}, name='context_viewer_demo'),
     url(r'^context_viewer/search/$', 'context_viewer_search3', {'template_name' : 'chado/gene/index.html'}, name='context_viewer_search'),
     #url(r'^context_viewer/search/(?P<focus_id>\d+)/$', 'context_viewer_search2', {'template_name' : 'chado/gene/index.html'}, name='context_viewer_search'),
     url(r'^context_viewer/search/(?P<focus_id>\d+)/$', 'context_viewer_search3', {'template_name' : 'chado/gene/search.html'}, name='context_viewer_search'),
