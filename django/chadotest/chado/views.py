@@ -592,7 +592,7 @@ def phylo_gff_download(request, phylonode_id):
     for c in chromosomes:
         species = organisms.get(organism_id=c.organism_id)
         #myfile.write("##sequence-region " + species.genus+"_"+species.species+":"+c.name + " 1 " + str(len(c.residues))+"\n");
-        myfile.write("##sequence-region " + species.genus+"_"+species.species+":"+c.name + " 1 " + str(c.feature_length)+"\n");
+        myfile.write("##sequence-region " + species.genus+"_"+species.species+":"+c.name + " 1 " + str(c.seqlen)+"\n");
         
 
     for g in genes:
