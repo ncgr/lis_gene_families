@@ -29,6 +29,7 @@
             <thead>
                 <tr>
                     <th>Name</th>
+                    <th>Description</th>
                     <th></th>
                 </tr>
             </thead>
@@ -36,7 +37,8 @@
                 {% for t in trees %}
                 <tr>
                     <td>{{ t.name }}</td>
-                    <td><a href="{% url 'phylo_view' t.pk %}">view</a></td>
+                    <td>{{ t.comment }}</td>
+                    <td><a href="{% url 'phylo_view_name' t.name %}">view</a></td>
                 </tr>
                 {% endfor %}
             </tbody>
