@@ -12,7 +12,7 @@
     <div class="row">
         <div class="col-lg-12">
             <h1>{{ consensus.name }}</h1>
-            <a href="{% url 'msa_view' consensus.pk %}">back</a> | <a href="{% url 'msa_consensus_download' consensus.pk %}">download</a>
+            <a href="{% url 'msa_view' consensus.name %}">back</a> | <a href="{% url 'msa_consensus_download' consensus.name %}">download</a>
         </div>
     </div>
 </div>

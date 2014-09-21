@@ -24,7 +24,8 @@
     <div class="row">
         <div class="col-lg-12">
             <h1>{{ tree.name }}</h1>
-            <a href="{% url 'phylo_newick' tree.pk %}">view</a> | <a href="{% url 'phylo_newick_download' tree.pk %}">download</a> | <a href="{% url 'phylo_xml_download' tree.pk %}">xml</a>
+            <p>{{ tree.comment }}</p>
+            <a href="{% url 'phylo_newick' tree.name %}">view newick</a> | <a href="{% url 'phylo_newick_download' tree.name %}">download</a> | <a href="{% url 'phylo_xml_download' tree.name %}">xml</a> | <a href="{% url 'msa_view' 'consn|'|add:tree.name %}">msa</a>
         </div>
     </div>
 </div>

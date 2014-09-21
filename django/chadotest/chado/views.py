@@ -290,8 +290,9 @@ def msa_index(request, template_name):
     return render(request, template_name, {'msas' : paginate(request, Feature.objects.filter(type__name='consensus_region'), 'msa_num'), 'result_nums' : RESULT_NUMS})
 
 
-def msa_view(request, feature_id, template_name):
-    consensus = get_object_or_404(Feature, pk=feature_id)
+def msa_view(request, feature_name, template_name):
+    consensus = Feature.objects.get(name=feature_name)
+    #consensus = get_object_or_404(Feature, pk=feature_id)
     featurelocs = Featureloc.objects.filter(srcfeature=consensus)
     # I'm sure there's a better way to get a count of the organisms but the values method was giving me trouble
     organism_pks = list(featurelocs.values_list('feature__organism', flat=True))
@@ -302,15 +303,17 @@ def msa_view(request, feature_id, template_name):
     return render(request, template_name, {'consensus' : consensus, 'featurelocs' : featurelocs, 'num_organisms' : simplejson.dumps(list(num_organisms))})
 
 
-def msa_consensus(request, feature_id, template_name):
-    consensus = get_object_or_404(Feature, pk=feature_id)
+def msa_consensus(request, feature_name, template_name):
+    #consensus = get_object_or_404(Feature, pk=feature_id)
+    consensus = Feature.objects.get(name=feature_name)
     featurelocs = Featureloc.objects.filter(srcfeature=consensus)
     return render(request, template_name, {'consensus' : consensus, 'featurelocs' : featurelocs})
 
 
-def msa_consensus_download(request, feature_id):
+def msa_consensus_download(request, feature_name):
     # get consensus stuffs
-    consensus = get_object_or_404(Feature, pk=feature_id)
+    #consensus = get_object_or_404(Feature, pk=feature_id)
+    consensus = Feature.objects.get(name=feature_name)
     featurelocs = Featureloc.objects.filter(srcfeature=consensus)
 
     # write the file to be downloaded
@@ -432,13 +435,10 @@ def phylo_view_d3(request, phylotree_id, template_name):
     return render(request, template_name, {'tree' : tree, 'newick' : newick, 'num_leafs' : Phylonode.objects.filter(phylotree=tree).count})
 
 
-def phylo_view_slide_name(request, phylotree_name, template_name):
-    tree = Phylotree.objects.get(name=phylotree_name)
-    return phylo_view_slide(request, tree.phylotree_id, template_name)
-
-def phylo_view_slide(request, phylotree_id, template_name):
+def phylo_view_slide(request, phylotree_name, template_name):
     # get trees stuffs
-    tree = get_object_or_404(Phylotree, pk=phylotree_id)
+    #tree = get_object_or_404(Phylotree, pk=phylotree_id)
+    tree = Phylotree.objects.get(name=phylotree_name)
     xml, num_leafs = phylo_xml(tree, '')
 
     # we've got the goods
@@ -518,14 +518,16 @@ def phylo_view_slide_ajax(request):
                 return HttpResponse("bad request")
 
 
-def phylo_newick(request, phylotree_id, template_name):
-    tree = get_object_or_404(Phylotree, pk=phylotree_id)
+def phylo_newick(request, phylotree_name, template_name):
+    #tree = get_object_or_404(Phylotree, pk=phylotree_id)
+    tree = Phylotree.objects.get(name=phylotree_name)
     return render(request, template_name, {'tree' : tree, 'newick' : generate_phylo_newick(tree)})
 
 
-def phylo_xml_download(request, phylotree_id):
+def phylo_xml_download(request, phylotree_name):
     # get the tree
-    tree = get_object_or_404(Phylotree, pk=phylotree_id)
+    #tree = get_object_or_404(Phylotree, pk=phylotree_id)
+    tree = Phylotree.objects.get(name=phylotree_name)
     xml, num_leafs = phylo_xml(tree, "")
 
     # write the file to be downloaded
@@ -540,13 +542,14 @@ def phylo_xml_download(request, phylotree_id):
     return response
 
 
-def phylo_newick_download(request, phylotree_id):
+def phylo_newick_download(request, phylotree_name):
     # get the tree
-    tree = get_object_or_404(Phylotree, pk=phylotree_id)
+    #tree = get_object_or_404(Phylotree, pk=phylotree_id)
+    tree = Phylotree.objects.get(name=phylotree_name)
 
     # write the file to be downloaded
     myfile = StringIO.StringIO()
-    myfile.write(tree.comment+"\n")
+    myfile.write(generate_phylo_newick(tree)+"\n")
 
     # generate the file
     response = HttpResponse(myfile.getvalue(), content_type='text/plain')
@@ -754,7 +757,7 @@ def context_viewer(request, node_id, template_name):
 
     # make the tracks
     tracks = []
-    num = 4
+    num = 10
     if 'num' in request.GET:
         try:
             num = int(request.GET['num'])
@@ -809,14 +812,14 @@ def context_viewer_demo_refactor(request, node_id, template_name):
     # make sure the node actually exists
     get_object_or_404(Phylonode, pk=node_id)
     # how many genes will be displayed?
-    num = 4
+    num = 10
     if 'num' in request.GET:
         try:
             num = int(request.GET['num'])
         except:
             pass
-    if num > 10:
-        num = 4
+    if num > 40:
+        num = 40
     # get all the nodes in the subtree
     root = get_object_or_404(Phylonode, pk=node_id)
     nodes = Phylonode.objects.filter(phylotree=root.phylotree, left_idx__gt=root.left_idx, right_idx__lt=root.right_idx)
@@ -940,7 +943,7 @@ def context_viewer_demo(request, node_id, template_name):
     # make sure the node actually exists
     get_object_or_404(Phylonode, pk=node_id)
     # how many genes will be displayed?
-    num = 4
+    num = 10
     if 'num' in request.GET:
         try:
             num = int(request.GET['num'])
@@ -1088,7 +1091,7 @@ def context_viewer_search2(request, template_name, focus_id=None):
         raise Http404
     gene_family_type = gene_family_type[0]
     # how many neighbors should there be?
-    num = 4
+    num = 10
     if 'num' in request.GET:
         try:
             num = int(request.GET['num'])
@@ -1226,7 +1229,7 @@ def context_viewer_search3( request, template_name, focus_id=None ):
     gene_family_type = gene_family_type[ 0 ]
 
     # how many neighbors should there be?
-    num = 4
+    num = 10
     if 'num' in request.GET:
         try:
             num = int( request.GET['num'] )
@@ -1322,7 +1325,7 @@ def context_viewer_search3( request, template_name, focus_id=None ):
 
     # construct tracks for each chromosome
     for chromosome_id, genes in chromosome_genes_map.iteritems():
-        if len( genes ) < 2:
+        if len( genes ) < 10:
             continue
         genes.sort( key=get_gene_order )
         # find all subsets of the genes of maximum order-gap size between first and last members <= 40 whoes symmetric difference and intersection with all other such sets are non-empty
@@ -1540,7 +1543,7 @@ def context_viewer_synteny(request, template_name, focus_id=None):
         raise Http404
     gene_family_type = gene_family_type[0]
     # how many neighbors should there be?
-    num = 4
+    num = 10
     if 'num' in request.GET:
         try:
             num = int(request.GET['num'])
@@ -1630,7 +1633,7 @@ def context_viewer_synteny2(request, template_name, focus_id=None):
         raise Http404
     gene_family_type = gene_family_type[0]
     # how many neighbors should there be?
-    num = 4
+    num = 10
     if 'num' in request.GET:
         try:
             num = int(request.GET['num'])
@@ -1730,14 +1733,14 @@ def context_viewer_synteny3(request, template_name, focus_id=None):
         raise Http404
     gene_family_type = gene_family_type[0]
     # how many neighbors should there be?
-    num = 4
+    num = 10
     if 'num' in request.GET:
         try:
             num = int(request.GET['num'])
         except:
             pass
     if num > 10:
-        num = 4
+        num = 10
     # get the neighbors of focus via their ordering
     neighbor_orders = GeneOrder.objects.filter(chromosome=focus_order.chromosome_id, number__gte=focus_order.number-num, number__lte=focus_order.number+num).order_by('number')
     neighbor_ids = neighbor_orders.values_list('gene_id', flat=True)

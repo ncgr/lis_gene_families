@@ -38,7 +38,7 @@
                 <tr>
                     <td>{{ t.name }}</td>
                     <td>{{ t.comment }}</td>
-                    <td><a href="{% url 'phylo_view_name' t.name %}">view</a></td>
+                    <td><a href="{% url 'phylo_view' t.name %}">view</a></td>
                 </tr>
                 {% endfor %}
             </tbody>

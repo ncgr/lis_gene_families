@@ -5,7 +5,7 @@
     <div class="row">
         <div class="col-lg-12">
             <h1>{{ consensus.name }}</h1>
-            <a href="{% url 'msa_consensus' consensus.pk %}">view</a> | <a href="{% url 'msa_consensus_download' consensus.pk %}">download</a> | <a href="http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.isys.ncgr.jalview.JalviewAlignmentDisplayService%40http://{{ request.get_host }}/chado/msa/{{ consensus.pk }}/download">jalview</a>
+            <a href="{% url 'msa_consensus' consensus.name %}">view</a> | <a href="{% url 'msa_consensus_download' consensus.name %}">download</a> | <a href="http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.isys.ncgr.jalview.JalviewAlignmentDisplayService%40http://{{ request.get_host }}/chado/msa/{{ consensus.name }}/download">jalview</a>
         </div>
     </div>
 </div>
