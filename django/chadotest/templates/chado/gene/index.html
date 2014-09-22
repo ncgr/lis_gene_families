@@ -122,7 +122,7 @@
 				// append the gene's families (if any)
 				html += 'Family: ';
 				if( gene_selection.family != '' ) {
-					html += '<a href="/chado/phylo/'+gene_selection.family+'/">'+family_names[gene_selection.family]+'</a>';
+					html += '<a href="/chado/phylo/'+family_names[gene_selection.family]+'/">'+family_names[gene_selection.family]+'</a>';
 				} else {
 					html += 'None';
 				}
@@ -156,7 +156,7 @@
 		gene_selection.each(function(d) {
 			genes += '<li><a href="/chado/feature/'+d.id+'/">'+d.name+'</a>: '+d.fmin+' - '+d.fmax+'</li>';
 			if( d.family != '' ) {
-				genes += '<ul><li>Family: <a href="/chado/phylo/'+d.family+'/">'+family_names[d.family]+'</a></li></ul>'
+				genes += '<ul><li>Family: <a href="/chado/phylo/'+family_names[d.family]+'/">'+family_names[d.family]+'</a></li></ul>'
 			}
 			// add links for the focus gene
 			if( d.x == (track_length-1)/2 ) {
@@ -179,7 +179,7 @@
 
 	// context legend click callback
 	function legend_click( family_selection, gene_selection ) {
-		html = '<h4><a href="/chado/phylo/'+family_selection.id+'/">'+family_names[ family_selection ]+'</a></h4>';
+		html = '<h4><a href="/chado/phylo/'+family_names[ family_selection ]+'/">'+family_names[ family_selection ]+'</a></h4>';
 		html += 'Genes:<ul>';
 	    gene_selection.each(function(f) {
 			html += '<li><a href="/chado/feature/'+f.id+'/">'+f.name+'</a>: '+f.fmin+' - '+f.fmax+'</li>';
