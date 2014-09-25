@@ -1251,6 +1251,15 @@ def context_viewer_search3( request, template_name, focus_id=None ):
         except:
             pass
     max_num = 40
+    max_length = max_num
+    if 'max' in request.GET:
+        if request.GET['max'] == 'double':
+            max_length = 2*num+1
+        else:
+            try:
+                max_length = int( request.GET['max'] )
+            except:
+               pass
     max_genes = max_num*2+1
     if num > max_num:
         num = max_num
@@ -1351,7 +1360,8 @@ def context_viewer_search3( request, template_name, focus_id=None ):
             for j in range( i+1, len( genes ) ):
                 #size = gene_order_map[ genes[ j ].pk ]-gene_order_map[ genes[ i ].pk ]
                 size = gene_order_map[ genes[ j ] ]-gene_order_map[ genes[ i ] ]
-                if size < max_num:
+                #if size < max_num:
+                if size < max_length:
                     prev_size = size
                     if j+1 == len( genes ) and j > last_j:
                         candidates.append( { 'first':i, 'last':j, 'size':prev_size, 'hits':j-i+1 } )
