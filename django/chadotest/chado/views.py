@@ -522,8 +522,8 @@ def phylo_view_slide_ajax(request):
                                 #hack: use the naming convention to get the consensus feature; trees don't appear to
                                 #be easily connected with their MSAs otherwise
                                 #consensus_feature = features.get(uniquename=node.phylotree.name+'-consensus');
-                                consensus_feature = Feature.objects.get(uniquename='consn|'+node.phylotree.name);
-                                slidedict['links'].append({'MSA':'/chado/msa/'+str(consensus_feature.feature_id)})
+                                #consensus_feature = Feature.objects.get(uniquename='consn|'+node.phylotree.name);
+                                #slidedict['links'].append({'MSA':'/chado/msa/'+str(consensus_feature.feature_id)})
                                 # load the context viewer with each node in the subtree as a focus gene 
                                 #slidedict['links'].append({'Context Viewer':'/chado/context_viewer/demo'+str(node.pk)})
                                 slidedict['links'].append({'Context Viewer':'/chado/context_viewer/'+str(node.pk)})
