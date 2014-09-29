@@ -263,6 +263,8 @@
 	}
 
 	// make the legend
-	context_legend( 'legend', color, data, legend_click, false );
+	context_legend( 'legend', color, data, {
+        "legend_click":legend_click,
+        "selective_coloring":false });
 </script>
 {% endblock %}
