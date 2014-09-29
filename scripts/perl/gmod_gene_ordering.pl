@@ -105,6 +105,13 @@ if( !$chromosome_id ) {
     Retreat("Failed to retrieve the chromosome cvterm entry\n");
 }
 
+# get the supercontig cvterm
+my $supercontig_id = $conn->selectrow_array("SELECT cvterm_id FROM cvterm WHERE name='supercontig' and cv_id = (select cv_id from cv where name='sequence');");
+# does it exist?
+if( !$supercontig_id ) {
+    Retreat("Failed to retrieve the supercontig cvterm entry\n");
+}
+
 # get the gene cvterm
 my $gene_id = $conn->selectrow_array("SELECT cvterm_id FROM cvterm WHERE name='gene' and cv_id = (select cv_id from cv where name='sequence');");
 # does it exist?
@@ -127,7 +134,7 @@ if( $nuke ) {
 }
 
 # get all the chromosomes from the database
-my $query_string = "SELECT feature_id FROM feature WHERE type_id=$chromosome_id;";
+my $query_string = "SELECT feature_id FROM feature WHERE type_id in ($chromosome_id,$supercontig_id);";
 $query = $conn->prepare($query_string);
 $query->execute();
 # get all the genes for each chromosome add give them an ordering via the gene_order table
