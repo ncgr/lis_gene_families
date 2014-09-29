@@ -1599,6 +1599,7 @@ def context_viewer_search4( request, template_name, focus_id=None ):
             # only keep the remaining genes
             track_gene_ids = []
             if reverse_score > forward_score:
+                reverse_alignment = reverse_alignment[::-1]
                 for t in reverse_alignment:
                     if t[ 0 ]:
                         track_gene_ids.append( t[ 0 ] )
