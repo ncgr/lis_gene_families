@@ -1,7 +1,8 @@
 
 var viewer;
 
-function context_viewer( container_id, color, data, gene_clicked, axis_clicked, selective_coloring ) {
+//function context_viewer( container_id, color, data, gene_clicked, axis_clicked, selective_coloring ) {
+function context_viewer( container_id, color, data, optional_parameters ) {
 	// clear the contents of the target element first
 	document.getElementById(container_id).innerHTML = "";
 
@@ -69,16 +70,16 @@ function context_viewer( container_id, color, data, gene_clicked, axis_clicked, 
 		gene_groups.append("path")
 		    .attr("d", d3.svg.symbol().type("triangle-up").size(200))
 		    .attr("class", function(d) {
-				if( d.x == (num_genes-1)/2 && ( selective_coloring !== undefined && selective_coloring ) ) {
+				if( d.x == (num_genes-1)/2 && ( optional_parameters.focus !== undefined && optional_parameters.focus ) ) {
 					return "point focus";
 				} else if ( d.family == '' ) {
 					return "point no_fam";
-				} else if ( family_sizes[ d.family ] == 1 &&  selective_coloring !== undefined && selective_coloring ) {
+				} else if ( family_sizes[ d.family ] == 1 &&  optional_parameters.selective_coloring !== undefined && optional_parameters.selective_coloring ) {
 					return "point single";
 				} return "point"; })
 		    .attr("transform", function(d) { return "rotate("+((d.strand == 1) ? "90" : "-90")+")"; })
 		    .style("fill", function(d) {
-				if( d.family == '' || ( selective_coloring !== undefined && selective_coloring && family_sizes[ d.family ] == 1 ) ) {
+				if( d.family == '' || ( optional_parameters.selective_coloring !== undefined && optional_parameters.selective_coloring && family_sizes[ d.family ] == 1 ) ) {
 					return "#ffffff";
 				} return color(d.family);
 			})
@@ -92,7 +93,9 @@ function context_viewer( container_id, color, data, gene_clicked, axis_clicked, 
 				hide_tips( d3.select(this) );
 		    })
 		    .on('click', function (d) {
-				gene_clicked(d);
+                if( optional_parameters.gene_clicked !== undefined ) {
+				    gene_clicked(d);
+                }
 			});
 
 		// add the tooltips
@@ -211,6 +214,7 @@ function context_viewer( container_id, color, data, gene_clicked, axis_clicked, 
 			var rail_selection = rail_groups.filter(function(e) {
 				return d3.select(this).attr("y") == y;
 			});
+            if( optional_parameters.axis_clicked !== undefined )
 			axis_clicked( d, gene_selection, rail_selection );
 		});
 }
