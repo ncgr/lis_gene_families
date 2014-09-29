@@ -70,7 +70,8 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 		gene_groups.append("path")
 		    .attr("d", d3.svg.symbol().type("triangle-up").size(200))
 		    .attr("class", function(d) {
-				if( d.x == (num_genes-1)/2 && ( optional_parameters.focus !== undefined && optional_parameters.focus ) ) {
+				//if( d.x == (num_genes-1)/2 && ( optional_parameters.focus !== undefined && optional_parameters.focus ) ) {
+				if( optional_parameters.focus !== undefined && optional_parameters.focus == d.family ) {
 					return "point focus";
 				} else if ( d.family == '' ) {
 					return "point no_fam";
