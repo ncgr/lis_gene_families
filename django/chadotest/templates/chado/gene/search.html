@@ -200,7 +200,9 @@
     merge_alignments( data, result_tracks, alignments );
 
 	// make the context viewer
-	context_viewer( 'viewer', color, data, gene_clicked, axis_clicked );
+	context_viewer( 'viewer', color, data, {
+        "gene_clicked":gene_clicked,
+        "axis_clicked":axis_clicked });
 
 	// context legend click callback
 	function legend_click( family_selection, gene_selection ) {
@@ -215,6 +217,7 @@
 	}
 
 	// make the context legend
-	context_legend( 'legend', color, data, legend_click );
+	context_legend( 'legend', color, data, {
+        "legend_click":legend_click });
 </script>
 {% endblock %}

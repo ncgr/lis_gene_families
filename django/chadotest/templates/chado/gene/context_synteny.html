@@ -223,7 +223,9 @@
         // update the context data with the alignment
         merge_alignments( context_data, [selected_group], [alignment] );
         // plot the new context viewer
-		context_viewer( "viewer", color, context_data, gene_clicked, axis_clicked );
+		context_viewer( "viewer", color, context_data, {
+            "gene_clicked":gene_clicked,
+            "axis_clicked":axis_clicked });
 	}
 	
 	// create the scatter plot matrix
@@ -244,7 +246,9 @@
     }
     // make the initial context viewer
     // add a flag that enables colors
-	context_viewer( "viewer", color, context_data, gene_clicked, axis_clicked );
+	context_viewer( "viewer", color, context_data, {
+        "gene_clicked":gene_clicked,
+        "axis_clicked":axis_clicked });
 
 	// legend click callback
 	function legend_click( family_selection, gene_selection ) {
@@ -259,6 +263,8 @@
 	}
 
 	// make the legend
-	context_legend( 'legend', color, data, legend_click, false );
+	context_legend( 'legend', color, data, {
+        "legend_click":legend_click,
+        "selective_coloring":false });
 </script>
 {% endblock %}

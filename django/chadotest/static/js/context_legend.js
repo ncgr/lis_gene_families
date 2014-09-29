@@ -1,4 +1,6 @@
-function context_legend( container_id, color, data, legend_click, selective_coloring ) {
+
+//function context_legend( container_id, color, data, legend_click, selective_coloring ) {
+function context_legend( container_id, color, data, optional_parameters ) {
 	// clear the contents of the target element first
 	document.getElementById(container_id).innerHTML = "";
 
@@ -8,7 +10,7 @@ function context_legend( container_id, color, data, legend_click, selective_colo
 	// determine how many families will be in the legend
 	var family_size_map = get_family_size_map( data );
 	var num_fams = 0;
-    if( selective_coloring === undefined || selective_coloring !== undefined && selective_coloring ) {
+    if( optional_parameters.selective_coloring === undefined || optional_parameters.selective_coloring !== undefined && optional_parameters.selective_coloring ) {
 	    for( fam in family_size_map ) {
 	    	if( family_size_map[ fam ] > 1 ) {
 	    		num_fams++;
@@ -73,7 +75,9 @@ function context_legend( container_id, color, data, legend_click, selective_colo
 				return e.family == d;
 			});
 			var family = d3.select(this);
-			legend_click( d, selection );
+            if( optional_parameters.legend_click !== undefined ) {
+			    legend_click( d, selection );
+            }
 		});
 	
 	// add the colored rectangles

@@ -845,8 +845,8 @@ def context_viewer_demo_refactor(request, node_id, template_name):
     focus_genes = list(Feature.objects.only('pk','name').filter(pk__in=gene_ids))
     focus_genes = [ g for g in focus_genes ]
     # generate the context view using the focus genes
-    json, floc_id_string = context_viewer_json_refactor(focus_genes, num)
-    return render(request, template_name, {'json' : json, 'floc_id_string' : floc_id_string})
+    json, floc_id_string, focus_family = context_viewer_json_refactor(focus_genes, num)
+    return render(request, template_name, {'json' : json, 'floc_id_string' : floc_id_string, 'focus_family' : focus_family})
 
 # focus_genes is a list of tuples, the first element is a gene object, the second is the orientation (-1 flip, 1 leave as is, 0 flip if on reverse strand)
 def context_viewer_json_refactor(focus_genes, num):
@@ -860,6 +860,7 @@ def context_viewer_json_refactor(focus_genes, num):
     # the gene_family cvterm
     y = 0
     family_term = list(Cvterm.objects.filter(name='gene family')[:1])[0]
+    focus_family_id = None
     for gene in focus_genes:
         genes = []
         # get the focus featureloc
@@ -869,7 +870,7 @@ def context_viewer_json_refactor(focus_genes, num):
         organism = Organism.objects.only('genus', 'species').get(pk=gene.organism_id)
         family_id = list(Featureprop.objects.only('name').filter(type=family_term, feature=gene.feature_id).values_list('value', flat=True))
         if len(family_id) > 0:
-            family_id = family_id[0]
+            focus_family_id = family_id = family_id[0]
         family_object = list(Phylotree.objects.only('name').filter(pk=int(family_id)))
         if len(family_object) > 0:
             f = family_object[0]
@@ -951,7 +952,7 @@ def context_viewer_json_refactor(focus_genes, num):
     # write the contents of the file
     json = '{"families":['+','.join(families.values())+'], "groups":['+','.join(groups)+']}'
 
-    return json, ','.join(map(str, flocs))
+    return json, ','.join(map(str, flocs)), focus_family_id
 
 
 def context_viewer_demo(request, node_id, template_name):
@@ -1621,6 +1622,7 @@ def context_viewer_search4( request, template_name, focus_id=None ):
             # only keep the remaining genes
             track_gene_ids = []
             if reverse_score > forward_score:
+                reverse_alignment = reverse_alignment[::-1]
                 for t in reverse_alignment:
                     if t[ 0 ]:
                         track_gene_ids.append( t[ 0 ] )
