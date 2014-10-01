@@ -1434,9 +1434,9 @@ def context_viewer_search3( request, template_name, focus_id=None ):
 
     return render(request, template_name, {'json' : json})
 
-def context_viewer_search4( request, template_name, focus_id=None ):
+def context_viewer_search4( request, template_name, focus_name=None ):
     # get the focus gene of the query track
-    focus = Feature.objects.only( 'pk', 'name' ).get( pk=focus_id )
+    focus = Feature.objects.only( 'pk', 'name' ).get( name=focus_name )
     if not focus:
         raise Http404
     focus_order = list( GeneOrder.objects.filter( gene=focus ) )
@@ -1492,7 +1492,7 @@ def context_viewer_search4( request, template_name, focus_id=None ):
     neighbor_flocs = Featureloc.objects.only( 'fmin', 'fmax', 'strand' ).filter( feature__in=neighbor_ids )
     neighbor_floc_map = dict( ( o.feature_id, o ) for o in neighbor_flocs )
     # get the track chromosome
-    chromosome = Feature.objects.only( 'name' ).filter( pk=neighbor_floc_map[ int( focus_id ) ].srcfeature_id )
+    chromosome = Feature.objects.only( 'name' ).filter( pk=neighbor_floc_map[ int( focus.pk ) ].srcfeature_id )
     chromosome = chromosome[ 0 ]
     # get the track organism
     organism = Organism.objects.only( 'genus', 'species' ).filter( pk=chromosome.organism_id )
