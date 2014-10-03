@@ -1634,7 +1634,7 @@ def context_viewer_search4( request, template_name, focus_id=None ):
                     if t[ 0 ]:
                         track_gene_ids.append( t[ 0 ] )
 
-            if len( track_gene_ids ) < 2:
+            if len( track_gene_ids ) < 2 and not single:
                 continue
 
             # get all the gene names
