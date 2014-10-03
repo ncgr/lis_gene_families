@@ -1413,6 +1413,52 @@ def context_viewer_search3( request, template_name, focus_id=None ):
     return render(request, template_name, {'json' : json})
 
 def context_viewer_search4( request, template_name, focus_id=None ):
+
+    # get the parameters for the algorithm
+    single = 'single' in request.GET and request.GET['single'] == 'true'
+
+    # how many neighbors should there be?
+    num = 4
+    if 'num' in request.GET:
+        try:
+            num = int( request.GET['num'] )
+        except:
+            pass
+    max_num = 40
+    max_length = max_num
+    if 'length' in request.GET:
+        if request.GET['length'] == 'double':
+            max_length = 2*num+1
+        else:
+            try:
+                max_length = int( request.GET['length'] )
+            except:
+               pass
+    max_genes = max_num*2+1
+    if num > max_num:
+        num = max_num
+
+    # what are the parameters for smith-waterman?
+    match = 1
+    if 'match' in request.GET:
+        try:
+            match = int( request.GET['match'] )
+        except:
+            pass
+    mismatch = 0 
+    if 'mismatch' in request.GET:
+        try:
+            mismatch = int( request.GET['mismatch'] )
+        except:
+            pass
+    gap = -1
+    if 'gap' in request.GET:
+        try:
+            gap = int( request.GET['gap'] )
+        except:
+            pass
+
+
     # get the focus gene of the query track
     focus = Feature.objects.only( 'pk', 'name' ).get( pk=focus_id )
     if not focus:
@@ -1427,27 +1473,6 @@ def context_viewer_search4( request, template_name, focus_id=None ):
     if len( gene_family_type ) == 0:
         raise Http404
     gene_family_type = gene_family_type[ 0 ]
-
-    # how many neighbors should there be?
-    num = 4
-    if 'num' in request.GET:
-        try:
-            num = int( request.GET['num'] )
-        except:
-            pass
-    max_num = 40
-    max_length = max_num
-    if 'max' in request.GET:
-        if request.GET['max'] == 'double':
-            max_length = 2*num+1
-        else:
-            try:
-                max_length = int( request.GET['max'] )
-            except:
-               pass
-    max_genes = max_num*2+1
-    if num > max_num:
-        num = max_num
 
     # get the neighbors of focus via their ordering
     neighbor_orders = GeneOrder.objects.only( ).filter( chromosome=focus_order.chromosome_id, number__gte=focus_order.number-num, number__lte=focus_order.number+num ).order_by( 'number' )
@@ -1594,8 +1619,8 @@ def context_viewer_search4( request, template_name, focus_id=None ):
                     align.append( ( g, -1 ) )
 
             # run smith-waterman on the forward and reverse of the track
-            forward_score, forward_alignment = smith_waterman( align, query_align, accessor, new_element )
-            reverse_score, reverse_alignment = smith_waterman( align[::-1], query_align, accessor, new_element )
+            forward_score, forward_alignment = smith_waterman( align, query_align, accessor, new_element, match = match, mismatch = mismatch, gap = gap )
+            reverse_score, reverse_alignment = smith_waterman( align[::-1], query_align, accessor, new_element, match = match, mismatch = mismatch, gap = gap )
 
             # only keep the remaining genes
             track_gene_ids = []
@@ -1640,10 +1665,10 @@ def context_viewer_search4( request, template_name, focus_id=None ):
 
     json += ','.join( groups )+']}'
 
-    return render(request, template_name, {'json' : json})
+    return render(request, template_name, {'json' : json, 'single' : single, 'num' : num, 'length' : max_length, 'match' : match, 'mismatch' : mismatch, 'gap' : gap})
 
 # https://github.com/kevinakwok/bioinfo/tree/master/Smith-Waterman
-def smith_waterman( seqA, seqB, accessor, new_element ):
+def smith_waterman( seqA, seqB, accessor, new_element, match = 1, mismatch = 0, gap = -1 ):
     seqB = seqB[:-1]
 
     #seqA = "-"+seqA
@@ -1652,9 +1677,9 @@ def smith_waterman( seqA, seqB, accessor, new_element ):
     seqB.insert( 0, new_element('-') )
 
     #Sets the values for match, mismatch, and gap.
-    match = 1 
-    mismatch = 0 
-    gap = -1
+    #match = 1 
+    #mismatch = 0 
+    #gap = -1
 
     row = len(seqA)
     col = len(seqB)
