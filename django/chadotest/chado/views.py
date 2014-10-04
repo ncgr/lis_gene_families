@@ -1439,6 +1439,7 @@ def context_viewer_search4( request, template_name, focus_name=None ):
     focus = Feature.objects.only( 'pk', 'name' ).get( name=focus_name )
     if not focus:
         raise Http404
+    focus_id=focus.pk
     focus_order = list( GeneOrder.objects.filter( gene=focus ) )
     if len( focus_order ) == 0:
         raise Http404
@@ -1542,9 +1543,10 @@ def context_viewer_search4( request, template_name, focus_name=None ):
     query_group = '{"species_name":"'+organism.genus[ 0 ]+'.'+organism.species+'", "species_id":'+str( organism.pk )+', "chromosome_name":"'+chromosome.name+'", "chromosome_id":'+str( chromosome.pk )+', "genes":['+','.join( genes )+']}'
 
     # find all genes with the same families
-    related_gene_ids = Featureprop.objects.only( 'feature' ).filter( type=gene_family_type, value__in=neighbor_families ).values_list('feature', flat=True )
+    related_gene_ids = Featureprop.objects.only( 'feature' ).filter( type=gene_family_type, value__in=neighbor_families ).exclude(feature_id__in=neighbor_ids).values_list('feature', flat=True )
     #related_genes = Feature.objects.only().filter( pk__in=related_gene_ids )
     #id_gene_map = dict( ( o.pk, o ) for o in related_genes )
+    #get rid of genes from query
 
     # get the orders (and chromosomes) of the genes
     related_orders = GeneOrder.objects.only( 'number' ).filter( gene__in=related_gene_ids )
