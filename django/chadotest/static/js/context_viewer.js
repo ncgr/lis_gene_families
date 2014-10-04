@@ -179,7 +179,8 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 	var yAxis = d3.svg.axis().scale(y).orient("left")
 		.tickValues(tick_values) // we don't want d3 taking liberties to make things pretty
 	    .tickFormat(function (d, i) {
-	        return data.groups[d].species_name+" - "+data.groups[d].chromosome_name;
+                var l = data.groups[d].genes.length;
+	        return data.groups[d].chromosome_name +":"+(l > 0 ? (data.groups[d].genes[0].fmin+"-"+data.groups[d].genes[l-1].fmax) : "");
 	    });
 
 	// draw the axis of the graph
