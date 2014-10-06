@@ -91,7 +91,7 @@ function merge_alignments( context_data, selected_groups, alignments ) {
             // it must be an insertion
             } else if( alignment[0][i] == null ) {
                 // position the genes that come after the query genes
-                if( query_count > query_length ) {
+                if( query_count >= query_length ) {
                     alignment[1][i].x = query_count++;
                     alignment[1][i].y = k+1;
                     context_data.groups[index].genes.push(alignment[1][i]);

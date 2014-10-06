@@ -1634,8 +1634,16 @@ def context_viewer_search4( request, template_name, focus_id=None ):
                     if t[ 0 ]:
                         track_gene_ids.append( t[ 0 ] )
 
-            if len( track_gene_ids ) < 2 and not single:
+            # exclude tracks with only one gene
+            if len( track_gene_ids ) < 2:
                 continue
+
+            # exclude single family tracks
+            if not single:
+                unique_families = set( gene_family_map.values() )
+                if( len( unique_families ) < 2 ):
+                    continue
+
 
             # get all the gene names
             track_names = Feature.objects.only( 'name' ).filter( pk__in=track_gene_ids )
