@@ -1455,6 +1455,13 @@ def context_viewer_search4( request, template_name, focus_name=None ):
             num = int( request.GET['num'] )
         except:
             pass
+    # how many matched_families should there be?
+    num_matched_families = 3
+    if 'num_matched_families' in request.GET:
+        try:
+            num_matched_families = int( request.GET['num_matched_families'] )
+        except:
+            pass
     max_num = 40
     max_length = max_num
     if 'length' in request.GET:
@@ -1514,9 +1521,11 @@ def context_viewer_search4( request, template_name, focus_name=None ):
     neighbor_family_map = dict( ( o.feature_id, o.value ) for o in neighbor_families )
     neighbor_families = neighbor_families.values_list( 'value', flat=True )
     family_ids = []
+    query_families = {}
     for n in neighbor_families:
         if n not in family_ids:
             family_ids.append( n )
+            query_families[n] = 1
 
     # make the first (query) track
     # get the gene names
@@ -1543,7 +1552,8 @@ def context_viewer_search4( request, template_name, focus_name=None ):
     query_group = '{"species_name":"'+organism.genus[ 0 ]+'.'+organism.species+'", "species_id":'+str( organism.pk )+', "chromosome_name":"'+chromosome.name+'", "chromosome_id":'+str( chromosome.pk )+', "genes":['+','.join( genes )+']}'
 
     # find all genes with the same families
-    related_gene_ids = Featureprop.objects.only( 'feature' ).filter( type=gene_family_type, value__in=neighbor_families ).exclude(feature_id__in=neighbor_ids).values_list('feature', flat=True )
+    related_genes = Featureprop.objects.only( 'feature' ).filter( type=gene_family_type, value__in=neighbor_families ).exclude(feature_id__in=neighbor_ids)
+    related_gene_ids = related_genes.values_list('feature', flat=True )
     #related_genes = Feature.objects.only().filter( pk__in=related_gene_ids )
     #id_gene_map = dict( ( o.pk, o ) for o in related_genes )
     #get rid of genes from query
@@ -1551,6 +1561,7 @@ def context_viewer_search4( request, template_name, focus_name=None ):
     # get the orders (and chromosomes) of the genes
     related_orders = GeneOrder.objects.only( 'number' ).filter( gene__in=related_gene_ids )
     gene_order_map = dict( ( o.gene_id, o.number ) for o in related_orders )
+    related_family_map = dict( ( o.feature_id, o.value ) for o in related_genes )
 
     # find the chromosomes the genes are on
     #chromosome_relations = list(FeatureRelationship.objects.filter(subject__in=related_genes))
@@ -1601,18 +1612,25 @@ def context_viewer_search4( request, template_name, focus_name=None ):
         last_j = 0
         for i in range( len( genes ) ):
             prev_size = 0
+            matched_families = {}
+            import sys
+            sys.stderr.write("key is " + str(genes[i])+"\n")
+            if genes[i] in related_family_map and query_families[related_family_map[genes[i]]] :
+                matched_families[ related_family_map[ genes[i] ] ] = 1
             for j in range( i+1, len( genes ) ):
+                if genes[j] in related_family_map and query_families[related_family_map[genes[j]]] :
+                    matched_families[ related_family_map[ genes[j] ] ] = 1
                 #size = gene_order_map[ genes[ j ].pk ]-gene_order_map[ genes[ i ].pk ]
                 size = gene_order_map[ genes[ j ] ]-gene_order_map[ genes[ i ] ]
                 #if size < max_num:
-                if size < max_length:
+                if size < max_length :
                     prev_size = size
-                    if j+1 == len( genes ) and j > last_j:
+                    if j+1 == len( genes ) and j > last_j and len(matched_families.keys()) >= num_matched_families :
                         candidates.append( { 'first':i, 'last':j, 'size':prev_size, 'hits':j-i+1 } )
                         last_j = j
                 else:
                     # no subsets allowed!
-                    if prev_size > 0 and j-1 > last_j:
+                    if prev_size > 0 and j-1 > last_j and len(matched_families.keys()) >= num_matched_families :
                         candidates.append( { 'first':i, 'last':j-1, 'size':prev_size, 'hits':j-i } )
                         last_j = j-1
                     break
@@ -1697,7 +1715,7 @@ def context_viewer_search4( request, template_name, focus_name=None ):
 
     json += ','.join( groups )+']}'
 
-    return render(request, template_name, {'json' : json, 'single' : single, 'num' : num, 'length' : max_length, 'match' : match, 'mismatch' : mismatch, 'gap' : gap})
+    return render(request, template_name, {'json' : json, 'single' : single, 'num' : num, 'length' : max_length, 'match' : match, 'mismatch' : mismatch, 'gap' : gap, 'num_matched_families' : num_matched_families})
 
 # https://github.com/kevinakwok/bioinfo/tree/master/Smith-Waterman
 def smith_waterman( seqA, seqB, accessor, new_element, match = 1, mismatch = 0, gap = -1 ):
@@ -1870,11 +1888,14 @@ def context_viewer_search(request, template_name):
             included = 1
             for j in range(i+1, len(gene_orders)):
                 new_gap = gene_orders[ j ].number-gene_orders[ i ].number+1
+                if gene_family_map[gene_orders[j].feature_id] :
+                    matched_families[gene_family_map[gene_orders[i].feature_id]] = 1
                 if new_gap > num:
                     j -= 1
                     # the set needs to have more than one member to be considered
-                    if included > 1:
+                    if included > 1 and matched_families.size > 1 :
                         # make sure it's not a subset of an existing set
+                        sys.stderr.write("matched_families.size = " + str(matched_families.size));
                         repeat = False
                         for c in candidates:
                             repeat = gene_orders[ j ].number <= gene_orders[ c[ 1 ] ].number
