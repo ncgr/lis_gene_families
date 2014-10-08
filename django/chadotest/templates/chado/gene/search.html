@@ -297,7 +297,8 @@
     // align all the tracks with the query track
     alignments = [];
     for( var i = 1; i < data.groups.length; i++ ) {
-        alignments.push( align( data.groups[ 0 ].genes, data.groups[ i ].genes, get_family ) );
+        var scoring = {match : {{ match }}, mismatch : {{ mismatch }}, gap : {{ gap }} };
+        alignments.push( align( data.groups[ 0 ].genes, data.groups[ i ].genes, get_family, scoring ) );
     }
 
     // merge the alignments

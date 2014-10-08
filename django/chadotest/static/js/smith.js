@@ -19,15 +19,14 @@ function default_accessor( item ) {
 }
 
 // let's compute scores over and over again...
-var s = function( first, second ) {
+var s = function( first, second, scoring ) {
 	if( first === second ) {
-		return 4;
-	} return -1;
+		return scoring.match;
+	} return scoring.mismatch;
 }
 
-var gap = -1;
 
-var smith = function( sequence, reference, accessor ) {
+var smith = function( sequence, reference, accessor, scoring ) {
     var rows = reference.length + 1;
     var cols = sequence.length + 1;
     var a = Array.matrix( rows, cols, 0 );
@@ -43,9 +42,9 @@ var smith = function( sequence, reference, accessor ) {
     for( i=1; i<rows; i++ ) {
         for( j=1; j<cols; j++ ) {
             choice[0] = 0;
-            choice[1] = a[i-1][j-1] + s( accessor(reference[i-1]), accessor(sequence[j-1]) );
-            choice[2] = a[i-1][j] + gap;
-            choice[3] = a[i][j-1] + gap;
+            choice[1] = a[i-1][j-1] + s( accessor(reference[i-1]), accessor(sequence[j-1]), scoring );
+            choice[2] = a[i-1][j] + scoring.gap;
+            choice[3] = a[i][j-1] + scoring.gap;
             a[i][j] = choice.max();
 			if( a[i][j] === choice[1] ) {
 				last_i_align = i;
@@ -62,23 +61,23 @@ var smith = function( sequence, reference, accessor ) {
 	//	i = last_i_align ;
 	//	j = last_j_align;
 	//}
-    //while( i>0 && j>0 ) {
+    //while( i>0 && j>0 ) {}
     while( i>0 && j>0 ) {
         score = a[i][j];
 		total_score += score;
         score_diag = a[i-1][j-1];
         score_up = a[i][j-1];
         score_left = a[i-1][j];
-        if( score === (score_diag + s( accessor(reference[i-1]), accessor(sequence[j-1]) )) ) {
+        if( score === (score_diag + s( accessor(reference[i-1]), accessor(sequence[j-1]), scoring )) ) {
             ref.unshift( clone(reference[i-1]));
             seq.unshift( clone(sequence[j-1]));
             i -= 1;
             j -= 1;
-        } else if( score === (score_left + gap) ) {
+        } else if( score === (score_left + scoring.gap) ) {
             ref.unshift( clone(reference[i-1]));
             seq.unshift( null );
             i -= 1;
-        } else if( score === (score_up + gap) ) {
+        } else if( score === (score_up + scoring.gap) ) {
             ref.unshift( null );
             seq.unshift( clone(sequence[j-1]));
             j -= 1;
@@ -110,14 +109,17 @@ var smith = function( sequence, reference, accessor ) {
 };
 
 // returns the higher scoring alignment - forward or reverse
-var align = function( sequence, reference, accessor ) {
+var align = function( sequence, reference, accessor, scoring ) {
     if( accessor === undefined ) {
         accessor = default_accessor;
     }
-	var forward = smith( sequence, reference, accessor );
+    if (scoring === undefined ) {
+        scoring = {match : 5, mismatch : 0, gap : -1};
+    }
+	var forward = smith( sequence, reference, accessor, scoring );
     reference_clone = reference.slice(0);
 	reference_clone.reverse();
-	var reverse = smith( sequence, reference_clone, accessor );
+	var reverse = smith( sequence, reference_clone, accessor, scoring );
 	if( forward[2] >= reverse[2] ) {
 		return [forward[0], forward[1]];
 	} else {
