@@ -113,8 +113,17 @@ var align = function( sequence, reference, accessor, scoring ) {
     if( accessor === undefined ) {
         accessor = default_accessor;
     }
-    if (scoring === undefined ) {
-        scoring = {match : 5, mismatch : 0, gap : -1};
+    if( scoring === undefined ) {
+        scoring = {};
+    }
+    if (scoring.match === undefined ) {
+        scoring.match = 5;
+    }
+    if( scoring.mismatch === undefined ) {
+        scoring.mismatch = 0;
+    }
+    if( scoring.gap === undefined ) {
+        scoring.gap = -1;
     }
 	var forward = smith( sequence, reference, accessor, scoring );
     reference_clone = reference.slice(0);
