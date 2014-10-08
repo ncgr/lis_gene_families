@@ -1613,8 +1613,8 @@ def context_viewer_search4( request, template_name, focus_name=None ):
         for i in range( len( genes ) ):
             prev_size = 0
             matched_families = {}
-            import sys
-            sys.stderr.write("key is " + str(genes[i])+"\n")
+            #import sys
+            #sys.stderr.write("key is " + str(genes[i])+"\n")
             if genes[i] in related_family_map and query_families[related_family_map[genes[i]]] :
                 matched_families[ related_family_map[ genes[i] ] ] = 1
             for j in range( i+1, len( genes ) ):
