@@ -1,0 +1,331 @@
+{% extends 'chado/base.html' %}
+{% load static %}
+{% block css %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/context.css' %}">
+<style>
+
+.hidden {
+    display: none;
+}
+
+#lightbox {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:rgba(255,255,255,0.5);
+    z-index: 1000000;
+    overflow: auto;
+}
+
+#lightbox .horizontal {
+    margin: auto;  
+    position: absolute;
+    left:0;
+    right: 0;
+    top: 0;
+    height: 100%;
+    display: table;
+}
+
+#lightbox .vertical {
+    display: table-cell;
+    vertical-align: middle;
+}
+
+#toggle {
+	width: 100%;
+	height: 200px;
+	background-color: rgb(238, 238, 238);
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	box-shadow: 0px 1px 4px rgba(0, 0, 0, 0.2);
+	padding: 0 10px;
+	text-align: left;
+	overflow: auto;
+}
+#toggle h4 {
+	word-wrap:break-word;
+}
+#viewer, #legend {
+	margin: 0;
+	padding: 0;
+}
+#legend {
+	position: fixed;
+	top: 50px;
+	right: 0;
+	bottom: 0;
+	overflow: auto;
+	background: #F6F6F6;
+}
+
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header" id="banner">
+    <div class="row">
+        <div class="col-lg-12">
+            <h1>Context viewer</h1>
+            <a href="{% url 'context_gff_download' %}?flocs={{ floc_id_string }}">download gff</a>
+            <br />
+            <a href="http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://{{ request.get_host }}{% url 'context_gff_download' %}?flocs={{ floc_id_string }}">view in CMTV</a>
+            <br />
+            <a class="lightbox" href="">Search Parameters</a>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-lg-12">
+        {% if messages %}
+            {% for message in messages %}
+            <div class="alert{% if message.tags %} alert-{{ message.tags }}{% endif %}">
+                <strong>{{ message.tags|capfirst }}!</strong> {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+</div>
+<div id="lightbox" class="hidden"><div class="horizontal col-lg-6"><div class="vertical">
+<div class="well bs-component">
+<form class="form-horizontal" method="GET">
+  <fieldset>
+    <legend>Query Parameters</legend>
+    <div class="form-group">
+      <label for="num_neighbors" class="col-lg-2 control-label">neighbors</label>
+      <div class="col-lg-10">
+        <input name="num" class="form-control" id="num" value="{{ num }}">
+      </div>
+      <label for="num_matched_families" class="col-lg-2 control-label">families</label>
+      <div class="col-lg-10">
+        <input name="num_matched_families" class="form-control" id="num_matched_families" value="{{ num_matched_families }}">
+      </div>
+    </div>
+    <legend>Result Parameters</legend>
+    <div class="form-group">
+      <label class="col-lg-2 control-label">Families</label>
+      <div class="col-lg-10">
+        <div class="radio">
+          <label>
+            <input name="single" id="false" value="false" {% if not single %}checked="" {% endif %}type="radio">
+            Hide single family tracks
+          </label>
+        </div>
+        <div class="radio">
+          <label>
+            <input name="single" id="true" value="true" {% if single %}checked="" {% endif %}type="radio">
+            Show single family tracks
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="track_length" class="col-lg-2 control-label">Max length</label>
+      <div class="col-lg-10">
+        <input name="length" class="form-control" id="length" value="{{ length }}">
+      </div>
+    </div>
+    <legend>Alignment Parameters</legend>
+    <div class="form-group">
+      <label for="match" class="col-lg-2 control-label">Match</label>
+      <div class="col-lg-10">
+        <input name="match" class="form-control" id="match" value="{{ match }}">
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="mismatch" class="col-lg-2 control-label">Mismatch</label>
+      <div class="col-lg-10">
+        <input name="mismatch" class="form-control" id="mismatch" value="{{ mismatch }}">
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="gap" class="col-lg-2 control-label">Gap</label>
+      <div class="col-lg-10">
+        <input name="gap" class="form-control" id="gap" value="{{ gap }}">
+      </div>
+    </div>
+    <div class="form-group">
+      <div class="col-lg-10 col-lg-offset-2">
+        <button action="" class="btn btn-default lightbox">Cancel</button>
+        <button type="submit" class="btn btn-primary">Submit</button>
+      </div>
+    </div>
+  </fieldset>
+</form>
+</div>
+</div></div></div>
+{% endblock %}
+{% block bottom %}
+<div class="col-lg-9" id="viewer"></div>
+<div class="col-lg-3" id="legend">
+</div>
+<div id="toggle"></div>
+{% endblock %}
+{% block javascript %}
+<script type="text/javascript" src="{% static 'js/jquery-1.10.2.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/jquery-ui-1.10.3.custom.min.js' %}"></script>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script type="text/javascript" src="{% static 'js/context.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/context_viewer.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/context_legend.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/smith.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/enhancement.js' %}"></script>
+
+<script type="text/javascript">
+    // show and hide the lightbox
+    $('.lightbox').on('click', function(e) {
+        e.preventDefault();
+        $('#lightbox').toggleClass('hidden');
+    });
+	// shared variables
+	var json = '{{ json|safe }}',
+	    data = JSON.parse(json),
+		color = d3.scale.category20(),
+		family_names = get_family_name_map( data );
+
+	// make sure the toggle div is not showing when the page loads
+	$(document).ready(function(e) {
+        $('#toggle').hide();
+	});
+
+	// hide the toggle div when the click isn't in it or on a gene
+	$(document).on('click', function(e) {
+		var bool = $(e.target).closest('#toggle').length == 0
+				&& $(e.target).closest('.axis').length == 0
+				&& $(e.target).closest('.gene').length == 0
+				&& $(e.target).closest('.legend').length == 0
+				&& $("#toggle").is(":visible");
+		if( bool ) {
+			$('#toggle').toggle('slide', {direction:'down'});
+			//$('body').css('margin-bottom', '0px');
+		}
+	});
+
+	// a function that shows to toggle div
+	function show_toggle() {
+		// don't toggle it unless it's currently hidden
+		if (!$('#toggle').is(':visible')) {
+			$('#toggle').toggle('slide', {direction:'down'});
+			//$('body').css('margin-bottom', '200px');
+		}
+	}
+
+	// context viewer callback functions
+	function gene_clicked( gene_selection ) {
+		$.ajax({
+	        url:'/chado/phylo_slide/node/slide/',
+	        data: {
+	        // this is actually a phylonode_id
+	        gene: gene_selection.id,
+	        // all pages are protected against csrf so we need to pass the token for this page
+	            csrfmiddlewaretoken: '{{ csrf_token }}'
+	        },
+	        contentType: "application/json;charset=utf-8",
+	        dataType: "json",
+	        success: function(data) {
+				// pull the data out of the json we get back
+	        	var html = '<h4><a href="/chado/feature/'+gene_selection.id+'/">'+gene_selection.name+'</a></h4>'
+				// append the gene's families (if any)
+				html += 'Family: ';
+				if( gene_selection.family != '' ) {
+					html += '<a href="/chado/phylo/'+gene_selection.family+'/">'+family_names[gene_selection.family]+'</a>';
+				} else {
+					html += 'None';
+				}
+				html += '<br />';
+	        	for (var i = 0; i < data.links.length; i++) {
+	        	    for (var key in data.links[i]) {
+	        	        html += '<a href="'+data.links[i][key]+'">'+key+'</a><br/>'
+	        	    }
+	        	}
+	        	if (data.meta) {
+	        	    html += '<p>'+data.meta+'</p>'
+	        	}
+	        	$('#toggle').html(html);
+	        },
+	        error: function(ts) { 
+	        // this is for debugging, not production!
+	            alert(ts.responseText);
+	        }
+	    });
+		show_toggle();
+	}
+	var track_length = get_track_length( data );
+	function axis_clicked( axis_selection, gene_selection, rail_selection ) {
+		// add the track's links to the content box
+		var html = '<h4><a href="/chado/organism/'+data.groups[axis_selection].species_id+'/">'+data.groups[axis_selection].species_name+'</a> - <a href="/chado/feature/'+data.groups[axis_selection].chromosome_id+'/">'+data.groups[axis_selection].chromosome_name+'</a></h4>';
+		var l3 = '<a href="/chado/context_viewer/search/',
+			l4 = '<a href="/chado/context_viewer/synteny/',
+			l5 = '<a href="/chado/context_viewer/synteny2/';
+		var genes = '<ul>';
+		var families = [];
+		gene_selection.each(function(d) {
+			genes += '<li><a href="/chado/feature/'+d.id+'/">'+d.name+'</a>: '+d.fmin+' - '+d.fmax+'</li>';
+			if( d.family != '' ) {
+				genes += '<ul><li>Family: <a href="/chado/phylo/'+d.family+'/">'+family_names[d.family]+'</a></li></ul>'
+			}
+			// add links for the focus gene
+			if( d.x == (track_length-1)/2 ) {
+				l3 += d.id+'/';
+				l4 += d.id+'/';
+				l5 += d.id+'/';
+			}
+		});
+		genes += '</ul>';
+		l3 += '">Find similar tracks</a>';
+		l4 += '">Synteny miner</a>';
+		l5 += '">Synteny miner spaced</a>';
+		html += l5+'<br />'+l4+'<br />'+l3+'<br />Genes:'+genes;
+		$("#toggle").html(html);
+		show_toggle();
+	}
+
+    function gene_clicked( gene_selected ) {
+
+    }
+    function axis_clicked( axis_selection, gene_selection, rail_selection ) {
+
+    }
+
+    // define the accessor used by the smith-waterman algorithm
+    function get_family( item ) {
+        return item.family;
+    }
+
+    // align all the tracks with the query track
+    alignments = [];
+    for( var i = 1; i < data.groups.length; i++ ) {
+        var scoring = {match : {{ match }}, mismatch : {{ mismatch }}, gap : {{ gap }} };
+        alignments.push( align( data.groups[ 0 ].genes, data.groups[ i ].genes, get_family, scoring ) );
+    }
+
+    // merge the alignments
+    var result_tracks = data.groups.slice( 1 );
+    data.groups = [ data.groups[ 0 ] ];
+    merge_alignments( data, result_tracks, alignments );
+
+	// make the context viewer
+	context_viewer( 'viewer', color, data, {
+        "gene_clicked":gene_clicked,
+        "axis_clicked":axis_clicked,
+        "selective_coloring":true });
+
+	// context legend click callback
+	function legend_click( family_selection, gene_selection ) {
+		html = '<h4><a href="/chado/phylo/'+family_selection.id+'/">'+family_names[ family_selection ]+'</a></h4>';
+		html += 'Genes:<ul>';
+	    gene_selection.each(function(f) {
+			html += '<li><a href="/chado/feature/'+f.id+'/">'+f.name+'</a>: '+f.fmin+' - '+f.fmax+'</li>';
+		});
+		html += '</ul>';
+		$("#toggle").html(html);
+		show_toggle();
+	}
+
+	// make the context legend
+	context_legend( 'legend', color, data, {
+        "legend_click":legend_click });
+</script>
+{% endblock %}

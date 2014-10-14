@@ -1,0 +1,197 @@
+{% extends 'chado/base.html' %}
+{% load static %}
+{% block css %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/context.css' %}">
+<style>
+
+#toggle {
+	width: 100%;
+	height: 200px;
+	background-color: rgb(238, 238, 238);
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	box-shadow: 0px 1px 4px rgba(0, 0, 0, 0.2);
+	padding: 0 10px;
+	text-align: left;
+	overflow: auto;
+}
+#toggle h4 {
+	word-wrap:break-word;
+}
+#viewer, #legend {
+	margin: 0;
+	padding: 0;
+}
+#legend {
+	position: fixed;
+	top: 50px;
+	right: 0;
+	bottom: 0;
+	overflow: auto;
+	background: #F6F6F6;
+}
+
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header" id="banner">
+    <div class="row">
+        <div class="col-lg-12">
+            <h1>Context viewer</h1>
+            <a href="{% url 'context_gff_download' %}?flocs={{ floc_id_string }}">download gff</a>
+            <br>
+            <a href="http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://{{ request.get_host }}{% url 'context_gff_download' %}?flocs={{ floc_id_string }}">view in CMTV</a>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-lg-12">
+        {% if messages %}
+            {% for message in messages %}
+            <div class="alert{% if message.tags %} alert-{{ message.tags }}{% endif %}">
+                <strong>{{ message.tags|capfirst }}!</strong> {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+{% block bottom %}
+<div class="col-lg-9" id="viewer"></div>
+<div class="col-lg-3" id="legend">
+</div>
+<div id="toggle"></div>
+{% endblock %}
+{% block javascript %}
+<script type="text/javascript" src="{% static 'js/jquery-1.10.2.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/jquery-ui-1.10.3.custom.min.js' %}"></script>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script type="text/javascript" src="{% static 'js/context.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/context_viewer.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/context_legend.js' %}"></script>
+<script type="text/javascript">
+	// make sure the toggle div is not showing when the page loads
+	$(document).ready(function(e) {
+        $('#toggle').hide();
+	});
+
+	// hide the toggle div when the click isn't in it or on a gene
+	$(document).on('click', function(e) {
+		var bool = $(e.target).closest('#toggle').length == 0
+				&& $(e.target).closest('.axis').length == 0
+				&& $(e.target).closest('.gene').length == 0
+				&& $(e.target).closest('.legend').length == 0
+				&& $("#toggle").is(":visible");
+		if( bool ) {
+			$('#toggle').toggle('slide', {direction:'down'});
+			//$('body').css('margin-bottom', '0px');
+		}
+	});
+
+	// a function that shows to toggle div
+	function show_toggle() {
+		// don't toggle it unless it's currently hidden
+		if (!$('#toggle').is(':visible')) {
+			$('#toggle').toggle('slide', {direction:'down'});
+			//$('body').css('margin-bottom', '200px');
+		}
+	}
+
+	// shared variables
+	var context_json = '{{ json|safe }}',
+		data = JSON.parse(context_json),
+		color = d3.scale.category20(),
+		family_names = get_family_name_map( data );
+
+	// context viewer callback functions
+	function gene_clicked( gene_selection ) {
+		$.ajax({
+	        url:'/chado/phylo/node/slide/',
+	        data: {
+	        // this is actually a phylonode_id
+	        gene: gene_selection.id,
+	        // all pages are protected against csrf so we need to pass the token for this page
+	            csrfmiddlewaretoken: '{{ csrf_token }}'
+	        },
+	        contentType: "application/json;charset=utf-8",
+	        dataType: "json",
+	        success: function(data) {
+				// pull the data out of the json we get back
+	        	var html = '<h4><a href="/chado/feature/'+gene_selection.id+'/">'+gene_selection.name+'</a></h4>'
+				// append the gene's families (if any)
+				html += 'Family: ';
+				if( gene_selection.family != '' ) {
+					html += '<a href="/chado/phylo/'+family_names[gene_selection.family]+'/">'+family_names[gene_selection.family]+'</a>';
+				} else {
+					html += 'None';
+				}
+				html += '<br />';
+	        	for (var i = 0; i < data.links.length; i++) {
+	        	    for (var key in data.links[i]) {
+	        	        html += '<a href="'+data.links[i][key]+'">'+key+'</a><br/>'
+	        	    }
+	        	}
+	        	if (data.meta) {
+	        	    html += '<p>'+data.meta+'</p>'
+	        	}
+	        	$('#toggle').html(html);
+	        },
+	        error: function(ts) { 
+	        // this is for debugging, not production!
+	            alert(ts.responseText);
+	        }
+	    });
+		show_toggle();
+	}
+	var track_length = get_track_length( data );
+	function axis_clicked( axis_selection, gene_selection, rail_selection ) {
+		// add the track's links to the content box
+		var html = '<h4><a href="/chado/organism/'+data.groups[axis_selection].species_id+'/">'+data.groups[axis_selection].species_name+'</a> - <a href="/chado/feature/'+data.groups[axis_selection].chromosome_id+'/">'+data.groups[axis_selection].chromosome_name+'</a></h4>';
+		var l3 = '<a href="/chado/context_viewer/search/',
+			l5 = '<a href="/chado/context_viewer/synteny/';
+		var genes = '<ul>';
+		var families = [];
+		gene_selection.each(function(d) {
+			genes += '<li><a href="/chado/feature/'+d.id+'/">'+d.name+'</a>: '+d.fmin+' - '+d.fmax+'</li>';
+			if( d.family != '' ) {
+				genes += '<ul><li>Family: <a href="/chado/phylo/'+family_names[d.family]+'/">'+family_names[d.family]+'</a></li></ul>'
+			}
+			// add links for the focus gene
+			if( d.x == (track_length-1)/2 ) {
+				l3 += d.name+'/';
+				l5 += d.id+'/';
+			}
+		});
+		genes += '</ul>';
+		l3 += '">Find similar tracks</a>';
+		l5 += '">Synteny miner</a>';
+		html += l5+'<br />'+l3+'<br />Genes:'+genes;
+		$("#toggle").html(html);
+		show_toggle();
+	}
+
+	// make the context viewer
+	context_viewer( 'viewer', color, data, {
+        "gene_clicked":gene_clicked,
+        "axis_clicked":axis_clicked,
+        "focus": {{ focus_family }},
+        "selective_coloring":true });
+
+	// context legend click callback
+	function legend_click( family_selection, gene_selection ) {
+		html = '<h4><a href="/chado/phylo/'+family_names[ family_selection ]+'/">'+family_names[ family_selection ]+'</a></h4>';
+		html += 'Genes:<ul>';
+	    gene_selection.each(function(f) {
+			html += '<li><a href="/chado/feature/'+f.id+'/">'+f.name+'</a>: '+f.fmin+' - '+f.fmax+'</li>';
+		});
+		html += '</ul>';
+		$("#toggle").html(html);
+		show_toggle();
+	}
+
+	// make the context legend
+	context_legend( 'legend', color, data, {
+        "legend_click":legend_click });
+</script>
+{% endblock %}
