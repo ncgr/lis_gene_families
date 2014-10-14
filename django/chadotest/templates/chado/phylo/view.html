@@ -92,7 +92,7 @@ body {
 				e.preventDefault();
 				// send an ajax request for the content we want
 				$.ajax({
-				        url:"{% url 'phylo_view_slide_ajax' %}",
+				        url:"{% url 'phylo_view_ajax' %}",
 				        data: {
 						// this is actually a phylonode_id
 						phylonode: $a.attr('href'),

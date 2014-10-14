@@ -340,16 +340,6 @@ def phylo_index(request, template_name):
     return render(request, template_name, {'trees' : paginate(request, Phylotree.objects.all(), 'phylo_num'), 'result_nums' : RESULT_NUMS})
 
 
-#def phylo_view(request, phylotree_id, phylonode_id, template_name):
-def phylo_view(request, phylotree_id, template_name):
-    # get trees stuffs
-    tree = get_object_or_404(Phylotree, pk=phylotree_id)
-    #xml, num_leafs = phylo_xml(tree, phylonode_id)
-    url = 'http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://'+request.get_host()+'/chado/phylo/node/gff_download/'
-    xml, num_leafs = phylo_xml(tree, url)
-    return render(request, template_name, {'tree' : tree, 'xml' : xml, 'num_leafs' : num_leafs})
-
-
 #def phylo_xml(tree, node_id):
 def phylo_xml(tree, url):
     nodes = Phylonode.objects.filter(phylotree=tree)
@@ -435,7 +425,7 @@ def phylo_view_d3(request, phylotree_id, template_name):
     return render(request, template_name, {'tree' : tree, 'newick' : newick, 'num_leafs' : Phylonode.objects.filter(phylotree=tree).count})
 
 
-def phylo_view_slide(request, phylotree_name, template_name):
+def phylo_view(request, phylotree_name, template_name):
     # get trees stuffs
     #tree = get_object_or_404(Phylotree, pk=phylotree_id)
     tree = Phylotree.objects.get(name=phylotree_name)
@@ -445,7 +435,7 @@ def phylo_view_slide(request, phylotree_name, template_name):
     return render(request, template_name, {'tree' : tree, 'xml' : xml, 'num_leafs' : num_leafs})
 
 
-def phylo_view_slide_ajax(request):
+def phylo_view_ajax(request):
 	if request.is_ajax():
 		try:
                         import re;

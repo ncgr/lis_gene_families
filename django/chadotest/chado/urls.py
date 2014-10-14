@@ -16,20 +16,15 @@ urlpatterns = patterns('chado.views',
 
     # phylo tree
     url(r'^phylo/$', 'phylo_index', {'template_name' : 'chado/phylo/index.html'}, name='phylo_index'),
-    #url(r'^phylo/(?P<phylotree_id>\d+)/$', 'phylo_view_slide', {'template_name' : 'chado/phylo/view_slide.html'}, name='phylo_view'),
-    url(r'^phylo/(?P<phylotree_name>[^\/]+)/$', 'phylo_view_slide', {'template_name' : 'chado/phylo/view_slide.html'}, name='phylo_view'),
-    #url(r'^phylo/(?P<phylotree_id>\d+)/(?P<phylonode_id>\d+)/$', 'phylo_view', {'template_name' : 'chado/phylo/view.html'}, name='phylo_view'),
+    url(r'^phylo/(?P<phylotree_name>[^\/]+)/$', 'phylo_view', {'template_name' : 'chado/phylo/view.html'}, name='phylo_view'),
     url(r'^phylo/(?P<phylotree_name>[^\/]+)/newick/$', 'phylo_newick', {'template_name' : 'chado/phylo/newick.html'}, name='phylo_newick'),
     url(r'^phylo/(?P<phylotree_name>[^\/]+)/download/$', 'phylo_newick_download', name='phylo_newick_download'),
     url(r'^phylo/(?P<phylotree_name>[^\/]+)/xml_download/$', 'phylo_xml_download', name='phylo_xml_download'),
     url(r'^phylo/node/gff_download/(?P<phylonode_id>\d+)/$', 'phylo_gff_download', name='phylo_gff_download'),
-    #url(r'^phylo/node/json/(?P<phylonode_id>\d+)/$', 'phylonode_json', name='phylonode_json'),
-    # phylo tree slide
-    #url(r'^phylo_slide/(?P<phylotree_id>\d+)/$', 'phylo_view_slide', {'template_name' : 'chado/phylo/view_slide.html'}, name='phylo_view_slide'),
     # d3
     url(r'^phylo_d3/(?P<phylotree_id>\d+)/$', 'phylo_view_d3', {'template_name' : 'chado/phylo/view_d3.html'}, name='phylo_view_d3'),
     # ajax
-    url(r'^phylo_slide/node/slide/$', 'phylo_view_slide_ajax', name='phylo_view_slide_ajax'),
+    url(r'^phylo/node/slide/$', 'phylo_view_ajax', name='phylo_view_ajax'),
 
     # feature
     url(r'^feature/(?P<feature_id>\d+)/$', 'feature_view', {'template_name' : 'chado/feature/view.html'}, name='feature_view'),
@@ -38,7 +33,6 @@ urlpatterns = patterns('chado.views',
     url(r'^cvterm/(?P<cvterm_id>\d+)/$', 'cvterm_view', {'template_name' : 'chado/cvterm/view.html'}, name='cvterm_view'),
 
     # search
-    #url(r'^search_new/$', 'search_new', {'template_name' : 'chado/search/index.html'}, name='search_new'),
     url(r'^search/$', 'search', name='search'),
     url(r'^search/(?P<depth>\d+)/new/$', 'search_feature', {'template_name' : 'chado/search/index.html', 'who' : 'feature'}, name='search_new_feature'),
     url(r'^search/(?P<depth>\d+)/feature/msa/$', 'search_feature', {'template_name' : 'chado/search/feature.html', 'who' : 'msa'}, name='search_feature_msa'),
