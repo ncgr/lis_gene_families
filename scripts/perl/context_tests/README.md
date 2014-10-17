@@ -30,59 +30,13 @@ The JSON uses the following schema
     "type":"object",
     "$schema": "http://json-schema.org/draft-03/schema",
     "properties":{
-        "Phylonodes": {
+        "featureprops": {
             "type":"array",
             "items":
                 {
                     "type":"object",
                     "properties":{
-                        "distance": {
-                            "type":"number",
-                        },
                         "feature_id": {
-                            "type":"number",
-                        },
-                        "label": {
-                            "type":"string",
-                        },
-                        "left_idx": {
-                            "type":"number",
-                        },
-                        "parent_phylonode_id": {
-                            "type":"number",
-                        },
-                        "phylonode_id": {
-                            "type":"number",
-                        },
-                        "phylotree_id": {
-                            "type":"number",
-                        },
-                        "right_idx": {
-                            "type":"number",
-                        },
-                        "type_id": {
-                            "type":"number",
-                        }
-                    },
-                    "required":["phylonode_id", "phylotree_id", "left_idx", "right_idx"]
-                }
-        },
-        "feature_relationships": {
-            "type":"array",
-            "items":
-                {
-                    "type":"object",
-                    "properties":{
-                        "feature_relationship_id": {
-                            "type":"number",
-                        },
-                        "object_id": {
-                            "type":"number",
-                        },
-                        "rank": {
-                            "type":"number",
-                        },
-                        "subject_id": {
                             "type":"number",
                         },
                         "type_id": {
@@ -92,159 +46,34 @@ The JSON uses the following schema
                             "type":"string",
                         }
                     },
-                    "required":["feature_relationship_id", "subject_id", "object_id", "type_id"]
+                    "required":["feature_id", "type_id", "value"]
                 }
         },
-        "featurelocs": {
+        "gene_orders": {
             "type":"array",
             "items":
                 {
                     "type":"object",
                     "properties":{
-                        "feature_id": {
-                            "type":"number",
-                        },
-                        "featureloc_id": {
-                            "type":"number",
-                        },
-                        "fmax": {
-                            "type":"number",
-                        },
-                        "fmin": {
-                            "type":"number",
-                        },
-                        "is_fmax_partial": {
-                            "type":"string",
-                        },
-                        "is_fmin_partial": {
-                            "type":"string",
-                        },
-                        "locgroup": {
-                            "type":"number",
-                        },
-                        "phase": {
-                            "type":"number",
-                        },
-                        "rank": {
-                            "type":"number",
-                        },
-                        "residue_info": {
-                            "type":"string",
-                        },
-                        "srcfeature_id": {
-                            "type":"number",
-                        },
-                        "strand": {
-                            "type":"number",
-                        }
-                    },
-                    "required":["featureloc_id", "feature_id"]
-                }
-        },
-        "features": {
-            "type":"array",
-            "items":
-                {
-                    "type":"object",
-                    "properties":{
-                        "dbxref_id": {
+                        "chromosome_id": {
                             "type":"number",
                         },
                         "feature_id": {
                             "type":"number",
                         },
-                        "is_analysis": {
-                            "type":"string",
-                        },
-                        "is_obsolete": {
-                            "type":"string",
-                        },
-                        "name": {
-                            "type":"string",
-                        },
-                        "organism_id": {
-                            "type":"number",
-                        },
-                        "residues": {
-                            "type":"string",
-                        },
-                        "seqlen": {
-                            "type":"number",
-                        },
-                        "type_id": {
-                            "type":"number",
-                        },
-                        "uniquename": {
-                            "type":"string",
-                        }
-                    },
-                    "required":["feature_id", "organism_id", "uniquename", "type_id"]
-                }
-            
-
-        },
-        "organisms": {
-            "type":"array",
-            "items":
-                {
-                    "type":"object",
-                    "properties":{
-                        "abbreviation": {
-                            "type":"string",
-                        },
-                        "comment": {
-                            "type":"string",
-                        },
-                        "common_name": {
-                            "type":"string",
-                        },
-                        "genus": {
-                            "type":"string",
-                        },
-                        "organism_id": {
-                            "type":"number",
-                        },
-                        "species": {
-                            "type":"string",
-                        }
-                    },
-                    "required":["organism_id", "genus", "species"]
-                }
-        },
-        "phylotrees": {
-            "type":"array",
-            "items":
-                {
-                    "type":"object",
-                    "properties":{
-                        "analysis_id": {
-                            "type":"number",
-                        },
-                        "comment": {
-                            "type":"string",
-                        },
-                        "dbxref_id": {
-                            "type":"number",
-                        },
-                        "name": {
-                            "type":"string",
-                        },
-                        "phylotree_id": {
-                            "type":"number",
-                        },
-                        "type_id": {
+                        "number": {
                             "type":"number",
                         }
                     },
-                    "required":["phylotree_id", "dbxref_id"]
+                    "required":["chromosome_id", "feature_id", "number"]
                 }
         }
     }
 }
 ```
 
-Note that the loading script doesn't populate the feature_prop table with gene-family relationships nor does it populate the gene_order table.
-This can be done by running the respective scripts for these tasks
+Note that the corresponding feature, phylotree, and phylonode entries for the given data will be infered.
+Dummy values for dependent tables, such as organism and dbxref, will be used.
 
 ```bash
 perl gmod_gene_families.pl
