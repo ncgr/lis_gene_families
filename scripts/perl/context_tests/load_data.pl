@@ -68,6 +68,7 @@ my $query;
 
 # boot strap
 # ----------
+#
 # db
 # dbxref
 # cv
@@ -75,14 +76,21 @@ my $query;
 
 # manual
 # ------
-# organism
+#
+# featureprop
+# gene_order
+
+# inferred
+# --------
+#
 # feature
 # feature_relationship
-# featureloc
 # phylotree
 # phylonode
 
-# automated
-# ---------
-# featureprop
-# gene_order
+# dummy
+# -----
+#
+# featureloc
+# organism
+
