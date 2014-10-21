@@ -39,14 +39,14 @@ The JSON uses the following schema
                         "feature_id": {
                             "type":"number",
                         },
-                        "type_id": {
-                            "type":"number",
-                        },
                         "value": {
+                            "type":"string",
+                        },
+                        "name": {
                             "type":"string",
                         }
                     },
-                    "required":["feature_id", "type_id", "value"]
+                    "required":["feature_id", "value"]
                 }
         },
         "gene_orders": {
@@ -73,6 +73,8 @@ The JSON uses the following schema
 ```
 
 Note that the corresponding feature, phylotree, and phylonode entries for the given data will be infered.
+The feature_id will be used as a feature's name unless one is explicitly given. 
+Features that will be used as the focus gene in a search should have names since the a name required by the search url.
 Dummy values for dependent tables, such as organism and dbxref, will be used.
 
 ```bash
