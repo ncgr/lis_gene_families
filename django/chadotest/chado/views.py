@@ -792,11 +792,8 @@ def context_viewer_json_refactor(focus_genes, num):
         family_id = list(Featureprop.objects.only('name').filter(type=family_term, feature=gene.feature_id).values_list('value', flat=True))
         if len(family_id) > 0:
             focus_family_id = family_id = family_id[0]
-        family_object = list(Phylotree.objects.only('name').filter(pk=int(family_id)))
-        if len(family_object) > 0:
-            f = family_object[0]
-            if f.pk not in families:
-                families[f.pk] = '{"name":"'+f.name+'", "id":"'+str(f.pk)+'"}'
+            if family_id not in families:
+                families[family_id] = '{"name":"'+family_id+'", "id":"'+family_id+'"}'
         # make sure the focus has a positive orientation
         flip = 1
         if focus_loc.strand == -1:
@@ -825,11 +822,8 @@ def context_viewer_json_refactor(focus_genes, num):
             family_id = list(Featureprop.objects.only('name').filter(type=family_term, feature=l.feature_id).values_list('value', flat=True))
             if len(family_id) > 0:
                 family_id = family_id[0]
-                family_object = list(Phylotree.objects.only('name').filter(pk=int(family_id)))
-                if len(family_object) > 0:
-                    f = family_object[0]
-                    if f.pk not in families:
-                        families[f.pk] = '{"name":"'+f.name+'", "id":'+str(f.pk)+'}'
+                if family_id not in families:
+                        families[family_id] = '{"name":"'+family_id+'", "id":"'+family_id+'"}'
             else:
                 family_id = ''
             genes.append('{"name":"'+l.feature.name+'",'
@@ -850,11 +844,8 @@ def context_viewer_json_refactor(focus_genes, num):
             family_id = list(Featureprop.objects.only('name').filter(type=family_term, feature=l.feature_id).values_list('value', flat=True))
             if len(family_id) > 0:
                 family_id = family_id[0]
-                family_object = list(Phylotree.objects.only('name').filter(pk=int(family_id)))
-                if len(family_object) > 0:
-                    f = family_object[0]
-                    if f.pk not in families:
-                        families[f.pk] = '{"name":"'+f.name+'", "id":'+str(f.pk)+'}'
+                if family_id not in families:
+                   families[family_id] = '{"name":"'+family_id+'", "id":"'+family_id+'"}'
             else:
                 family_id = ''
             genes.append('{"name":"'+l.feature.name+'",'
@@ -904,10 +895,10 @@ def context_viewer_json(focus_genes, num):
         srcfeature = Feature.objects.only('name').get(pk=focus_loc.srcfeature_id)
         organism = Organism.objects.only('genus', 'species').get(pk=gene[0].organism_id)
         family_ids = list(Featureprop.objects.only('name').filter(type=family_term, feature=gene[0].feature_id).values_list('value', flat=True))
-        family_objects = list(Phylotree.objects.only('name').filter(pk__in=map(int, family_ids)))
-        for f in family_objects:
-            if f.pk not in families:
-                families[f.pk] = f.name
+        for family_id in family_ids:
+            if family_id not in families:
+                #adf: what sense does this make?
+                families[family_id] = family_id
         # make sure the focus has a positive orientation
         flip = 1
         if (gene[1] == 0 and focus_loc.strand == -1) or gene[1] == -1:
@@ -945,10 +936,10 @@ def context_viewer_json(focus_genes, num):
                         +'"y":'+str(y)+','
                         +'"strand":'+str(flip*l.strand)+','
                         +'"family":['+','.join(family_ids)+']}')
-            family_objects = list(Phylotree.objects.only('name').filter(pk__in=map(int, family_ids)))
-            for f in family_objects:
-                if f.pk not in families:
-                    families[f.pk] = f.name
+            for family_id in family_ids:
+                if family_id not in family_ids:
+                    #adf : what sense does this make
+                    families[family_id] = family_id
             x+=flip
         # get the genes that come after the focus
         after_genes = list(GeneOrder.objects.filter(chromosome=focus_pos.chromosome_id, number__gt=focus_pos.number, number__lte=focus_pos.number+num).values_list('gene', flat=True))
@@ -965,10 +956,10 @@ def context_viewer_json(focus_genes, num):
                         +'"y":'+str(y)+','
                         +'"strand":'+str(flip*l.strand)+','
                         +'"family":['+','.join(family_ids)+']}')
-            family_objects = list(Phylotree.objects.only('name').filter(pk__in=map(int, family_ids)))
-            for f in family_objects:
-                if f.pk not in families:
-                    families[f.pk] = f.name
+            for family_id in family_ids:
+                if family_id not in families:
+                    #adf : what sense does this make?
+                    families[family_id] = family_id
             x+=flip
         y+=1
 
@@ -976,7 +967,7 @@ def context_viewer_json(focus_genes, num):
     json = '{"tracks":['+(','.join(tracks))+'],"families":['
     fams = []
     for key, value in families.iteritems():
-        fams.append('{"name":"'+value+'","id":'+str(key)+'}')
+        fams.append('{"name":"'+value+'","id":"'+str(key)+'"}')
     json += ','.join(fams)+'],"genes":['+','.join(genes)+']}'
 
     return json, ','.join(map(str, flocs))
@@ -1099,7 +1090,7 @@ def context_viewer_search( request, template_name, focus_name=None ):
         query_align.append( ( g, family ) )
     query_group = '{"species_name":"'+organism.genus[ 0 ]+'.'+organism.species+'", "species_id":'+str( organism.pk )+', "chromosome_name":"'+chromosome.name+'", "chromosome_id":'+str( chromosome.pk )+', "genes":['+','.join( genes )+']}'
 
-    # find all genes with the same families
+    # find all genes with the same families (excluding the query genes)
     related_genes = Featureprop.objects.only( 'feature' ).filter( type=gene_family_type, value__in=neighbor_families ).exclude(feature_id__in=neighbor_ids)
     related_gene_ids = related_genes.values_list('feature', flat=True )
     #related_genes = Feature.objects.only().filter( pk__in=related_gene_ids )
@@ -1135,9 +1126,11 @@ def context_viewer_search( request, template_name, focus_name=None ):
     id_organism_map = dict( ( o.pk, o.genus[ 0 ]+'.'+o.species ) for o in organisms )
 
     # userful variables for finding similar tracks
+    #adf: though apparently not used anymore...
     query_size = num*2+1
     stratification_coefficient = max_genes/( query_size*1.0 )
     num_results = 20
+
     chromosome_candidates = {}
 
     # a function that will help us order genes
@@ -1146,6 +1139,7 @@ def context_viewer_search( request, template_name, focus_name=None ):
     def get_gene_order( g_id ):
         return gene_order_map[ g_id ]
 
+    #adf: not used?
     # a function that will help us order subsets by distance
     def get_candidate_distance( c ):
         return c['distance']
@@ -1155,7 +1149,7 @@ def context_viewer_search( request, template_name, focus_name=None ):
         if len( genes ) < 2:
             continue
         genes.sort( key=get_gene_order )
-        # find all subsets of the genes of maximum order-gap size between first and last members <= 40 whoes symmetric difference and intersection with all other such sets are non-empty
+        # find all subsets of the genes of maximum order-gap size between first and last members <= max_length and whose symmetric difference and intersection with all other such sets are non-empty
         candidates = []
         last_j = 0
         for i in range( len( genes ) ):
@@ -1261,11 +1255,9 @@ def context_viewer_search( request, template_name, focus_name=None ):
 
             y += 1
 
-    # get the names of the genes' families
-    gene_families = Phylotree.objects.only( 'name' ).filter( pk__in=family_ids )
     families = []
-    for f in gene_families:
-        families.append('{"name":"'+f.name+'", "id":"'+str( f.phylotree_id )+'"}')
+    for f in family_ids :
+        families.append('{"name":"'+f+'", "id":"'+f+'"}')
 
     json = '{"families":['+','.join( families )+'], "groups":['
 
@@ -1428,11 +1420,10 @@ def context_viewer_synteny(request, template_name, focus_id=None):
     # dictionaryify the results
     neighbor_family_map = dict( (o.feature_id, o.value) for o in neighbor_featureprops )
     neighbor_family_ids = neighbor_featureprops.values_list("value", flat=True)
-    neighbor_families = list(Phylotree.objects.only('name').filter(pk__in=map(int, neighbor_family_ids)))
     json = '{"families":['
     families = []
-    for f in neighbor_families:
-        families.append('{"name":"'+f.name+'", "id":'+str(f.pk)+'}')
+    for f in neighbor_family_ids:
+        families.append('{"name":"'+f+'", "id":"'+f+'"}')
     json += ','.join(families)+']'
     # make a y axis lookup for the query track in the scatter plot
     family_members = {}
@@ -1444,7 +1435,7 @@ def context_viewer_synteny(request, template_name, focus_id=None):
     for n in neighbor_orders:
         if n.gene_id in neighbor_family_map:
             #neighbor_json[n.gene_id] = '{"name":"'+n.gene.name+'", "id":'+str(n.gene_id)+', "x":'+str(x)+', "y":0, "family":'+str(neighbor_family_map[n.gene_id])+','
-            neighbor_json[n.gene_id] = '{"name":"'+n.gene.name+'", "id":'+str(n.gene_id)+', "family":'+str(neighbor_family_map[n.gene_id])+','
+            neighbor_json[n.gene_id] = '{"name":"'+n.gene.name+'", "id":'+str(n.gene_id)+', "family":"'+str(neighbor_family_map[n.gene_id])+'",'
             x+=1
             family_members[neighbor_family_map[n.gene_id]].append(n.gene_id)
     # get all the genes associated with those families
@@ -1486,7 +1477,7 @@ def context_viewer_synteny(request, template_name, focus_id=None):
                     f = gene_floc_map[gene_id]
                     points.append('{"x":'+str(f['position'])+', '
                                  +'"y":'+str(gene_floc_map[m]['position'])+', '
-                                 +'"family":'+str(family)+', '
+                                 +'"family":"'+str(family)+'", '
                                  +'"id":'+str(gene_id)+', '
                                  +'"fmin":'+str(f['fmin'])+', '
                                  +'"fmax":'+str(f['fmax'])+', '
@@ -1518,11 +1509,10 @@ def context_gff_download(request):
         if f.srcfeature_id not in chromosome_map:
             chromosome_map[f.srcfeature_id] = Feature.objects.only('name').get(pk=f.srcfeature_id)
         family_ids = list(Featureprop.objects.filter(type=family_term, feature=f.feature_id).values_list('value', flat=True)) 
-        families = list(Phylotree.objects.only('name').filter(pk__in=map(int, family_ids)).values_list('name', flat=True))
-        families_str = ','.join(families)
+        families_str = ','.join(family_ids)
         #for some reason, this diagnostic is throwing errors in some contexts
         #print chromosome_map[f.srcfeature_id].name+"\t.\tgene\t"+str(f.fmin)+"\t"+str(f.fmax)+"\t.\t"+("+" if f.strand == 1 else "-")+"\t.\tID="+gene.uniquename+";Name="+gene.uniquename+(";Family="+families_str if len(families) > 0 else "")
-        myfile.write(chromosome_map[f.srcfeature_id].name+"\t.\tgene\t"+str(f.fmin)+"\t"+str(f.fmax)+"\t.\t"+("+" if f.strand == 1 else "-")+"\t.\tID="+gene.uniquename+";Name="+gene.uniquename+(";Family="+families_str if len(families) > 0 else "")+"\n")
+        myfile.write(chromosome_map[f.srcfeature_id].name+"\t.\tgene\t"+str(f.fmin)+"\t"+str(f.fmax)+"\t.\t"+("+" if f.strand == 1 else "-")+"\t.\tID="+gene.uniquename+";Name="+gene.uniquename+(";Family="+families_str if len(family_ids) > 0 else "")+"\n")
 
     # generate the file
     response = HttpResponse(myfile.getvalue(), content_type='text/plain')
