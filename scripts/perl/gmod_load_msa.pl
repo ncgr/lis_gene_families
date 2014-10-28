@@ -161,7 +161,7 @@ print "rows: ", $query->rows, " peps: ", $num_peps, "\n";
 if ($query->rows != $num_peps) {
     # open the error file
     print "Some polypeptides were missing\nOpening the error file\n";
-    open(ERRORS, '>'.$errorfile) || die("Failed to open the error file: $!\n");
+    open(ERRORS, '>>'.$errorfile) || die("Failed to open the error file: $!\n");
     print "Writing errors\n";
     print ERRORS "Failed to find polypeptides with name:\n";
     # remove polypeptides that were found from the hash
