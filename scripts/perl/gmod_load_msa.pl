@@ -109,11 +109,11 @@ if (!$peptide) {
 }
 
 
-# get the cvterm for consensus
-print "Retrieving multiple sequence alignment cvterm\n";
-my $msa = $conn->selectrow_array("SELECT cvterm_ID FROM cvterm WHERE name SIMILAR TO 'consensus';");
+# get the cvterm for consensus_region
+print "Retrieving consensus_region cvterm\n";
+my $msa = $conn->selectrow_array("SELECT cvterm_ID FROM cvterm WHERE name = 'consensus_region';");
 if (!$msa) {
-    die("Failed to retrieve the consensus cvterm from the database\n");
+    die("Failed to retrieve the consensus_region cvterm from the database\n");
 }
 
 
