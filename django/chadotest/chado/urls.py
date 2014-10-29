@@ -11,7 +11,7 @@ urlpatterns = patterns('chado.views',
     # multiple sequence alignment
     url(r'^msa/$', 'msa_index', {'template_name' : 'chado/msa/index.html'}, name='msa_index'),
     url(r'^msa/(?P<feature_name>[^\/]+)/$', 'msa_view', {'template_name' : 'chado/msa/view.html'}, name='msa_view'),
-    url(r'^msa/consn\|(?P<feature_name>.+)/consensus/$', 'msa_consensus', {'template_name' : 'chado/msa/consensus.html'}, name='msa_consensus'),
+    url(r'^msa/consn\.(?P<feature_name>.+)/consensus/$', 'msa_consensus', {'template_name' : 'chado/msa/consensus.html'}, name='msa_consensus'),
     url(r'^msa/(?P<feature_name>.+)/download/$', 'msa_consensus_download', name='msa_consensus_download'),
 
     # phylo tree
