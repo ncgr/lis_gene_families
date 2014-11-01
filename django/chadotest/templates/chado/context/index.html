@@ -110,7 +110,7 @@
 	        url:'/chado/phylo/node/slide/',
 	        data: {
 	        // this is actually a phylonode_id
-	        gene: gene_selection.id,
+	        gene: gene_selection.name,
 	        // all pages are protected against csrf so we need to pass the token for this page
 	            csrfmiddlewaretoken: '{{ csrf_token }}'
 	        },
@@ -118,7 +118,7 @@
 	        dataType: "json",
 	        success: function(data) {
 				// pull the data out of the json we get back
-	        	var html = '<h4><a href="/chado/feature/'+gene_selection.id+'/">'+gene_selection.name+'</a></h4>'
+	        	var html = '<h4><a href="/chado/feature/'+gene_selection.name+'/">'+gene_selection.name+'</a></h4>'
 				// append the gene's families (if any)
 				html += 'Family: ';
 				if( gene_selection.family != '' ) {
