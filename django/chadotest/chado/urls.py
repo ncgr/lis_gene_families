@@ -27,7 +27,7 @@ urlpatterns = patterns('chado.views',
     url(r'^phylo/node/slide/$', 'phylo_view_ajax', name='phylo_view_ajax'),
 
     # feature
-    url(r'^feature/(?P<feature_id>\d+)/$', 'feature_view', {'template_name' : 'chado/feature/view.html'}, name='feature_view'),
+    url(r'^feature/(?P<feature_name>[^\/]+)/$', 'feature_view', {'template_name' : 'chado/feature/view.html'}, name='feature_view'),
 
     # cvterm
     url(r'^cvterm/(?P<cvterm_id>\d+)/$', 'cvterm_view', {'template_name' : 'chado/cvterm/view.html'}, name='cvterm_view'),

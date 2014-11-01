@@ -443,8 +443,9 @@ def phylo_view_ajax(request):
 			    node = get_object_or_404(Phylonode, pk=request.GET['phylonode'])
 			    tree = get_object_or_404(Phylotree, pk=node.phylotree_id)
                         elif 'gene' in request.GET:
-                            node = get_object_or_404(Feature, pk=request.GET['gene'])
+                            node = get_object_or_404(Feature, name=request.GET['gene'])
                             node.label = node.name
+                            tree = None
 			slidedict = {}
             # external nodes
 			if node.label:
@@ -453,8 +454,9 @@ def phylo_view_ajax(request):
 				slidedict['label'] = node.label
 				slidedict['meta'] = "This is meta information for "+node.label
                                 slidedict['links'] = []
-                                #FIXME: will need to check dbxref when we have more than phytozome trees
-                                slidedict['links'].append({'Phytozome Gene Family':'http://phytozome.jgi.doe.gov/pz/portal.html#!showCluster?search=1&detail=0&method=4835&searchText=clusterid:'+tree.name})
+                                if tree is not None:
+                                    #FIXME: will need to check dbxref when we have more than phytozome trees
+                                    slidedict['links'].append({'Phytozome Gene Family':'http://phytozome.jgi.doe.gov/pz/portal.html#!showCluster?search=1&detail=0&method=4835&searchText=clusterid:'+tree.name})
                                 m = re.match('^([a-z]{5,5})\.(.*?)(\.[0-9]+)?$', node.label);
                                 species=m.group(1)
                                 gene=m.group(2)
@@ -462,7 +464,7 @@ def phylo_view_ajax(request):
                                     transcript=gene+m.group(3)
                                 sys.stderr.write("species is " + species)
                                 sys.stderr.write("gene is " + gene)
-                                sys.stderr.write("transcript is " + transcript)
+                                #sys.stderr.write("transcript is " + transcript)
                                 if species == 'medtr':
                                     slidedict['links'].append({'LIS Mt4.0 GBrowse':'http://medtr.comparative-legumes.org/gb2/gbrowse/Mt4.0?name='+gene})
                                     slidedict['links'].append({'LIS Mt3.5.1 GBrowse':'http://medtr.comparative-legumes.org/gb2/gbrowse/Mt3.5.1?name='+gene})
@@ -679,8 +681,8 @@ def phylo_sample(request, template_name):
 # feature #
 ###########
 
-def feature_view(request, feature_id, template_name):
-    feature = get_object_or_404(Feature, pk=feature_id)
+def feature_view(request, feature_name, template_name):
+    feature = get_object_or_404(Feature, name=feature_name)
     return render(request, template_name, {'feature' : feature})
 
 
