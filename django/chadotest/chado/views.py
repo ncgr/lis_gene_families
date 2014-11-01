@@ -455,7 +455,7 @@ def phylo_view_ajax(request):
                                 slidedict['links'] = []
                                 #FIXME: will need to check dbxref when we have more than phytozome trees
                                 slidedict['links'].append({'Phytozome Gene Family':'http://phytozome.jgi.doe.gov/pz/portal.html#!showCluster?search=1&detail=0&method=4835&searchText=clusterid:'+tree.name})
-                                m = re.match('^([A-Z][a-z]{4,4})\\|(.*?)(\.[0-9]+)?$', node.label);
+                                m = re.match('^([a-z]{5,5})\.(.*?)(\.[0-9]+)?$', node.label);
                                 species=m.group(1)
                                 gene=m.group(2)
                                 if m.group(3):
@@ -463,7 +463,7 @@ def phylo_view_ajax(request):
                                 sys.stderr.write("species is " + species)
                                 sys.stderr.write("gene is " + gene)
                                 sys.stderr.write("transcript is " + transcript)
-                                if species == 'Medtr':
+                                if species == 'medtr':
                                     slidedict['links'].append({'LIS Mt4.0 GBrowse':'http://medtr.comparative-legumes.org/gb2/gbrowse/Mt4.0?name='+gene})
                                     slidedict['links'].append({'LIS Mt3.5.1 GBrowse':'http://medtr.comparative-legumes.org/gb2/gbrowse/Mt3.5.1?name='+gene})
                                     slidedict['links'].append({'JCVI JBrowse':'http://www.jcvi.org/medicago/jbrowse/?data=data%2Fjson%2Fmedicago&loc='+transcript})
@@ -475,31 +475,31 @@ def phylo_view_ajax(request):
                                     #but that doesn't mean that it gave other people the message!
                                     slidedict['links'].append({'Genomicus':'http://www.genomicus.biologie.ens.fr/genomicus-plants/cgi-bin/search.pl?view=default&amp;query=MTR_'+gene.replace("Medtr","")})
 
-                                elif species == 'Glyma':
-                                    slidedict['links'].append({'Soybase':'http://soybase.org/gb2/gbrowse/gmax1.01/?name='+gene})
+                                elif species == 'glyma':
+                                    slidedict['links'].append({'Soybase':'http://soybase.org/gb2/gbrowse/gmax2.0/?name='+gene})
                                     slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=4433&searchText='+gene})
                                     slidedict['links'].append({'SoyKB':'http://soykb.org/gene_card.php?gene='+gene})
                                     slidedict['links'].append({'Genomicus':'http://www.genomicus.biologie.ens.fr/genomicus-plants/cgi-bin/search.pl?view=default&amp;query='+gene})
-                                elif species == 'Phavu':
+                                elif species == 'phavu':
                                     slidedict['links'].append({'LIS GBrowse':'http://phavu.comparative-legumes.org/gb2/gbrowse/Pv1.0/?name='+gene})
                                     slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=3253&searchText='+gene})
-                                elif species == 'Arath':
+                                elif species == 'arath':
                                     slidedict['links'].append({'TAIR':'http://www.arabidopsis.org/servlets/TairObject?type=locus&name='+gene})
                                     slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=2296&searchText='+gene})
-                                elif species == 'Orysa':
+                                elif species == 'orysa':
                                     slidedict['links'].append({'MSU':'http://rice.plantbiology.msu.edu/cgi-bin/gbrowse/rice/?name='+gene})
                                     slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=3301&searchText='+gene})
-                                elif species == 'Zeama':
+                                elif species == 'zeama':
                                     slidedict['links'].append({'MaizeGDB':'http://maizegdb.org/cgi-bin/displaygenemodelrecord.cgi?id='+gene})
                                     slidedict['links'].append({'Gramene':'http://www.gramene.org/Zea_mays/Gene/Summary?g='+gene})
                                     slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=4431&searchText='+gene})
-                                elif species == 'Solly':
+                                elif species == 'solly':
                                     slidedict['links'].append({'Sol Genomics Network':'http://solgenomics.net/gbrowse/bin/gbrowse/ITAG2.3_genomic/?name='+gene+'&h_feat='+gene})
                                     slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=3308&searchText='+gene})
-                                elif species == 'Vitvi':
+                                elif species == 'vitvi':
                                     slidedict['links'].append({'Genoscope':'http://www.genoscope.cns.fr/cgi-bin/ggb/vitis/12X/gbrowse/vitis/?name='+gene})
                                     slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=2299&searchText='+gene})
-                                elif species == 'Ambtr':
+                                elif species == 'ambtr':
                                     slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=4851&searchText='+transcript})
                                 slidedict['links'].append({'google':'http://www.google.com/search?q='+gene})
             # internal nodes
