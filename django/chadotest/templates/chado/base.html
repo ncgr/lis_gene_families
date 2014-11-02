@@ -10,6 +10,7 @@
     {% endblock %}
 </head>
 <body>
+{% block body %}
 <div class="navbar navbar-fixed-top">
   <div class="container">
     <button class="navbar-toggle" type="button" data-toggle="collapse" data-target=".navbar-collapse">
@@ -40,6 +41,7 @@
 {% block content %}
 {% endblock %}
 </div>
+{% endblock %}
 {% block bottom %}
 {% endblock %}
 {% block javascript %}

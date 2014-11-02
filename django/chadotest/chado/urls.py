@@ -73,4 +73,6 @@ urlpatterns = patterns('chado.views',
     url(r'^context_viewer/search/$', 'context_viewer_search', {'template_name' : 'chado/context/index.html'}, name='context_viewer_search'),
     url(r'^context_viewer/search/(?P<focus_name>[^\/]+)/$', 'context_viewer_search', {'template_name' : 'chado/context/search.html'}, name='context_viewer_search'),
     url(r'^context_viewer/synteny/(?P<focus_id>\d+)/$', 'context_viewer_synteny', {'template_name' : 'chado/context/synteny.html'}, name='context_viewer_synteny'),
+    # simple views
+    url(r'^context_viewer/iframe/(?P<node_id>\d+)/$', 'context_viewer', {'template_name' : 'chado/context/index_iframe.html'}, name='context_viewer'),
     )
