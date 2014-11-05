@@ -36,17 +36,14 @@ The JSON uses the following schema
                 {
                     "type":"object",
                     "properties":{
-                        "feature_id": {
-                            "type":"number",
-                        },
-                        "value": {
+                        "family_value": {
                             "type":"string",
                         },
-                        "name": {
+                        "gene_name": {
                             "type":"string",
                         }
                     },
-                    "required":["feature_id", "value"]
+                    "required":["name", "value"]
                 }
         },
         "gene_orders": {
@@ -55,17 +52,17 @@ The JSON uses the following schema
                 {
                     "type":"object",
                     "properties":{
-                        "chromosome_id": {
-                            "type":"number",
+                        "chromosome_name": {
+                            "type":"string",
                         },
-                        "feature_id": {
-                            "type":"number",
+                        "gene_name": {
+                            "type":"string",
                         },
-                        "number": {
+                        "gene_number": {
                             "type":"number",
                         }
                     },
-                    "required":["chromosome_id", "feature_id", "number"]
+                    "required":["chromosome_name", "gene_name", "gene_number"]
                 }
         }
     }
