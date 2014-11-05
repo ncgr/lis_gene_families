@@ -1,6 +1,10 @@
 
 //function context_legend( container_id, color, data, legend_click, selective_coloring ) {
 function context_legend( container_id, color, data, optional_parameters ) {
+    // make sure optional parameters is at least defined
+    if( optional_parameters === undefined ) {
+        optional_parameters = {};
+    }
 	// clear the contents of the target element first
 	document.getElementById(container_id).innerHTML = "";
 
