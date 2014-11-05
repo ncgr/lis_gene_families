@@ -69,12 +69,6 @@ The JSON uses the following schema
 }
 ```
 
-Note that the corresponding feature, phylotree, and phylonode entries for the given data will be infered.
-The feature_id will be used as a feature's name unless one is explicitly given. 
-Features that will be used as the focus gene in a search should have names since the a name required by the search url.
+Note that the corresponding featureloc entries for the given data will be infered.
 Dummy values for dependent tables, such as organism and dbxref, will be used.
 
-```bash
-perl gmod_gene_families.pl
-perl gmod_gene_ordering.pl
-```
