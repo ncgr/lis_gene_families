@@ -126,15 +126,17 @@ sub insert_dbxref {
 
 # cvterm helper functions
 sub get_cvterm {
-    my $name = $_[0];
-    return $conn->selectrow_array("SELECT cvterm_id FROM cvterm WHERE name='$name';");
+    my $get_cvterm_name = $_[0];
+    return $conn->selectrow_array("SELECT cvterm_id FROM cvterm WHERE name='$get_cvterm_name';");
 }
 sub insert_cvterm {
-    my $name = $_[0];
+    my $insert_cvterm_name = $_[0];
     if( !$conn->do("INSERT INTO dbxref (db_id, accession, version, description) VALUES($db_id, 'a', 'a', 'fake');") ) {
         Retreat("Failed to insert 'fake' dbxref for cvterm\n");
     }
-    return $conn->do("INSERT INTO cvterm (cvterm_id, cv_id, name, definition, dbxref_id, is_obsolete, is_relationshiptype) VALUES($id, $cv_id, '$name', 'there''s a high probability this db was not entered by a GMOD tool.', $id, 0, 0);");
+    my $insert_cvterm_dbxref_id = $conn->selectrow_array("SELECT dbxref_id FROM dbxref ORDER BY dbxref_id DESC LIMIT 1;");
+    # CREATE A DBXREF FOR EACH CVTERM
+    return $conn->do("INSERT INTO cvterm (cv_id, name, definition, dbxref_id, is_obsolete, is_relationshiptype) VALUES($cv_id, '$insert_cvterm_name', 'there''s a high probability this db was not entered by a GMOD tool.', $insert_cvterm_dbxref_id, 0, 0);");
 }
 # get the chromsome cvterm
 my $chromosome_id = get_cvterm('chromosome');
@@ -154,7 +156,7 @@ if( !$gene_id ) {
 }
 # get the family cvterm
 my $family_id = get_cvterm('gene family');
-if( !$gene_family ) {
+if( !$family_id ) {
     if( !insert_cvterm('gene family') ) {
         Retreat("Failed to insert the gene family cvterm\n");
     }
@@ -191,45 +193,31 @@ my $json = JSON->new;
 my $data = $json->decode($json_text);
 
 # feature helper function
-#sub get_feature {
-#    my $feature_id = $_[0];
-#    my $name = $_[1];
-#    if( $feature_id == undef ) {
-#        return $conn->selectrow_array("SELECT feature_id FROM feature WHERE uniquename='$name':");
-#    }
-#    return $conn->selectrow_array("SELECT feature_id FROM feature WHERE feature_id=$feature_id OR uniquename='$name';");
-#}
-#sub insert_feature {
-#    my $feature_id = $_[0];
-#    my $type_id = $[1];
-#    my $name = $_[2] ? $_[2] : $feature_id;
-#    return $conn->do("INSERT INTO feature (feature_id, organism_id, name, unique_name, residues, md5checksum, type_id, is_analysis, is_obsolete, timeaccessioned, timelastmodified) VALUES($feature_id, $organism_id, '$name', '$name', '', '', $type_id, 0, 0, '1865-01-01 00:00:00.000000', '1943-01-01 00:00:00.000000');")
-#}
 sub get_feature {
-    my $name = $_[0];
-    return $conn->selectrow_array("SELECT feature_id FROM feature WHERE uniquename='$name':");
+    my $get_feature_name = $_[0];
+    my $get_feature_result = $conn->selectrow_array("SELECT feature_id FROM feature WHERE uniquename='$get_feature_name';");
+    print $get_feature_result;
+    return $get_feature_result;
 }
 sub insert_feature {
-    my $type_id = $[0];
-    my $name = $_[1];
-    return $conn->do("INSERT INTO feature (organism_id, name, unique_name, residues, md5checksum, type_id, is_analysis, is_obsolete, timeaccessioned, timelastmodified) VALUES($organism_id, '$name', '$name', '', '', $type_id, 0, 0, '1865-01-01 00:00:00.000000', '1943-01-01 00:00:00.000000');")
+    my $insert_feature_type_id = $_[0];
+    my $insert_feature_name = $_[1];
+    return $conn->do("INSERT INTO feature (organism_id, name, unique_name, residues, md5checksum, type_id, is_analysis, is_obsolete, timeaccessioned, timelastmodified) VALUES($organism_id, '$insert_feature_name', '$insert_feature_name', '', '', $insert_feature_type_id, 0, 0, '1865-01-01 00:00:00.000000', '1943-01-01 00:00:00.000000');")
 }
 
 # featureprop helper function
 sub get_featureprop {
-    my $feature_id = $_[0];
-    my $value = $_[1];
-    return $conn->selectrow_array("SELECT featureprop_id FROM featureprop WHERE feature_id=$feature_id AND value='$value' AND type_id=$family_id;");
+    my $get_featureprop_feature_id = $_[0];
+    my $get_featureprop_value = $_[1];
+    return $conn->selectrow_array("SELECT featureprop_id FROM featureprop WHERE feature_id=$get_featureprop_feature_id AND value='$get_featureprop_value' AND type_id=$family_id;");
 }
 sub insert_featureprop {
-    my $feature_id = $_[0];
-    my $value = $_[1];
-    return $conn->do("INSERT INTO featureprop (feature_id, type_id, value, rank) VALUES($feature_id, $family_id, '$value', 0);")
+    my $insert_featureprop_feature_id = $_[0];
+    my $insert_featureprop_value = $_[1];
+    return $conn->do("INSERT INTO featureprop (feature_id, type_id, value, rank) VALUES($insert_featureprop_feature_id, $family_id, '$insert_featureprop_value', 0);")
 }
 
 # iterate the featureprops
-my $msa_count = 0; # we should actually fetch the highest feature_id and go from there
-my $featureprop_count = 0; # we should actually fetch the highest featureprop_id and go from there
 for( @{$data->{featureprops}} ) {
     # check that all the required fields are present
     my $family_value = $_->{family_value};
@@ -247,7 +235,7 @@ for( @{$data->{featureprops}} ) {
         if( !insert_feature($gene_id, $gene_name) ) {
             Retreat("Failed to insert feature for gene_name: $gene_name");
         }
-        $genes = get_feature($feature_id, $name);
+        $genes = get_feature($gene_name);
     }
     # check if the msa exists, if not, create it
     my $msa = get_feature($family_value);
@@ -262,7 +250,7 @@ for( @{$data->{featureprops}} ) {
     if( $feature_prop->rows == 1 ) {
         Retreat("Featureprop already exists for family_value: $family_value, gene_name: $gene_name");
     } else {
-        if( !insert_featureprop($genes, $family_value) {
+        if( !insert_featureprop($genes, $family_value) ) {
             Retreat("Failed to insert featureprop for family_value: $family_value, gene_name: $gene_name");
         }
     }
@@ -271,28 +259,28 @@ for( @{$data->{featureprops}} ) {
 
 # gene_order helper functions
 sub get_gene_order {
-    my $feature_id = $_[0];
-    my $chromosome_id = $_[1];
-    return $conn->selectrow_array("SELECT gene_order_id FROM gene_order WHERE feature_id=$feature_id AND chromosome_id=$chromosome_id;");
+    my $get_gene_order_feature_id = $_[0];
+    my $get_gene_order_chromosome_id = $_[1];
+    return $conn->selectrow_array("SELECT gene_order_id FROM gene_order WHERE feature_id=$get_gene_order_feature_id AND chromosome_id=$get_gene_order_chromosome_id;");
 }
 sub insert_gene_order {
-    my $feature_id = $_[0];
-    my $chromosome_id = $_[1];
-    my $number = $_[2];
-    return $conn->do("INSERT INTO gene_order (feature_id, chromosome_id, number) VALUES($feature_id, $chromosome_id, $number);")
+    my $insert_gene_order_feature_id = $_[0];
+    my $insert_gene_order_chromosome_id = $_[1];
+    my $insert_gene_order_number = $_[2];
+    return $conn->do("INSERT INTO gene_order (feature_id, chromosome_id, number) VALUES($insert_gene_order_feature_id, $insert_gene_order_chromosome_id, $insert_gene_order_number);")
 }
 # featureloc helper functions
 sub get_featureloc {
-    my $gene_id = $_[0];
-    my $chromosome_id = $_[1];
-    return $conn->selectrow_array("SELECT featureloc_id FROM featureloc WHERE feature_id=$gene_id AND srcfeature_id=$chromosome_id;");
+    my $get_featureloc_gene_id = $_[0];
+    my $get_featureloc_chromosome_id = $_[1];
+    return $conn->selectrow_array("SELECT featureloc_id FROM featureloc WHERE feature_id=$get_featureloc_gene_id AND srcfeature_id=$get_featureloc_chromosome_id;");
 }
 sub insert_featureloc {
-    my $feature_id = $_[0];
-    my $chromosome_id = $_[1];
-    my $fmin = $_[2];
-    my $fmax = $_[3];
-    return $conn->do("INSERT INTO featureloc (feature_id, srcfeature_id, fmin, is_fmin_partial, fmax, is fmax_partial, strand, locgroup, rank) VALUES($gene_id, $chromosome_id, $fmin, false, $fmax, false, 1, 0, 0);")
+    my $insert_featureloc_feature_id = $_[0];
+    my $insert_featureloc_chromosome_id = $_[1];
+    my $insert_featureloc_fmin = $_[2];
+    my $insert_featureloc_fmax = $_[3];
+    return $conn->do("INSERT INTO featureloc (feature_id, srcfeature_id, fmin, is_fmin_partial, fmax, is fmax_partial, strand, locgroup, rank) VALUES($insert_featureloc_feature_id, $insert_featureloc_chromosome_id, $insert_featureloc_fmin, false, $insert_featureloc_fmax, false, 1, 0, 0);")
 }
 
 # iterate the gene_orders
@@ -315,7 +303,7 @@ for( @{$data->{gene_orders}} ) {
         if( !insert_feature($gene_name) ) {
             Retreat("Failed to insert feature for gene_name: $gene_name");
         }
-        $genes = get_feature($feature_id, $name);
+        $genes = get_feature($gene_name);
     }
     # check if the chromosome exists, if not, create it
     my $chromosomes = get_feature($chromosome_name);
