@@ -195,9 +195,7 @@ my $data = $json->decode($json_text);
 # feature helper function
 sub get_feature {
     my $get_feature_name = $_[0];
-    my $get_feature_result = $conn->selectrow_array("SELECT feature_id FROM feature WHERE uniquename='$get_feature_name';");
-    print $get_feature_result;
-    return $get_feature_result;
+    return $conn->selectrow_array("SELECT feature_id FROM feature WHERE uniquename='$get_feature_name';");
 }
 sub insert_feature {
     my $insert_feature_type_id = $_[0];
