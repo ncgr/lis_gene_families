@@ -200,7 +200,7 @@ sub get_feature {
 sub insert_feature {
     my $insert_feature_type_id = $_[0];
     my $insert_feature_name = $_[1];
-    return $conn->do("INSERT INTO feature (organism_id, name, unique_name, residues, md5checksum, type_id, is_analysis, is_obsolete, timeaccessioned, timelastmodified) VALUES($organism_id, '$insert_feature_name', '$insert_feature_name', '', '', $insert_feature_type_id, 0, 0, '1865-01-01 00:00:00.000000', '1943-01-01 00:00:00.000000');")
+    return $conn->do("INSERT INTO feature (organism_id, name, uniquename, residues, md5checksum, type_id, is_analysis, is_obsolete, timeaccessioned, timelastmodified) VALUES($organism_id, '$insert_feature_name', '$insert_feature_name', '', '', $insert_feature_type_id, false, false, '1865-01-01 00:00:00.000000', '1943-01-01 00:00:00.000000');")
 }
 
 # featureprop helper function
@@ -226,10 +226,7 @@ for( @{$data->{featureprops}} ) {
     }
     # check if the feature exists, if not, create it
     my $genes = get_feature($gene_name);
-    if( $genes->rows == 2 ) {
-        print "Found multiple features for family_value: $family_value, gene_name: $gene_name\n";
-        next;
-    } elsif( $genes->rows == 0 ) {
+    if( !(defined $genes) ) {
         if( !insert_feature($gene_id, $gene_name) ) {
             Retreat("Failed to insert feature for gene_name: $gene_name");
         }
@@ -237,7 +234,7 @@ for( @{$data->{featureprops}} ) {
     }
     # check if the msa exists, if not, create it
     my $msa = get_feature($family_value);
-    if( $msa->rows == 0 ) {
+    if( !(defined $msa) ) {
         if( !insert_feature($msa_id, $family_value) ) {
             Retreat("Failed to insert msa for family_value: $family_value");
         }
@@ -245,12 +242,12 @@ for( @{$data->{featureprops}} ) {
     }
     # check if the featureprop entry already exists, it not, create it
     my $feature_prop = get_featureprop($genes, $family_value);
-    if( $feature_prop->rows == 1 ) {
-        Retreat("Featureprop already exists for family_value: $family_value, gene_name: $gene_name");
-    } else {
+    if( !(defined $feature_prop) ) {
         if( !insert_featureprop($genes, $family_value) ) {
             Retreat("Failed to insert featureprop for family_value: $family_value, gene_name: $gene_name");
         }
+    } else {
+        Retreat("Featureprop already exists for family_value: $family_value, gene_name: $gene_name");
     }
     # these entries will use msa consensus feature names for values (these should be the uniquenames from the feature table)
 }
@@ -259,13 +256,13 @@ for( @{$data->{featureprops}} ) {
 sub get_gene_order {
     my $get_gene_order_feature_id = $_[0];
     my $get_gene_order_chromosome_id = $_[1];
-    return $conn->selectrow_array("SELECT gene_order_id FROM gene_order WHERE feature_id=$get_gene_order_feature_id AND chromosome_id=$get_gene_order_chromosome_id;");
+    return $conn->selectrow_array("SELECT gene_order_id FROM gene_order WHERE gene_id=$get_gene_order_feature_id AND chromosome_id=$get_gene_order_chromosome_id;");
 }
 sub insert_gene_order {
     my $insert_gene_order_feature_id = $_[0];
     my $insert_gene_order_chromosome_id = $_[1];
     my $insert_gene_order_number = $_[2];
-    return $conn->do("INSERT INTO gene_order (feature_id, chromosome_id, number) VALUES($insert_gene_order_feature_id, $insert_gene_order_chromosome_id, $insert_gene_order_number);")
+    return $conn->do("INSERT INTO gene_order (gene_id, chromosome_id, number) VALUES($insert_gene_order_feature_id, $insert_gene_order_chromosome_id, $insert_gene_order_number);")
 }
 # featureloc helper functions
 sub get_featureloc {
@@ -278,7 +275,7 @@ sub insert_featureloc {
     my $insert_featureloc_chromosome_id = $_[1];
     my $insert_featureloc_fmin = $_[2];
     my $insert_featureloc_fmax = $_[3];
-    return $conn->do("INSERT INTO featureloc (feature_id, srcfeature_id, fmin, is_fmin_partial, fmax, is fmax_partial, strand, locgroup, rank) VALUES($insert_featureloc_feature_id, $insert_featureloc_chromosome_id, $insert_featureloc_fmin, false, $insert_featureloc_fmax, false, 1, 0, 0);")
+    return $conn->do("INSERT INTO featureloc (feature_id, srcfeature_id, fmin, is_fmin_partial, fmax, is_fmax_partial, strand, residue_info, locgroup, rank) VALUES($insert_featureloc_feature_id, $insert_featureloc_chromosome_id, $insert_featureloc_fmin, false, $insert_featureloc_fmax, false, 1, '', 0, 0);")
 }
 
 # iterate the gene_orders
@@ -294,10 +291,7 @@ for( @{$data->{gene_orders}} ) {
     }
     # check if the feature exists, if not, create it
     my $genes = get_feature($gene_name);
-    if( $genes->rows == 2 ) {
-        print "Found multiple genes for gene_name: $gene_name\n";
-        next;
-    } elsif( $genes->rows == 0 ) {
+    if( !(defined $genes) ) {
         if( !insert_feature($gene_name) ) {
             Retreat("Failed to insert feature for gene_name: $gene_name");
         }
@@ -305,10 +299,7 @@ for( @{$data->{gene_orders}} ) {
     }
     # check if the chromosome exists, if not, create it
     my $chromosomes = get_feature($chromosome_name);
-    if( $chromosomes->rows == 2 ) {
-        print "Found multiple chromosomes for chromosome_name: $chromosome_name\n";
-        next;
-    } elsif( $chromosomes->rows == 0 ) {
+    if( !(defined $chromosomes) ) {
         if( !insert_feature($chromosome_name) ) {
             Retreat("Failed to insert chromosome for chromosome_name: $chromosome_name");
         }
@@ -319,20 +310,14 @@ for( @{$data->{gene_orders}} ) {
     }
     # check if a gene order entry already exists, if not, create one
     my $gene_orders = get_gene_order($genes, $chromosomes);
-    if( $gene_orders->rows != 0 ) {
-        print "Gene_order entry already exists for chromosome_name: $chromosome_name, gene_name: $gene_name, gene_number: $gene_number\n";
-        next;
-    } else {
-        if( !insert_gene_order($genes, $chromosomes) ) {
+    if( !(defined $gene_orders) ) {
+        if( !insert_gene_order($genes, $chromosomes, $gene_number) ) {
             Retreat("Failed to insert gene_order for chromosome_name: $chromosome_name, gene_name: $gene_name, gene_number: $gene_number");
         }
     }
     # check if a featureloc already exists for the gene and chromosome, if not, create one
     my $featurelocs = get_featureloc($genes, $chromosomes);
-    if( $featurelocs->rows != 0 ) {
-        print "featureloc entry already exists for chromosome_name: $chromosome_name, gene_name: $gene_name\n";
-        next;
-    } else {
+    if( !(defined $featurelocs) ) {
         if( !insert_featureloc($genes, $chromosomes, $chromosome_fs{$chromosomes}, $chromosome_fs{$chromosomes}+1) ) {
             Retreat("Failed to insert featureloc for chromosome_name: $chromosome_name, gene_name: $gene_name");
         }
@@ -343,6 +328,6 @@ for( @{$data->{gene_orders}} ) {
 }
 
 print "Committing changes\n";
-#eval{ $conn->commit() } or Retreat("The commit failed\n");
+eval{ $conn->commit() } or Retreat("The commit failed\n");
 Disconnect();
 
