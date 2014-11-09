@@ -292,7 +292,7 @@ for( @{$data->{gene_orders}} ) {
     # check if the feature exists, if not, create it
     my $genes = get_feature($gene_name);
     if( !(defined $genes) ) {
-        if( !insert_feature($gene_name) ) {
+        if( !insert_feature($gene_id, $gene_name) ) {
             Retreat("Failed to insert feature for gene_name: $gene_name");
         }
         $genes = get_feature($gene_name);
@@ -300,7 +300,7 @@ for( @{$data->{gene_orders}} ) {
     # check if the chromosome exists, if not, create it
     my $chromosomes = get_feature($chromosome_name);
     if( !(defined $chromosomes) ) {
-        if( !insert_feature($chromosome_name) ) {
+        if( !insert_feature($chromosome_id, $chromosome_name) ) {
             Retreat("Failed to insert chromosome for chromosome_name: $chromosome_name");
         }
         $chromosomes = get_feature($chromosome_name);
