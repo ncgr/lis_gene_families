@@ -149,7 +149,8 @@
 		// add the track's links to the content box
 		var html = '<h4><a href="/chado/organism/'+data.groups[axis_selection].species_id+'/">'+data.groups[axis_selection].species_name+'</a> - <a href="/chado/feature/'+data.groups[axis_selection].chromosome_id+'/">'+data.groups[axis_selection].chromosome_name+'</a></h4>';
 		var l3 = '<a href="/chado/context_viewer/search/',
-			l5 = '<a href="/chado/context_viewer/synteny/';
+			l5 = '<a href="/chado/context_viewer/synteny/',
+		    l = '<a href="/chado/context_viewer/search_plotted/';
 		var genes = '<ul>';
 		var families = [];
 		gene_selection.each(function(d) {
@@ -161,12 +162,14 @@
 			if( d.x == (track_length-1)/2 ) {
 				l3 += d.name+'/';
 				l5 += d.id+'/';
+                l += d.name+'/';
 			}
 		});
 		genes += '</ul>';
 		l3 += '">Find similar tracks</a>';
 		l5 += '">Synteny miner</a>';
-		html += l5+'<br />'+l3+'<br />Genes:'+genes;
+        l += '">Find similar tracks with plots</a>';
+		html += l5+'<br />'+l3+'<br />'+l+'<br />Genes:'+genes;
 		$("#toggle").html(html);
 		show_toggle();
 	}
