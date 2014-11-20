@@ -125,7 +125,6 @@ function context_synteny( container_id, color, data, i, optional_parameters ) {
 	// plot the points
 	var groups = ch_data.enter().append('g').attr("class", "gene")
 		.attr("transform", function(e) {
-            console.log(e);
 			return "translate("+x(e.x)+", "+y(e.y)+")" })
 		.on("mouseover", function(e) {
 			show_tips( d3.select(this) );
