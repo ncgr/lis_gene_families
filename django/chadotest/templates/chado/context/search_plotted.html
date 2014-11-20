@@ -217,9 +217,44 @@
 	// shared variables
 	var json = '{{ json|safe }}',
 	    data = JSON.parse(json),
+        plot_data = JSON.parse(json),
 		color = d3.scale.category20(),
 		family_names = get_family_name_map( data );
 
+    // prepare the plot data for show and tell
+    var family_map = {};
+    // make a map of points all genes will be plotted against
+    for( var i = 0; i < plot_data.groups[ 0 ].genes.length; i++ ) {
+        var g = plot_data.groups[ 0 ].genes[ i ];
+        if( g.family in family_map ) {
+            family_map[ g.family ].push( (g.fmin/2)+(g.fmax/2) );
+        } else if( g.family != '' ) {
+            family_map[ g.family ] = [(g.fmin/2)+(g.fmax/2)];
+        }
+    }
+
+    // plot all the genes against the list of points
+    var plot_groups = [];
+    for( var i = 0; i < plot_data.groups.length; i++ ) {
+        var plot_genes = [];
+        for( var j = 0; j < plot_data.groups[ i ].genes.length; j++ ) {
+            if( plot_data.groups[ i ].genes[ j ].family in family_map ) {
+                for( var k = 0; k < family_map[ plot_data.groups[ i ].genes[ j ].family ].length; k++ ) {
+                    plot_data.groups[ i ].genes[ j ].x = ((plot_data.groups[ i ].genes[ j ].fmin/2)+(plot_data.groups[ i ].genes[ j ].fmax/2));
+                    plot_data.groups[ i ].genes[ j ].y = family_map[ plot_data.groups[ i ].genes[ j ].family ][ k ];
+                }
+                plot_genes.push( plot_data.groups[ i ].genes[ j ] );
+            }/* else {
+                plot_data.groups[ i ].genes[ j ].x = ((plot_data.groups[ i ].genes[ j ].fmin/2)+(plot_data.groups[ i ].genes[ j ].fmax/2));
+                plot_data.groups[ i ].genes[ j ].y = 0;
+            }*/
+        }
+        plot_data.groups[ i ].genes = plot_genes;
+        plot_groups.push( plot_data.groups[ i ] );
+    }
+    plot_data.groups = plot_groups;
+
+    // a function that resizes the element containing the plots
     function resize_plot() {
         $('#plot').height( $('#plot').width()+$('#plot .nav').height() );
     }
@@ -330,7 +365,7 @@
     }
     function axis_clicked( axis_selection, gene_selection, rail_selection ) {
         // make the context synteny plot
-        context_synteny( 'local', color, data, axis_selection );
+        context_synteny( 'local', color, plot_data, axis_selection );
         //$('#plot #local').html( axis_selection );
     }
 

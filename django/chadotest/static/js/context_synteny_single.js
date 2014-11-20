@@ -14,7 +14,7 @@ function context_synteny( container_id, color, data, i, optional_parameters ) {
 
 	// set some variables
 	var w = document.getElementById(container_id).offsetWidth,
-        p = 50,
+        p = 75,
         l = w-2*p,
 	    //p = 100,
         h = l;
@@ -81,8 +81,8 @@ function context_synteny( container_id, color, data, i, optional_parameters ) {
 	
 	xAxis_selection.append("text")
 	    .attr("class", "label")
-	    .attr("x", (plot_x+(l/2)))
-	    .attr("y", 10)
+	    .attr("x", (p+(l/2)))
+	    .attr("y", 15)
 	    .style("text-anchor", "middle")
 	    .text(d.chromosome_name);
 	
@@ -91,8 +91,8 @@ function context_synteny( container_id, color, data, i, optional_parameters ) {
 	    max_y = d3.max(d.genes, function(e) { return e.y; });
 	
 	var y = d3.scale.linear()
-	    .domain([min_y, max_y])
-	    .range([plot_y, plot_y+l]);
+	    .domain([max_y, min_y])
+	    .range([p, p+l]);
 	
 	var yAxis = d3.svg.axis()
 	    .scale(y)
@@ -105,7 +105,7 @@ function context_synteny( container_id, color, data, i, optional_parameters ) {
 	    .call(yAxis)
 	  .append("text")
 	    .attr("class", "label")
-	    .attr("transform", "translate(-10,"+(plot_y-(l/2))+") rotate(-90)")
+	    .attr("transform", "translate(-10,"+((l/2)+p)+") rotate(-90)")
 	    .style("text-anchor", "end")
 	    .text(data.groups[0].chromosome_name);
 
