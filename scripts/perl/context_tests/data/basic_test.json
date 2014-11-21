@@ -12,6 +12,12 @@
         {"gene_name": "9", "family_value": "d"},
         {"gene_name": "10", "family_value": "e"},
 
+        {"gene_name": "6-rev", "family_value": "e"},
+        {"gene_name": "7-rev", "family_value": "d"},
+        {"gene_name": "8-rev", "family_value": "c"},
+        {"gene_name": "9-rev", "family_value": "b"},
+        {"gene_name": "10-rev", "family_value": "a"},
+
         {"gene_name": "11", "family_value": "b"},
         {"gene_name": "12", "family_value": "c"},
         {"gene_name": "13", "family_value": "d"},
@@ -74,6 +80,12 @@
         {"chromosome_name": "two", "gene_name": "8", "gene_number": 3},
         {"chromosome_name": "two", "gene_name": "9", "gene_number": 4},
         {"chromosome_name": "two", "gene_name": "10", "gene_number": 5},
+
+        {"chromosome_name": "two-rev", "gene_name": "6-rev", "gene_number": 5},
+        {"chromosome_name": "two-rev", "gene_name": "7-rev", "gene_number": 4},
+        {"chromosome_name": "two-rev", "gene_name": "8-rev", "gene_number": 3},
+        {"chromosome_name": "two-rev", "gene_name": "9-rev", "gene_number": 2},
+        {"chromosome_name": "two-rev", "gene_name": "10-rev", "gene_number": 1},
 
         {"chromosome_name": "three", "gene_name": "11", "gene_number": 1},
         {"chromosome_name": "three", "gene_name": "12", "gene_number": 2},
