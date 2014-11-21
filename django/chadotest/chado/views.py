@@ -449,8 +449,8 @@ def phylo_view_ajax(request):
 			slidedict = {}
             # external nodes
 			if node.label:
-                                import sys
-                                sys.stderr.write("label is " + node.label + "\n")
+                                #import sys
+                                #sys.stderr.write("label is " + node.label + "\n")
 				slidedict['label'] = node.label
 				slidedict['meta'] = "This is meta information for "+node.label
                                 slidedict['links'] = []
@@ -462,8 +462,8 @@ def phylo_view_ajax(request):
                                 gene=m.group(2)
                                 if m.group(3):
                                     transcript=gene+m.group(3)
-                                sys.stderr.write("species is " + species)
-                                sys.stderr.write("gene is " + gene)
+                                #sys.stderr.write("species is " + species)
+                                #sys.stderr.write("gene is " + gene)
                                 #sys.stderr.write("transcript is " + transcript)
                                 if species == 'medtr':
                                     slidedict['links'].append({'LIS Mt4.0 GBrowse':'http://medtr.comparative-legumes.org/gb2/gbrowse/Mt4.0?name='+gene})
@@ -1147,7 +1147,9 @@ def context_viewer_search( request, template_name, focus_name=None ):
         return c['distance']
 
     # construct tracks for each chromosome
+    import sys
     for chromosome_id, genes in chromosome_genes_map.iteritems():
+        #sys.stderr.write("for chromosome " + str(id_chromosome_map[chromosome_id].name) + " gene set length is " + str(len(genes))+"\n")
         if len( genes ) < 2:
             continue
         genes.sort( key=get_gene_order )
@@ -1165,11 +1167,12 @@ def context_viewer_search( request, template_name, focus_name=None ):
                 if genes[j] in related_family_map and query_families[related_family_map[genes[j]]] :
                     matched_families[ related_family_map[ genes[j] ] ] = 1
                 #size = gene_order_map[ genes[ j ].pk ]-gene_order_map[ genes[ i ].pk ]
-                size = gene_order_map[ genes[ j ] ]-gene_order_map[ genes[ i ] ]
+                size = gene_order_map[ genes[ j ] ]-gene_order_map[ genes[ i ] ]+1
                 #if size < max_num:
                 if size < max_length :
                     prev_size = size
                     if j+1 == len( genes ) and j > last_j and len(matched_families.keys()) >= num_matched_families :
+                        #sys.stderr.write("adding candidate for chromosome " + str(id_chromosome_map[chromosome_id].name) + " with first="+str(i)+", last="+str(j)+", size="+str(prev_size)+", hits="+str(j-i+1)+"\n")
                         candidates.append( { 'first':i, 'last':j, 'size':prev_size, 'hits':j-i+1 } )
                         last_j = j
                 else:
@@ -1193,9 +1196,11 @@ def context_viewer_search( request, template_name, focus_name=None ):
     groups = [ query_group ]
     y = 1
     for chromosome_id, candidates in chromosome_candidates.iteritems():
+        #sys.stderr.write("now aligning candidates from chromosome " + str(id_chromosome_map[chromosome_id].name) + "\n");
         for c in candidates:
             # get all the gene ids
             track_gene_ids = GeneOrder.objects.only( '' ).filter( chromosome=chromosome_id, number__gte=gene_order_map[ chromosome_genes_map[ chromosome_id ][ c[ 'first' ] ] ], number__lte=gene_order_map[ chromosome_genes_map[ chromosome_id ][ c[ 'last' ] ] ] ).values_list( 'gene_id', flat=True )
+            #sys.stderr.write("retrieved " + str(len(track_gene_ids)) + " genes\n");
 
             # get all the gene families
             track_families = Featureprop.objects.only( 'value' ).filter( type=gene_family_type, feature__in=track_gene_ids )
@@ -1212,8 +1217,11 @@ def context_viewer_search( request, template_name, focus_name=None ):
                 else:
                     align.append( ( g, -1 ) )
 
+            #sys.stderr.write("before sw align has " + str(len(align)) + " genes\n");
             # run smith-waterman on the forward and reverse of the track
             forward_score, forward_alignment = smith_waterman( align, query_align, accessor, new_element, match = match, mismatch = mismatch, gap = gap )
+            #remove prepended '-' since it will get added again in the following call
+            align.pop(0)
             reverse_score, reverse_alignment = smith_waterman( align[::-1], query_align, accessor, new_element, match = match, mismatch = mismatch, gap = gap )
 
             # only keep the remaining genes
@@ -1224,6 +1232,7 @@ def context_viewer_search( request, template_name, focus_name=None ):
                     if t[ 0 ]:
                         track_gene_ids.append( t[ 0 ] )
             else:
+                #sys.stderr.write("forward alignment with score="+str(forward_score)+", and aln length="+str(len(forward_alignment))+"\n")
                 for t in forward_alignment:
                     if t[ 0 ]:
                         track_gene_ids.append( t[ 0 ] )
@@ -1248,6 +1257,7 @@ def context_viewer_search( request, template_name, focus_name=None ):
             gene_loc_map = dict( ( o.feature_id, o ) for o in track_locs )
 
             genes = []
+            #sys.stderr.write("track_gene_ids length is " + str(len(track_gene_ids)) + "\n")
             for i in range( len( track_gene_ids ) ):
                 g = track_gene_ids[ i ]
                 family = gene_family_map[ g ] if g in gene_family_map else ''
@@ -1269,17 +1279,13 @@ def context_viewer_search( request, template_name, focus_name=None ):
 
 # https://github.com/kevinakwok/bioinfo/tree/master/Smith-Waterman
 def smith_waterman( seqA, seqB, accessor, new_element, match = 1, mismatch = 0, gap = -1 ):
-    seqB = seqB[:-1]
+    #this was causing alignments to miss their last element; why was it here?!
+    #seqB = seqB[:-1]
 
     #seqA = "-"+seqA
     seqA.insert( 0, new_element('-') )
     #seqB = "-"+seqB
     seqB.insert( 0, new_element('-') )
-
-    #Sets the values for match, mismatch, and gap.
-    #match = 1 
-    #mismatch = 0 
-    #gap = -1
 
     row = len(seqA)
     col = len(seqB)
@@ -1315,6 +1321,7 @@ def smith_waterman( seqA, seqB, accessor, new_element, match = 1, mismatch = 0, 
         for i in range(1,row):
             for j in range(1,col):
                 A[i][j] = max(0,diag(i,j),up(i,j),left(i,j))
+        #sys.stderr.write("completed matrix: " + str(A) + "\n");
         return A
 
     #FInd the highest scoring cell.
@@ -1364,6 +1371,8 @@ def smith_waterman( seqA, seqB, accessor, new_element, match = 1, mismatch = 0, 
             elif tracer[i][k] == tracer[i+1][k]:
                 #seq = seq + "-"
                 seq.append( new_element('-') )
+        #import sys
+        #sys.stderr.write("seq is " + str(seq) + "\n");
         return seq
 
     #Shows the relevant lines for matching pairs
@@ -1382,6 +1391,8 @@ def smith_waterman( seqA, seqB, accessor, new_element, match = 1, mismatch = 0, 
     A = complete_matrix(row,col)
 
     answers = get_max(A)
+    #import sys;
+    #sys.stderr.write("answers is " + str(answers) + "\n");
 
     # return the first highest scoring local alignment and it's score
     tracer = trace_back( A, [answers[0]] )
