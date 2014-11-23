@@ -2,13 +2,17 @@ function context_synteny( container_id, color, data, i, optional_parameters ) {
 
     // get the optional parameters
     var gene_clicked = function( selection ) { },
-        brush_callback = function( selected_group ) { };
+        brush_callback = function( selected_group ) { },
+        selective_coloring = true;
     if( optional_parameters !== undefined ) {
         if( optional_parameters.gene_clicked !== undefined ) {
             gene_clicked = optional_parameters.gene_clicked;
         }
         if( optional_parameters.brush_callback !== undefined ) {
             brush_callback = optional_parameters.brush_callback;
+        }
+        if( optional_parameters.selective_coloring !== undefined ) {
+            selective_coloring = optional_parameters.selective_coloring;
         }
     }
 
@@ -27,6 +31,9 @@ function context_synteny( container_id, color, data, i, optional_parameters ) {
 	    //h = num_rows*l + (num_rows+1)*p,
 	    //num_fams = data.families.length,
 	    //legend_h = num_fams*(rect_h+rect_p);
+
+	// get the family size map
+	var family_sizes = get_family_size_map( data );
 
 	// clear the contents of the target element first
 	document.getElementById(container_id).innerHTML = "";
@@ -87,7 +94,8 @@ function context_synteny( container_id, color, data, i, optional_parameters ) {
 	    .text(d.chromosome_name);
 	
 	// the y axis
-	var min_y = d3.min(d.genes, function(e) { return e.y; }),
+    var outliers = false;
+	var min_y = d3.min(d.genes.filter(function(e, i) { if( e.y >= 0 ) { outliers = true; }; return e.y >= 0; }), function(e) { return e.y; }),
 	    max_y = d3.max(d.genes, function(e) { return e.y; });
 	
 	var y = d3.scale.linear()
@@ -109,6 +117,15 @@ function context_synteny( container_id, color, data, i, optional_parameters ) {
 	    .style("text-anchor", "end")
 	    .text(data.groups[0].chromosome_name);
 
+    if( outliers ) {
+        matrix.append('text')
+	        .attr("class", "label")
+	        .attr("y", (p-16))
+	        .attr("x", p-9)
+	        .text("Outliers")
+	        .style("text-anchor", "end");
+    }
+
     // bind the chromosome's data to an element that doesn't... and never will exist
 	var ch_data = matrix.selectAll("chr_"+d.chromosome_id)
 	    .data(d.genes);
@@ -125,6 +142,9 @@ function context_synteny( container_id, color, data, i, optional_parameters ) {
 	// plot the points
 	var groups = ch_data.enter().append('g').attr("class", "gene")
 		.attr("transform", function(e) {
+            if( e.y == -1 ) {
+			    return "translate("+x(e.x)+", "+(p-20)+")";
+            }
 			return "translate("+x(e.x)+", "+y(e.y)+")" })
 		.on("mouseover", function(e) {
 			show_tips( d3.select(this) );
@@ -140,7 +160,16 @@ function context_synteny( container_id, color, data, i, optional_parameters ) {
 	    .attr("r", 3.5)
 	    .style("fill", function(e) { return color(e.family); })
 		.style("stroke", "#000")
-		.style("cursor", "pointer");
+		.style("cursor", "pointer")
+		.attr("class", function(e) {
+			if ( e.family == '' ) {
+				return "no_fam";
+			} return ""; })
+		.style("fill", function(e) {
+			if( e.family == '' || ( selective_coloring && family_sizes[ e.family ] == 1 ) ) {
+				return "#ffffff";
+			} return color(e.family);
+		});
 	
 	groups.append("text")
 	    .attr("class", "tip")

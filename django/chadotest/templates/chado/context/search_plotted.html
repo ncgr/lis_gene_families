@@ -243,11 +243,11 @@
                     plot_data.groups[ i ].genes[ j ].x = ((plot_data.groups[ i ].genes[ j ].fmin/2)+(plot_data.groups[ i ].genes[ j ].fmax/2));
                     plot_data.groups[ i ].genes[ j ].y = family_map[ plot_data.groups[ i ].genes[ j ].family ][ k ];
                 }
-                plot_genes.push( plot_data.groups[ i ].genes[ j ] );
-            }/* else {
+            } else {
                 plot_data.groups[ i ].genes[ j ].x = ((plot_data.groups[ i ].genes[ j ].fmin/2)+(plot_data.groups[ i ].genes[ j ].fmax/2));
-                plot_data.groups[ i ].genes[ j ].y = 0;
-            }*/
+                plot_data.groups[ i ].genes[ j ].y = -1;
+            }
+            plot_genes.push( plot_data.groups[ i ].genes[ j ] );
         }
         plot_data.groups[ i ].genes = plot_genes;
         plot_groups.push( plot_data.groups[ i ] );
