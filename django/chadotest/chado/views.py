@@ -1310,17 +1310,18 @@ def smith_waterman( seqA, seqB, accessor, new_element, match = 1, mismatch = 0, 
 
     #Returns the new value if up is used
     def up(i,j):
-        return A[i-1][j] + isMatch(i,j) + gap 
+        return A[i-1][j] + gap 
 
     #Returns the new value if left is used
     def left(i,j):
-        return A[i][j-1] + isMatch(i,j) + gap 
+        return A[i][j-1] + gap 
 
     #Fills matrix with correct scores.
     def complete_matrix(row,col):
         for i in range(1,row):
             for j in range(1,col):
                 A[i][j] = max(0,diag(i,j),up(i,j),left(i,j))
+        #import sys
         #sys.stderr.write("completed matrix: " + str(A) + "\n");
         return A
 
