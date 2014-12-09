@@ -5,7 +5,7 @@
 <style>
 
 .hidden {
-    display: none;
+    /*display: none;*/
 }
 
 #lightbox {
@@ -188,6 +188,8 @@
 <script type="text/javascript" src="{% static 'js/context_synteny_single.js' %}"></script>
 
 <script type="text/javascript">
+    // make an object to hold the global data
+    var global_data = {};
     // make the tabs work
     $('#local_tab').on('click', function(e) {
         e.preventDefault();
@@ -218,6 +220,7 @@
 	var json = '{{ json|safe }}',
 	    data = JSON.parse(json),
         plot_data = JSON.parse(json),
+        global_plot_data = JSON.parse(json),
 		color = d3.scale.category20(),
 		family_names = get_family_name_map( data );
 
@@ -233,23 +236,28 @@
         }
     }
 
+    // a helper function that plots genes against genes
+    function plot_points( group ) {
+        var plot_genes = [];
+        for( var j = 0; j < group.genes.length; j++ ) {
+            if( group.genes[ j ].family in family_map ) {
+                for( var k = 0; k < family_map[ group.genes[ j ].family ].length; k++ ) {
+                    group.genes[ j ].x = ((group.genes[ j ].fmin/2)+(group.genes[ j ].fmax/2));
+                    group.genes[ j ].y = family_map[ group.genes[ j ].family ][ k ];
+                }
+            } else {
+                group.genes[ j ].x = ((group.genes[ j ].fmin/2)+(group.genes[ j ].fmax/2));
+                group.genes[ j ].y = -1;
+            }
+            plot_genes.push( group.genes[ j ] );
+        }
+        return plot_genes;
+    }
+
     // plot all the genes against the list of points
     var plot_groups = [];
     for( var i = 0; i < plot_data.groups.length; i++ ) {
-        var plot_genes = [];
-        for( var j = 0; j < plot_data.groups[ i ].genes.length; j++ ) {
-            if( plot_data.groups[ i ].genes[ j ].family in family_map ) {
-                for( var k = 0; k < family_map[ plot_data.groups[ i ].genes[ j ].family ].length; k++ ) {
-                    plot_data.groups[ i ].genes[ j ].x = ((plot_data.groups[ i ].genes[ j ].fmin/2)+(plot_data.groups[ i ].genes[ j ].fmax/2));
-                    plot_data.groups[ i ].genes[ j ].y = family_map[ plot_data.groups[ i ].genes[ j ].family ][ k ];
-                }
-            } else {
-                plot_data.groups[ i ].genes[ j ].x = ((plot_data.groups[ i ].genes[ j ].fmin/2)+(plot_data.groups[ i ].genes[ j ].fmax/2));
-                plot_data.groups[ i ].genes[ j ].y = -1;
-            }
-            plot_genes.push( plot_data.groups[ i ].genes[ j ] );
-        }
-        plot_data.groups[ i ].genes = plot_genes;
+        plot_data.groups[ i ].genes = plot_points( plot_data.groups[ i ] );
         plot_groups.push( plot_data.groups[ i ] );
     }
     plot_data.groups = plot_groups;
@@ -291,82 +299,44 @@
 	}
 
 	// context viewer callback functions
-	function gene_clicked( gene_selection ) {
-		$.ajax({
-	        url:'/chado/phylo_slide/node/slide/',
-	        data: {
-	        // this is actually a phylonode_id
-	        gene: gene_selection.id,
-	        // all pages are protected against csrf so we need to pass the token for this page
-	            csrfmiddlewaretoken: '{{ csrf_token }}'
-	        },
-	        contentType: "application/json;charset=utf-8",
-	        dataType: "json",
-	        success: function(data) {
-				// pull the data out of the json we get back
-	        	var html = '<h4><a href="/chado/feature/'+gene_selection.id+'/">'+gene_selection.name+'</a></h4>'
-				// append the gene's families (if any)
-				html += 'Family: ';
-				if( gene_selection.family != '' ) {
-					html += '<a href="/chado/phylo/'+gene_selection.family+'/">'+family_names[gene_selection.family]+'</a>';
-				} else {
-					html += 'None';
-				}
-				html += '<br />';
-	        	for (var i = 0; i < data.links.length; i++) {
-	        	    for (var key in data.links[i]) {
-	        	        html += '<a href="'+data.links[i][key]+'">'+key+'</a><br/>'
-	        	    }
-	        	}
-	        	if (data.meta) {
-	        	    html += '<p>'+data.meta+'</p>'
-	        	}
-	        	$('#toggle').html(html);
-	        },
-	        error: function(ts) { 
-	        // this is for debugging, not production!
-	            alert(ts.responseText);
-	        }
-	    });
-		show_toggle();
-	}
 	var track_length = get_track_length( data );
-	function axis_clicked( axis_selection, gene_selection, rail_selection ) {
-		// add the track's links to the content box
-		var html = '<h4><a href="/chado/organism/'+data.groups[axis_selection].species_id+'/">'+data.groups[axis_selection].species_name+'</a> - <a href="/chado/feature/'+data.groups[axis_selection].chromosome_id+'/">'+data.groups[axis_selection].chromosome_name+'</a></h4>';
-		var l3 = '<a href="/chado/context_viewer/search/',
-			l4 = '<a href="/chado/context_viewer/synteny/',
-			l5 = '<a href="/chado/context_viewer/synteny2/';
-		var genes = '<ul>';
-		var families = [];
-		gene_selection.each(function(d) {
-			genes += '<li><a href="/chado/feature/'+d.id+'/">'+d.name+'</a>: '+d.fmin+' - '+d.fmax+'</li>';
-			if( d.family != '' ) {
-				genes += '<ul><li>Family: <a href="/chado/phylo/'+d.family+'/">'+family_names[d.family]+'</a></li></ul>'
-			}
-			// add links for the focus gene
-			if( d.x == (track_length-1)/2 ) {
-				l3 += d.id+'/';
-				l4 += d.id+'/';
-				l5 += d.id+'/';
-			}
-		});
-		genes += '</ul>';
-		l3 += '">Find similar tracks</a>';
-		l4 += '">Synteny miner</a>';
-		l5 += '">Synteny miner spaced</a>';
-		html += l5+'<br />'+l4+'<br />'+l3+'<br />Genes:'+genes;
-		$("#toggle").html(html);
-		show_toggle();
-	}
 
     function gene_clicked( gene_selected ) {
 
     }
     function axis_clicked( axis_selection, gene_selection, rail_selection ) {
+        $('#global').html('<img src="{% static 'gif/ajax-loader.gif' %}" />');
         // make the context synteny plot
-        context_synteny( 'local', color, plot_data, axis_selection );
+        context_synteny( 'local', color, plot_data, axis_selection, {"width":Math.max(document.getElementById('local').offsetWidth, document.getElementById('global').offsetWidth)} );
+	    var focus_id = data.groups[ 0 ].genes[ (data.groups[ 0 ].genes.length-1)/2 ].id;
+        var chromosome_id = data.groups[ axis_selection ].chromosome_id;
         //$('#plot #local').html( axis_selection );
+        if( global_data[ axis_selection ] === undefined ) {
+		    $.ajax({
+	            url:"{% url 'context_viewer_search_global_ajax' %}",
+	            data: {
+	                focus_id: focus_id,
+                    chromosome_id: chromosome_id,
+	                // all pages are protected against csrf so we need to pass the token for this page
+	                csrfmiddlewaretoken: '{{ csrf_token }}'
+	            },
+	            contentType: "application/json;charset=utf-8",
+	            dataType: "json",
+	            success: function(genes) {
+                    global_data[ axis_selection ] = genes;
+                    global_plot_data.groups[ axis_selection ].genes = genes;
+                    global_plot_data.groups[ axis_selection ].genes = plot_points( global_plot_data.groups[ axis_selection ] );
+                    context_synteny( 'global', color, global_plot_data, axis_selection, {"width":Math.max(document.getElementById('local').offsetWidth, document.getElementById('global').offsetWidth)} );
+	            },
+	            error: function(ts) { 
+	            // this is for debugging, not production!
+	                alert(ts.responseText);
+	            }
+	        });
+        }
+        if( global_data[ axis_selection ] !== undefined ) {
+            context_synteny( 'global', color, global_plot_data, axis_selection, {"width":Math.max(document.getElementById('local').offsetWidth, document.getElementById('global').offsetWidth)} );
+        }
     }
 
     // define the accessor used by the smith-waterman algorithm

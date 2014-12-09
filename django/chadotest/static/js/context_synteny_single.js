@@ -3,7 +3,8 @@ function context_synteny( container_id, color, data, i, optional_parameters ) {
     // get the optional parameters
     var gene_clicked = function( selection ) { },
         brush_callback = function( selected_group ) { },
-        selective_coloring = true;
+        selective_coloring = true,
+        w = document.getElementById(container_id).offsetWidth;
     if( optional_parameters !== undefined ) {
         if( optional_parameters.gene_clicked !== undefined ) {
             gene_clicked = optional_parameters.gene_clicked;
@@ -14,11 +15,13 @@ function context_synteny( container_id, color, data, i, optional_parameters ) {
         if( optional_parameters.selective_coloring !== undefined ) {
             selective_coloring = optional_parameters.selective_coloring;
         }
+        if( optional_parameters.width !== undefined ) {
+            w = optional_parameters.width;
+        }
     }
 
 	// set some variables
-	var w = document.getElementById(container_id).offsetWidth,
-        p = 75,
+	var p = 75,
         l = w-2*p,
 	    //p = 100,
         h = l;
