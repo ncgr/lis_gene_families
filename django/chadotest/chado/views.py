@@ -1149,7 +1149,7 @@ def context_viewer_search( request, template_name, focus_name=None ):
     # construct tracks for each chromosome
     import sys
     for chromosome_id, genes in chromosome_genes_map.iteritems():
-        #sys.stderr.write("for chromosome " + str(id_chromosome_map[chromosome_id].name) + " gene set length is " + str(len(genes))+"\n")
+        sys.stderr.write("for chromosome " + str(id_chromosome_map[chromosome_id].name) + " gene set length is " + str(len(genes))+"\n")
         if len( genes ) < 2:
             continue
         genes.sort( key=get_gene_order )
@@ -1172,12 +1172,13 @@ def context_viewer_search( request, template_name, focus_name=None ):
                 if size < max_length :
                     prev_size = size
                     if j+1 == len( genes ) and j > last_j and len(matched_families.keys()) >= num_matched_families :
-                        #sys.stderr.write("adding candidate for chromosome " + str(id_chromosome_map[chromosome_id].name) + " with first="+str(i)+", last="+str(j)+", size="+str(prev_size)+", hits="+str(j-i+1)+"\n")
+                        sys.stderr.write("adding candidate for chromosome " + str(id_chromosome_map[chromosome_id].name) + " with first="+str(i)+", last="+str(j)+", size="+str(prev_size)+", hits="+str(j-i+1)+", num_families_matched="+str(len(matched_families.keys()))+"\n")
                         candidates.append( { 'first':i, 'last':j, 'size':prev_size, 'hits':j-i+1 } )
                         last_j = j
                 else:
                     # no subsets allowed!
                     if prev_size > 0 and j-1 > last_j and len(matched_families.keys()) >= num_matched_families :
+                        sys.stderr.write("adding candidate for chromosome " + str(id_chromosome_map[chromosome_id].name) + " with first="+str(i)+", last="+str(j)+", size="+str(prev_size)+", hits="+str(j-i+1)+", num_families_matched="+str(len(matched_families.keys()))+"\n")
                         candidates.append( { 'first':i, 'last':j-1, 'size':prev_size, 'hits':j-i } )
                         last_j = j-1
                     break
