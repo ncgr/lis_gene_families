@@ -3,6 +3,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, HttpResponseBadRequest, Http404
 from django.utils import simplejson
+import json as pyjson
 from django.core.urlresolvers import reverse
 # file generation stuffs
 import cStringIO as StringIO
@@ -1037,16 +1038,6 @@ def context_viewer_search( request, template_name, focus_name=None ):
         except:
             pass
 
-
-    # get the focus gene of the query track
-    focus = Feature.objects.only( 'pk', 'name' ).get( pk=focus_id )
-    if not focus:
-        raise Http404
-    focus_order = list( GeneOrder.objects.filter( gene=focus ) )
-    if len( focus_order ) == 0:
-        raise Http404
-    focus_order = focus_order[ 0 ]
-
     # get the gene family type
     gene_family_type = list( Cvterm.objects.only( 'pk' ).filter( name='gene family' ) )
     if len( gene_family_type ) == 0:
@@ -1127,24 +1118,11 @@ def context_viewer_search( request, template_name, focus_name=None ):
     organisms = Organism.objects.only( 'genus', 'species' ).filter( pk__in=organism_ids )
     id_organism_map = dict( ( o.pk, o.genus[ 0 ]+'.'+o.species ) for o in organisms )
 
-    # userful variables for finding similar tracks
-    #adf: though apparently not used anymore...
-    query_size = num*2+1
-    stratification_coefficient = max_genes/( query_size*1.0 )
-    num_results = 20
-
     chromosome_candidates = {}
 
     # a function that will help us order genes
-    #def get_gene_order( g ):
-    #    return gene_order_map[ g.pk ]
     def get_gene_order( g_id ):
         return gene_order_map[ g_id ]
-
-    #adf: not used?
-    # a function that will help us order subsets by distance
-    def get_candidate_distance( c ):
-        return c['distance']
 
     # construct tracks for each chromosome
     import sys
@@ -1277,6 +1255,74 @@ def context_viewer_search( request, template_name, focus_name=None ):
     json += ','.join( groups )+']}'
 
     return render(request, template_name, {'json' : json, 'single' : single, 'num' : num, 'length' : max_length, 'match' : match, 'mismatch' : mismatch, 'gap' : gap, 'num_matched_families' : num_matched_families})
+
+# this function returns the all the GENES for the given chromosome that have the same family as the context derived from the given gene
+def context_viewer_search_global_ajax( request ):
+    # note: a lot of this code has been taken from context_viewer_search
+    # once it's set in stone we should look into encapsulation
+
+    if request.is_ajax():
+        if "focus_id" not in request.GET or "chromosome_id" not in request.GET:
+            raise Http404
+        # get the focus gene of the query track
+        focus_order = list( GeneOrder.objects.filter( gene__pk=request.GET["focus_id"] ) )
+        if len( focus_order ) == 0:
+            raise Http404
+        focus_order = focus_order[ 0 ]
+
+        # how many neighbours should there be?
+        num = 4
+        if 'num' in request.GET:
+            try:
+                num = int( request.GET[ 'num' ] )
+            except:
+                pass
+
+        # get the gene family type
+        gene_family_type = list( Cvterm.objects.only( 'pk' ).filter( name='gene family' ) )
+        if len( gene_family_type ) == 0:
+            raise Http404
+        gene_family_type = gene_family_type[ 0 ]
+
+        # get the neighbors of focus via their ordering
+        neighbor_orders = GeneOrder.objects.only( ).filter( chromosome=focus_order.chromosome_id, number__gte=focus_order.number-num, number__lte=focus_order.number+num ).order_by( 'number' )
+        neighbor_ids = neighbor_orders.values_list( 'gene_id', flat=True )
+
+        # actually get the gene families
+        neighbor_families = Featureprop.objects.only( 'value' ).filter( type=gene_family_type, feature__in=neighbor_ids )#.values_list( 'value', flat=True )
+        neighbor_family_map = dict( ( o.feature_id, o.value ) for o in neighbor_families )
+        neighbor_families = neighbor_families.values_list( 'value', flat=True )
+        family_ids = []
+        query_families = {}
+        for n in neighbor_families:
+            if n not in family_ids:
+                family_ids.append( n )
+                query_families[n] = 1
+
+        # find all genes with the same families (excluding the query genes)
+        chromosome_gene_orders = GeneOrder.objects.filter( chromosome=request.GET["chromosome_id"] )
+        chromosome_gene_ids = chromosome_gene_orders.values_list( "gene", flat=True )
+        related_genes = Featureprop.objects.only( 'feature' ).filter( type=gene_family_type, value__in=neighbor_families, feature__in=chromosome_gene_ids )
+        gene_family_map = dict( ( o.feature_id, o.value ) for o in related_genes )
+        related_gene_ids = gene_family_map.keys()
+
+        # get all the gene names
+        gene_names = Feature.objects.only( 'name' ).filter( pk__in=related_gene_ids )
+        gene_name_map = dict( ( o.pk, o.name ) for o in gene_names ) 
+
+        # get all the gene featurelocs
+        gene_locs = Featureloc.objects.only( 'fmin', 'fmax', 'strand' ).filter( feature__in=related_gene_ids )
+        gene_loc_map = dict( ( o.feature_id, o ) for o in gene_locs )
+
+        # make the json
+        gene_json = []
+        for g in related_gene_ids:
+            loc = gene_loc_map[ g ]
+            gene_json.append( {"name": gene_name_map[ g ], "id": g, "family": str( gene_family_map[ g ] ), "fmin": loc.fmin, "fmax": loc.fmax, "strand": loc.strand, "x":0, "y": 0} )
+        # return the plot data as encoded as json
+        return HttpResponse(simplejson.dumps( gene_json ), content_type='application/json; charset=utf8')
+        #return HttpResponse('OK')
+    return HttpResponseBadRequest('Bad Request')
 
 # https://github.com/kevinakwok/bioinfo/tree/master/Smith-Waterman
 def smith_waterman( seqA, seqB, accessor, new_element, match = 1, mismatch = 0, gap = -1 ):
