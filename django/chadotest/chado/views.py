@@ -469,7 +469,12 @@ def phylo_view_ajax(request):
                                 if species == 'medtr':
                                     slidedict['links'].append({'LIS Mt4.0 GBrowse':'http://medtr.comparative-legumes.org/gb2/gbrowse/Mt4.0?name='+gene})
                                     slidedict['links'].append({'LIS Mt3.5.1 GBrowse':'http://medtr.comparative-legumes.org/gb2/gbrowse/Mt3.5.1?name='+gene})
-                                    slidedict['links'].append({'JCVI JBrowse':'http://www.jcvi.org/medicago/jbrowse/?data=data%2Fjson%2Fmedicago&loc='+transcript})
+                                    try :
+                                        transcript 
+                                    except NameError:
+                                        slidedict['links'].append({'JCVI JBrowse':'http://www.jcvi.org/medicago/jbrowse/?data=data%2Fjson%2Fmedicago&loc='+gene+'.1'})
+                                    else:
+                                        slidedict['links'].append({'JCVI JBrowse':'http://www.jcvi.org/medicago/jbrowse/?data=data%2Fjson%2Fmedicago&loc='+transcript})
                                     slidedict['links'].append({'Mt HapMap':'http://www.medicagohapmap.org/fgb2/gbrowse/mt35/?name='+gene})
                                     slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=4432&searchText='+gene})
                                     slidedict['links'].append({'LegumeIP':'http://plantgrn.noble.org/LegumeIP/getseq.do?seq_acc=IMGA|'+gene})
@@ -503,7 +508,12 @@ def phylo_view_ajax(request):
                                     slidedict['links'].append({'Genoscope':'http://www.genoscope.cns.fr/cgi-bin/ggb/vitis/12X/gbrowse/vitis/?name='+gene})
                                     slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=2299&searchText='+gene})
                                 elif species == 'ambtr':
-                                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=4851&searchText='+transcript})
+                                    try:
+                                        transcript
+                                    except NameError:
+                                            sys.stderr.write("transcript is not defined here")
+                                    else:
+                                        slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=4851&searchText='+transcript})
                                 slidedict['links'].append({'google':'http://www.google.com/search?q='+gene})
             # internal nodes
 			else:
