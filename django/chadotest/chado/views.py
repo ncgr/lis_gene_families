@@ -491,6 +491,12 @@ def phylo_view_ajax(request):
                                 elif species == 'phavu':
                                     slidedict['links'].append({'LIS GBrowse':'http://phavu.comparative-legumes.org/gb2/gbrowse/Pv1.0/?name='+gene})
                                     slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=3253&searchText='+gene})
+                                elif species == 'aradu':
+                                    slidedict['links'].append({'PeanutBase GBrowse':'http://peanutbase.org/gb2/gbrowse/Aradu1.0/?q='+gene+';dbid=gene_models'})
+                                    slidedict['links'].append({'PeanutBase Gene Page':'http://peanutbase.org//feature/Arachis/duranensis/gene/'+gene})
+                                elif species == 'araip':
+                                    slidedict['links'].append({'PeanutBase GBrowse':'http://peanutbase.org/gb2/gbrowse/Araip1.0/?q='+gene+';dbid=gene_models'})
+                                    slidedict['links'].append({'PeanutBase Gene Page':'http://peanutbase.org//feature/Arachis/ipaensis/gene/'+gene})
                                 elif species == 'arath':
                                     slidedict['links'].append({'TAIR':'http://www.arabidopsis.org/servlets/TairObject?type=locus&name='+gene})
                                     slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=2296&searchText='+gene})
@@ -1001,14 +1007,14 @@ def context_viewer_search( request, template_name, focus_name=None ):
     single = 'single' in request.GET and request.GET['single'] == 'true'
 
     # how many neighbors should there be?
-    num = 4
+    num = 8
     if 'num' in request.GET:
         try:
             num = int( request.GET['num'] )
         except:
             pass
     # how many matched_families should there be?
-    num_matched_families = 3
+    num_matched_families = 6
     if 'num_matched_families' in request.GET:
         try:
             num_matched_families = int( request.GET['num_matched_families'] )
@@ -1029,13 +1035,13 @@ def context_viewer_search( request, template_name, focus_name=None ):
         num = max_num
 
     # what are the parameters for smith-waterman?
-    match = 1
+    match = 5
     if 'match' in request.GET:
         try:
             match = int( request.GET['match'] )
         except:
             pass
-    mismatch = 0 
+    mismatch = -1 
     if 'mismatch' in request.GET:
         try:
             mismatch = int( request.GET['mismatch'] )
