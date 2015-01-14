@@ -183,7 +183,7 @@
 
 	// context legend click callback
 	function legend_click( family_selection, gene_selection ) {
-		html = '<h4><a href="/chado/phylo/'+family_names[ family_selection ]+'/">'+family_names[ family_selection ]+'</a></h4>';
+		html = '<h4><a href="http://legumeinfo.org/chado_phylotree/'+family_names[ family_selection ]+'/">'+family_names[ family_selection ]+'</a></h4>';
 		html += 'Genes:<ul>';
 	    gene_selection.each(function(f) {
 			html += '<li><a href="/chado/feature/'+f.id+'/">'+f.name+'</a>: '+f.fmin+' - '+f.fmax+'</li>';
