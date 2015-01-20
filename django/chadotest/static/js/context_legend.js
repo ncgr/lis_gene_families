@@ -11,6 +11,9 @@ function context_legend( container_id, color, data, optional_parameters ) {
 	// get the family id name map
 	var family_names = get_family_name_map( data );
 
+
+    // omit any family that don't have a name
+    var fams = [];
 	// determine how many families will be in the legend
 	var family_size_map = get_family_size_map( data );
 	var num_fams = 0;
@@ -18,9 +21,13 @@ function context_legend( container_id, color, data, optional_parameters ) {
 	    for( fam in family_size_map ) {
 	    	if( family_size_map[ fam ] > 1 ) {
 	    		num_fams++;
+                fams.push( fam );
 	    	}
 	    }
     } else {
+        for( var fam in family_names ) {
+            fams.push( fam );
+        }
         num_fams = data.families.length;
     }
 
@@ -40,7 +47,8 @@ function context_legend( container_id, color, data, optional_parameters ) {
 
 	// add the legend groups
 	var legend_groups = legend.selectAll(".legend")
-	    .data(color.domain())
+	    //.data(color.domain())
+        .data(fams)
 	    .enter().append("g")
 	    .attr("class", "legend")
 	    .attr("transform", function(d, i) {

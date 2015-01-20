@@ -79,6 +79,7 @@
 {% block javascript %}
 <script type="text/javascript" src="{% static 'js/jquery-1.10.2.min.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/jquery-ui-1.10.3.custom.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/jquery.cookie.js' %}"></script>
 <script type="text/javascript" src="http://d3js.org/d3.v3.min.js"></script>
 <script type="text/javascript" src="{% static 'js/context.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/context_synteny.js' %}"></script>
@@ -91,9 +92,15 @@
 	var json = '{{ json|safe }}',
 		data = JSON.parse(json),
         context_data = JSON.parse(json),
-		color = d3.scale.category20(),
+		//color = d3.scale.category20(),
+        color = context_color,
 		family_names = get_family_name_map( data );
 	var remove_image = "{% static 'gif/close.png' %}";
+
+    // if there's a color object from the previous view
+    if( $.cookie("color_domain") !== undefined ) {
+        color.domain( JSON.parse($.cookie("color_domain")) );
+    }
 	
 	$(document).ready(function() {
 		// hide the toggle div
