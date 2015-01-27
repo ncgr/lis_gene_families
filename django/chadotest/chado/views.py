@@ -435,111 +435,110 @@ def phylo_view(request, phylotree_name, template_name):
     # we've got the goods
     return render(request, template_name, {'tree' : tree, 'xml' : xml, 'num_leafs' : num_leafs})
 
-
 def phylo_view_ajax(request):
-	if request.is_ajax():
-		try:
-                        import re;
-                        if 'phylonode' in request.GET:
-			    node = get_object_or_404(Phylonode, pk=request.GET['phylonode'])
-			    tree = get_object_or_404(Phylotree, pk=node.phylotree_id)
-                        elif 'gene' in request.GET:
-                            node = get_object_or_404(Feature, name=request.GET['gene'])
-                            node.label = node.name
-                            tree = None
-			slidedict = {}
+    if request.is_ajax():
+        try:
+            import re
+            if 'phylonode' in request.GET:
+                node = get_object_or_404(Phylonode, pk=request.GET['phylonode'])
+                tree = get_object_or_404(Phylotree, pk=node.phylotree_id)
+            elif 'gene' in request.GET:
+                node = get_object_or_404(Feature, name=request.GET['gene'])
+                node.label = node.name
+                tree = None
+            slidedict = {}
             # external nodes
-			if node.label:
-                                #import sys
-                                #sys.stderr.write("label is " + node.label + "\n")
-				slidedict['label'] = node.label
-				slidedict['meta'] = "This is meta information for "+node.label
-                                slidedict['links'] = []
-                                if tree is not None:
-                                    #FIXME: will need to check dbxref when we have more than phytozome trees
-                                    slidedict['links'].append({'Phytozome Gene Family':'http://phytozome.jgi.doe.gov/pz/portal.html#!showCluster?search=1&detail=0&method=4835&searchText=clusterid:'+tree.name})
-                                m = re.match('^([a-z]{5,5})\.(.*?)(\.[0-9]+)?$', node.label);
-                                species=m.group(1)
-                                gene=m.group(2)
-                                if m.group(3):
-                                    transcript=gene+m.group(3)
-                                #sys.stderr.write("species is " + species)
-                                #sys.stderr.write("gene is " + gene)
-                                #sys.stderr.write("transcript is " + transcript)
-                                if species == 'medtr':
-                                    slidedict['links'].append({'LIS Mt4.0 GBrowse':'http://medtr.comparative-legumes.org/gb2/gbrowse/Mt4.0?name='+gene})
-                                    slidedict['links'].append({'LIS Mt3.5.1 GBrowse':'http://medtr.comparative-legumes.org/gb2/gbrowse/Mt3.5.1?name='+gene})
-                                    try :
-                                        transcript 
-                                    except NameError:
-                                        slidedict['links'].append({'JCVI JBrowse':'http://www.jcvi.org/medicago/jbrowse/?data=data%2Fjson%2Fmedicago&loc='+gene+'.1'})
-                                    else:
-                                        slidedict['links'].append({'JCVI JBrowse':'http://www.jcvi.org/medicago/jbrowse/?data=data%2Fjson%2Fmedicago&loc='+transcript})
-                                    slidedict['links'].append({'Mt HapMap':'http://www.medicagohapmap.org/fgb2/gbrowse/mt35/?name='+gene})
-                                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=4432&searchText='+gene})
-                                    slidedict['links'].append({'LegumeIP':'http://plantgrn.noble.org/LegumeIP/getseq.do?seq_acc=IMGA|'+gene})
-                                    #for whatever reason, medicago seems to have gotten their nomenclature into NCBI
-                                    slidedict['links'].append({'NCBI Gene':'http://www.ncbi.nlm.nih.gov/gene/?term='+gene})
-                                    #but that doesn't mean that it gave other people the message!
-                                    slidedict['links'].append({'Genomicus':'http://www.genomicus.biologie.ens.fr/genomicus-plants/cgi-bin/search.pl?view=default&amp;query=MTR_'+gene.replace("Medtr","")})
-
-                                elif species == 'glyma':
-                                    slidedict['links'].append({'Soybase':'http://soybase.org/gb2/gbrowse/gmax2.0/?name='+gene})
-                                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=4433&searchText='+gene})
-                                    slidedict['links'].append({'SoyKB':'http://soykb.org/gene_card.php?gene='+gene})
-                                    slidedict['links'].append({'Genomicus':'http://www.genomicus.biologie.ens.fr/genomicus-plants/cgi-bin/search.pl?view=default&amp;query='+gene})
-                                elif species == 'phavu':
-                                    slidedict['links'].append({'LIS GBrowse':'http://phavu.comparative-legumes.org/gb2/gbrowse/Pv1.0/?name='+gene})
-                                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=3253&searchText='+gene})
-                                elif species == 'aradu':
-                                    slidedict['links'].append({'PeanutBase GBrowse':'http://peanutbase.org/gb2/gbrowse/Aradu1.0/?q='+gene+';dbid=gene_models'})
-                                    slidedict['links'].append({'PeanutBase Gene Page':'http://peanutbase.org//feature/Arachis/duranensis/gene/'+gene})
-                                elif species == 'araip':
-                                    slidedict['links'].append({'PeanutBase GBrowse':'http://peanutbase.org/gb2/gbrowse/Araip1.0/?q='+gene+';dbid=gene_models'})
-                                    slidedict['links'].append({'PeanutBase Gene Page':'http://peanutbase.org//feature/Arachis/ipaensis/gene/'+gene})
-                                elif species == 'arath':
-                                    slidedict['links'].append({'TAIR':'http://www.arabidopsis.org/servlets/TairObject?type=locus&name='+gene})
-                                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=2296&searchText='+gene})
-                                elif species == 'orysa':
-                                    slidedict['links'].append({'MSU':'http://rice.plantbiology.msu.edu/cgi-bin/gbrowse/rice/?name='+gene})
-                                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=3301&searchText='+gene})
-                                elif species == 'zeama':
-                                    slidedict['links'].append({'MaizeGDB':'http://maizegdb.org/cgi-bin/displaygenemodelrecord.cgi?id='+gene})
-                                    slidedict['links'].append({'Gramene':'http://www.gramene.org/Zea_mays/Gene/Summary?g='+gene})
-                                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=4431&searchText='+gene})
-                                elif species == 'solly':
-                                    slidedict['links'].append({'Sol Genomics Network':'http://solgenomics.net/gbrowse/bin/gbrowse/ITAG2.3_genomic/?name='+gene+'&h_feat='+gene})
-                                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=3308&searchText='+gene})
-                                elif species == 'vitvi':
-                                    slidedict['links'].append({'Genoscope':'http://www.genoscope.cns.fr/cgi-bin/ggb/vitis/12X/gbrowse/vitis/?name='+gene})
-                                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=2299&searchText='+gene})
-                                elif species == 'ambtr':
-                                    try:
-                                        transcript
-                                    except NameError:
-                                            sys.stderr.write("transcript is not defined here")
-                                    else:
-                                        slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=4851&searchText='+transcript})
-                                slidedict['links'].append({'google':'http://www.google.com/search?q='+gene})
+            if node.label:
+                #import sys
+                #sys.stderr.write("label is " + node.label + "\n")
+                slidedict['label'] = node.label
+                slidedict['meta'] = "This is meta information for "+node.label
+                slidedict['links'] = []
+                if tree is not None:
+                    #FIXME: will need to check dbxref when we have more than phytozome trees
+                    slidedict['links'].append({'Phytozome Gene Family':'http://phytozome.jgi.doe.gov/pz/portal.html#!showCluster?search=1&detail=0&method=4835&searchText=clusterid:'+tree.name})
+                m = re.match('^([a-z]{5,5})\.(.*?)(\.[0-9]+)?$', node.label);
+                species=m.group(1)
+                gene=m.group(2)
+                if m.group(3):
+                    transcript=gene+m.group(3)
+                #sys.stderr.write("species is " + species)
+                #sys.stderr.write("gene is " + gene)
+                #sys.stderr.write("transcript is " + transcript)
+                if species == 'medtr':
+                    slidedict['links'].append({'LIS Mt4.0 GBrowse':'http://medtr.comparative-legumes.org/gb2/gbrowse/Mt4.0?name='+gene})
+                    slidedict['links'].append({'LIS Mt3.5.1 GBrowse':'http://medtr.comparative-legumes.org/gb2/gbrowse/Mt3.5.1?name='+gene})
+                    try :
+                        transcript 
+                    except NameError:
+                        slidedict['links'].append({'JCVI JBrowse':'http://www.jcvi.org/medicago/jbrowse/?data=data%2Fjson%2Fmedicago&loc='+gene+'.1'})
+                    else:
+                        slidedict['links'].append({'JCVI JBrowse':'http://www.jcvi.org/medicago/jbrowse/?data=data%2Fjson%2Fmedicago&loc='+transcript})
+                    slidedict['links'].append({'Mt HapMap':'http://www.medicagohapmap.org/fgb2/gbrowse/mt35/?name='+gene})
+                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=4432&searchText='+gene})
+                    slidedict['links'].append({'LegumeIP':'http://plantgrn.noble.org/LegumeIP/getseq.do?seq_acc=IMGA|'+gene})
+                    #for whatever reason, medicago seems to have gotten their nomenclature into NCBI
+                    slidedict['links'].append({'NCBI Gene':'http://www.ncbi.nlm.nih.gov/gene/?term='+gene})
+                    #but that doesn't mean that it gave other people the message!
+                    slidedict['links'].append({'Genomicus':'http://www.genomicus.biologie.ens.fr/genomicus-plants/cgi-bin/search.pl?view=default&amp;query=MTR_'+gene.replace("Medtr","")})
+                
+                elif species == 'glyma':
+                    slidedict['links'].append({'Soybase':'http://soybase.org/gb2/gbrowse/gmax2.0/?name='+gene})
+                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=4433&searchText='+gene})
+                    slidedict['links'].append({'SoyKB':'http://soykb.org/gene_card.php?gene='+gene})
+                    slidedict['links'].append({'Genomicus':'http://www.genomicus.biologie.ens.fr/genomicus-plants/cgi-bin/search.pl?view=default&amp;query='+gene})
+                elif species == 'phavu':
+                    slidedict['links'].append({'LIS GBrowse':'http://phavu.comparative-legumes.org/gb2/gbrowse/Pv1.0/?name='+gene})
+                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=3253&searchText='+gene})
+                elif species == 'aradu':
+                    slidedict['links'].append({'PeanutBase GBrowse':'http://peanutbase.org/gb2/gbrowse/Aradu1.0/?q='+gene+';dbid=gene_models'})
+                    slidedict['links'].append({'PeanutBase Gene Page':'http://peanutbase.org//feature/Arachis/duranensis/gene/'+gene})
+                elif species == 'araip':
+                    slidedict['links'].append({'PeanutBase GBrowse':'http://peanutbase.org/gb2/gbrowse/Araip1.0/?q='+gene+';dbid=gene_models'})
+                    slidedict['links'].append({'PeanutBase Gene Page':'http://peanutbase.org//feature/Arachis/ipaensis/gene/'+gene})
+                elif species == 'arath':
+                    slidedict['links'].append({'TAIR':'http://www.arabidopsis.org/servlets/TairObject?type=locus&name='+gene})
+                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=2296&searchText='+gene})
+                elif species == 'orysa':
+                    slidedict['links'].append({'MSU':'http://rice.plantbiology.msu.edu/cgi-bin/gbrowse/rice/?name='+gene})
+                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=3301&searchText='+gene})
+                elif species == 'zeama':
+                    slidedict['links'].append({'MaizeGDB':'http://maizegdb.org/cgi-bin/displaygenemodelrecord.cgi?id='+gene})
+                    slidedict['links'].append({'Gramene':'http://www.gramene.org/Zea_mays/Gene/Summary?g='+gene})
+                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=4431&searchText='+gene})
+                elif species == 'solly':
+                    slidedict['links'].append({'Sol Genomics Network':'http://solgenomics.net/gbrowse/bin/gbrowse/ITAG2.3_genomic/?name='+gene+'&h_feat='+gene})
+                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=3308&searchText='+gene})
+                elif species == 'vitvi':
+                    slidedict['links'].append({'Genoscope':'http://www.genoscope.cns.fr/cgi-bin/ggb/vitis/12X/gbrowse/vitis/?name='+gene})
+                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=2299&searchText='+gene})
+                elif species == 'ambtr':
+                    try:
+                        transcript
+                    except NameError:
+                            sys.stderr.write("transcript is not defined here")
+                    else:
+                        slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=4851&searchText='+transcript})
+                slidedict['links'].append({'google':'http://www.google.com/search?q='+gene})
             # internal nodes
-			else:
-				slidedict['label'] = "Interior Node"
-                                slidedict['links'] = [{'CMTV':'http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://'+request.get_host()+'/chado/phylo/node/gff_download/'+str(node.phylonode_id)}]
-                                slidedict['links'].append({'NodeGraphWordCloud':'/chado/d3viz_force_directed/phylonode/viz/'+str(node.phylonode_id)}) 
-                                #TODO: extract the subset MSA for the sequences in the subtree
-                                #slidedict['links'].append({'MSA':'/chado/msa/'+str(node.feature_id)})
-                                #hack: use the naming convention to get the consensus feature; trees don't appear to
-                                #be easily connected with their MSAs otherwise
-                                #consensus_feature = features.get(uniquename=node.phylotree.name+'-consensus');
-                                #consensus_feature = Feature.objects.get(uniquename='consn.'+node.phylotree.name);
-                                #slidedict['links'].append({'MSA':'/chado/msa/'+str(consensus_feature.feature_id)})
-                                # load the context viewer with each node in the subtree as a focus gene 
-                                #slidedict['links'].append({'Context Viewer':'/chado/context_viewer/demo'+str(node.pk)})
-                                slidedict['links'].append({'Context Viewer':'/chado/context_viewer/'+str(node.pk)})
-			return HttpResponse(simplejson.dumps(slidedict), content_type = 'application/javascript; charset=utf8')
-		except:
-			return HttpResponse("bad request")
-                return HttpResponse("bad request")
+            else:
+                slidedict['label'] = "Interior Node"
+                slidedict['links'] = [{'CMTV':'http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://'+request.get_host()+'/chado/phylo/node/gff_download/'+str(node.phylonode_id)}]
+                slidedict['links'].append({'NodeGraphWordCloud':'/chado/d3viz_force_directed/phylonode/viz/'+str(node.phylonode_id)}) 
+                #TODO: extract the subset MSA for the sequences in the subtree
+                #slidedict['links'].append({'MSA':'/chado/msa/'+str(node.feature_id)})
+                #hack: use the naming convention to get the consensus feature; trees don't appear to
+                #be easily connected with their MSAs otherwise
+                #consensus_feature = features.get(uniquename=node.phylotree.name+'-consensus');
+                #consensus_feature = Feature.objects.get(uniquename='consn.'+node.phylotree.name);
+                #slidedict['links'].append({'MSA':'/chado/msa/'+str(consensus_feature.feature_id)})
+                # load the context viewer with each node in the subtree as a focus gene 
+                #slidedict['links'].append({'Context Viewer':'/chado/context_viewer/demo'+str(node.pk)})
+                slidedict['links'].append({'Context Viewer':'/chado/context_viewer/'+str(node.pk)})
+            return HttpResponse(simplejson.dumps(slidedict), content_type = 'application/javascript; charset=utf8')
+        except:
+            pass
+    return HttpResponse("bad request")
 
 
 def phylo_newick(request, phylotree_name, template_name):
