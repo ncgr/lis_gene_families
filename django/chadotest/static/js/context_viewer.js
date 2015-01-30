@@ -104,7 +104,7 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 			.attr("class", "tip")
 			.attr("transform", "translate(3, -14) rotate(-45)")
 			.attr("text-anchor", "left")
-			.html(function(e) {
+			.text(function(e) {
 				return e.name+": "+e.fmin+" - "+e.fmax;
 			});
 
@@ -150,7 +150,7 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 						.attr("class", "tip")
 						.attr("transform", "translate("+(length/2)+", 10) rotate(45)")
 						.attr("text-anchor", "left")
-						.html(function(e) {
+						.text(function(e) {
 							return rail_group.data();
 						});
 
