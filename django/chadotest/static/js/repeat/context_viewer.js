@@ -16,11 +16,11 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 	var w = d3.max([1000,document.getElementById(container_id).offsetWidth]),
 		rect_h = 18,
 		rect_pad = 2,
-		top_pad = 150,
+ 	        top_pad = 200,
 		bottom_pad = 50,
 	    pad = 20,
 	    l_pad = 150,
-	    left_pad = 200,
+	    left_pad = 250,
 		num_tracks = data.groups.length,
 	    num_genes = get_track_length( data ),
 		h = num_tracks*30+bottom_pad+top_pad,
@@ -104,7 +104,7 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 			.attr("class", "tip")
 			.attr("transform", "translate(3, -14) rotate(-45)")
 			.attr("text-anchor", "left")
-			.html(function(e) {
+			.text(function(e) {
 				return e.name+": "+e.fmin+" - "+e.fmax;
 			});
 
@@ -150,7 +150,7 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 						.attr("class", "tip")
 						.attr("transform", "translate("+(length/2)+", 10) rotate(45)")
 						.attr("text-anchor", "left")
-						.html(function(e) {
+						.text(function(e) {
 							return rail_group.data();
 						});
 
