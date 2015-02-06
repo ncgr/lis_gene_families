@@ -1300,20 +1300,6 @@ def context_viewer_search_repeat( request, template_name, focus_name=None ):
             num_matched_families = int( request.GET['num_matched_families'] )
         except:
             pass
-    ## the maximum context track size
-    #max_num = 40
-    #max_length = max_num
-    #if 'length' in request.GET:
-    #    if request.GET['length'] == 'double':
-    #        max_length = 2*num+1
-    #    else:
-    #        try:
-    #            max_length = int( request.GET['length'] )
-    #        except:
-    #           pass
-    #max_genes = max_num*2+1
-    #if num > max_num:
-    #    num = max_num
     # the number of non query family genes tolerated between each pair of family genes
     non_family = 5
     if 'non_family' in request.GET:
@@ -1354,7 +1340,7 @@ def context_viewer_search_repeat( request, template_name, focus_name=None ):
     neighbor_ids = neighbor_orders.values_list( 'gene_id', flat=True )
 
     # actually get the gene families
-    neighbor_families = Featureprop.objects.only( 'value' ).filter( type=gene_family_type, feature__in=neighbor_ids )#.values_list( 'value', flat=True )
+    neighbor_families = Featureprop.objects.only( 'value' ).filter( type=gene_family_type, feature__in=neighbor_ids )
     neighbor_family_map = dict( ( o.feature_id, o.value ) for o in neighbor_families )
     neighbor_families = neighbor_families.values_list( 'value', flat=True )
     family_ids = []
@@ -1395,8 +1381,7 @@ def context_viewer_search_repeat( request, template_name, focus_name=None ):
     # get the orders (and chromosomes) of the genes
     related_orders = GeneOrder.objects.only( 'number' ).filter( gene__in=related_gene_ids )
     gene_order_map = dict( ( o.gene_id, o.number ) for o in related_orders )
-    related_family_map = dict( ( o.feature_id, o.value ) for o in related_genes )
-
+    gene_family_map = dict( ( o.feature_id, o.value ) for o in related_genes )
     # group the genes by their chromosomes
     chromosome_genes_map = {}
     for o in related_orders:
@@ -1420,38 +1405,9 @@ def context_viewer_search_repeat( request, template_name, focus_name=None ):
     def get_gene_order( g_id ):
         return gene_order_map[ g_id ]
 
-    ## construct tracks for each chromosome
-    #for chromosome_id, genes in chromosome_genes_map.iteritems():
-    #    if len( genes ) < 2:
-    #        continue
-    #    genes.sort( key=get_gene_order )
-    #    # find all subsets of the genes of maximum order-gap size between first and last members <= max_length and whose symmetric difference and intersection with all other such sets are non-empty
-    #    candidates = []
-    #    last_j = 0
-    #    for i in range( len( genes )-1 ):
-    #        prev_size = 0
-    #        matched_families = {}
-    #        if genes[i] in related_family_map and query_families[related_family_map[genes[i]]] :
-    #            matched_families[ related_family_map[ genes[i] ] ] = 1
-    #        for j in range( i+1, len( genes ) ):
-    #            if genes[j] in related_family_map and query_families[related_family_map[genes[j]]] :
-    #                matched_families[ related_family_map[ genes[j] ] ] = 1
-    #            size = gene_order_map[ genes[ j ] ]-gene_order_map[ genes[ i ] ]+1
-    #            if size < max_length :
-    #                prev_size = size
-    #                if j+1 == len( genes ) and j > last_j and len(matched_families.keys()) >= num_matched_families :
-    #                    candidates.append( { 'first':i, 'last':j, 'size':prev_size, 'hits':j-i+1 } )
-    #                    last_j = j
-    #            else:
-    #                # no subsets allowed!
-    #                if prev_size > 0 and j-1 > last_j and len(matched_families.keys()) >= num_matched_families :
-    #                    candidates.append( { 'first':i, 'last':j-1, 'size':prev_size, 'hits':j-i } )
-    #                    last_j = j-1
-    #                break
-    #    if candidates:
-    #        chromosome_candidates[ chromosome_id ] = candidates
-
     # construct tracks for each chromosome
+    groups = [ query_group ]
+    y = 1
     for chromosome_id, genes in chromosome_genes_map.iteritems():
         if len( genes ) < 2:
             continue
@@ -1459,107 +1415,53 @@ def context_viewer_search_repeat( request, template_name, focus_name=None ):
         # find all disjoint subsets of the genes where all sequential genes in the set are separated by no more than non_family non query family genes
         candidates = []
         block = [ 0 ]
-        matched_families = set([ related_family_map[ genes[ 0 ] ] ])
+        matched_families = set([ gene_family_map[ genes[ 0 ] ] ])
+        # traverse the genes in the order they appear on the chromosome
         for i in range( 1, len( genes ) ):
-            if gene_order_map[ genes[ i ] ]-gene_order_map[ genes[ block[ -1 ] ] ]-1 <= non_family:
-                matched_families.add( related_family_map[ genes[ i ] ] )
+            # add the gene to the current block if it meets the non query family criteria
+            gap_size = gene_order_map[ genes[ i ] ]-gene_order_map[ genes[ block[ -1 ] ] ]-1
+            if gap_size <= non_family:
+                matched_families.add( gene_family_map[ genes[ i ] ] )
                 block.append( i )
-            else:
+            # otherwise, generate a track from the block and start a new block
+            if gap_size > non_family or i == len(genes)-1:
+                # generate a track from the block
                 if len( matched_families ) >= num_matched_families:
-                    size = gene_order_map[ genes[ block[ -1 ] ] ]-gene_order_map[ genes[ block[ 0 ] ] ]+1
-                    hits = block[ -1 ]-block[ 0 ]+1
-                    candidates.append( { 'first':block[ 0 ], 'last':block[ -1 ], 'size':size, 'hits':hits } )
+                    # get all the gene ids
+                    track_gene_ids = GeneOrder.objects.only( '' ).filter( chromosome=chromosome_id, number__gte=gene_order_map[ genes[ block[ 0 ] ] ], number__lte=gene_order_map[ genes[ block[ -1 ] ] ] ).values_list( 'gene_id', flat=True )
+                    # make sure all families are present in the json
+                    for f in matched_families:
+                        if f not in family_ids:
+                            family_ids.append( f )
+                    # get all the gene names
+                    gene_names = Feature.objects.only( 'name' ).filter( pk__in=track_gene_ids )
+                    gene_name_map = dict( ( o.pk, o.name ) for o in gene_names ) 
+                    # get all the gene featurelocs
+                    gene_locs = Featureloc.objects.only( 'fmin', 'fmax', 'strand' ).filter( feature__in=track_gene_ids )
+                    gene_loc_map = dict( ( o.feature_id, o ) for o in gene_locs )
+                    # make the track json
+                    gene_json = []
+                    for j in range( len( track_gene_ids ) ):
+                        g = track_gene_ids[ j ]
+                        family = gene_family_map[ g ] if g in gene_family_map else ''
+                        gene_json.append('{"name":"'+gene_name_map[ g ]+'", "id":'+str( g )+', "family":"'+family+'", "fmin":'+str( gene_loc_map[ g ].fmin )+', "fmax":'+str( gene_loc_map[ g ].fmax )+', "x":'+str( j )+', "y":'+str( y )+', "strand":'+str( gene_loc_map[ g ].strand )+'}')
+                    group = '{"species_name":"'+str( id_organism_map[ id_chromosome_map[ chromosome_id ].organism_id ] )+'", "species_id":'+str( id_chromosome_map[ chromosome_id ].organism_id )+', "chromosome_name":"'+id_chromosome_map[ chromosome_id ].name+'", "chromosome_id":'+str( chromosome_id )+', "genes":['+','.join( gene_json )+']}'
+                    groups.append( group )
+                    # prepare for the next track
+                    y += 1
+                # start the new block
                 block = [ i ]
-                matched_families = set([ related_family_map[ genes[ i ] ] ])
-        if candidates:
-            chromosome_candidates[ chromosome_id ] = candidates
+                matched_families = set([ gene_family_map[ genes[ i ] ] ])
 
-    # a helper function for accessing gene families during the alignment
-    def accessor( gene_tuple ):
-        return gene_tuple[1]
-
-    # a helper function for creating new tuple elements during the alignment
-    def new_element( value ):
-        return ( None, value )
-
-    # fill in the tracks
-    groups = [ query_group ]
-    y = 1
-    for chromosome_id, candidates in chromosome_candidates.iteritems():
-        for c in candidates:
-            # get all the gene ids
-            track_gene_ids = GeneOrder.objects.only( '' ).filter( chromosome=chromosome_id, number__gte=gene_order_map[ chromosome_genes_map[ chromosome_id ][ c[ 'first' ] ] ], number__lte=gene_order_map[ chromosome_genes_map[ chromosome_id ][ c[ 'last' ] ] ] ).values_list( 'gene_id', flat=True )
-
-            # get all the gene families
-            track_families = Featureprop.objects.only( 'value' ).filter( type=gene_family_type, feature__in=track_gene_ids )
-            gene_family_map = dict( ( o.feature_id, o.value ) for o in track_families )
-            for f in track_families.values_list( 'value', flat=True ):
-                if f not in family_ids:
-                    family_ids.append( f )
-
-            ## create a list of tuples to feed to smith and waterman
-            #align = []
-            #for g in track_gene_ids:
-            #    if g in gene_family_map:
-            #        align.append( ( g, gene_family_map[ g ] ) )
-            #    else:
-            #        align.append( ( g, -1 ) )
-
-            ## run smith-waterman on the forward and reverse of the track
-            #forward_score, forward_alignment = smith_waterman( align, query_align, accessor, new_element, match = match, mismatch = mismatch, gap = gap )
-            ##remove prepended '-' since it will get added again in the following call
-            #align.pop(0)
-            #reverse_score, reverse_alignment = smith_waterman( align[::-1], query_align, accessor, new_element, match = match, mismatch = mismatch, gap = gap )
-
-            ## only keep the remaining genes
-            #track_gene_ids = []
-            #if reverse_score > forward_score:
-            #    reverse_alignment = reverse_alignment[::-1]
-            #    for t in reverse_alignment:
-            #        if t[ 0 ]:
-            #            track_gene_ids.append( t[ 0 ] )
-            #else:
-            #    for t in forward_alignment:
-            #        if t[ 0 ]:
-            #            track_gene_ids.append( t[ 0 ] )
-
-            # exclude tracks with only one gene
-            if len( track_gene_ids ) < 2:
-                continue
-
-            # exclude single family tracks
-            if not single:
-                unique_families = set( gene_family_map.values() )
-                if( len( unique_families ) < 2 ):
-                    continue
-
-            # get all the gene names
-            track_names = Feature.objects.only( 'name' ).filter( pk__in=track_gene_ids )
-            gene_name_map = dict( ( o.pk, o.name ) for o in track_names ) 
-
-            # get all the gene featurelocs
-            track_locs = Featureloc.objects.only( 'fmin', 'fmax', 'strand' ).filter( feature__in=track_gene_ids )
-            gene_loc_map = dict( ( o.feature_id, o ) for o in track_locs )
-
-            genes = []
-            for i in range( len( track_gene_ids ) ):
-                g = track_gene_ids[ i ]
-                family = gene_family_map[ g ] if g in gene_family_map else ''
-                genes.append('{"name":"'+gene_name_map[ g ]+'", "id":'+str( g )+', "family":"'+family+'", "fmin":'+str( gene_loc_map[ g ].fmin )+', "fmax":'+str( gene_loc_map[ g ].fmax )+', "x":'+str( i )+', "y":'+str( y )+', "strand":'+str( gene_loc_map[ g ].strand )+'}')
-            group = '{"species_name":"'+str( id_organism_map[ id_chromosome_map[ chromosome_id ].organism_id ] )+'", "species_id":'+str( id_chromosome_map[ chromosome_id ].organism_id )+', "chromosome_name":"'+id_chromosome_map[ chromosome_id ].name+'", "chromosome_id":'+str( chromosome_id )+', "genes":['+','.join( genes )+']}'
-            groups.append( group )
-
-            y += 1
-
-    families = []
+    # make the family json
+    family_json = []
     for f in family_ids :
-        families.append('{"name":"'+f+'", "id":"'+f+'"}')
+        family_json.append('{"name":"'+f+'", "id":"'+f+'"}')
+    json = '{"families":['+','.join( family_json )+'], "groups":['
 
-    json = '{"families":['+','.join( families )+'], "groups":['
-
+    # make the final json
     json += ','.join( groups )+']}'
 
-    #return render(request, template_name, {'json' : json, 'single' : single, 'num' : num, 'length' : max_length, 'match' : match, 'mismatch' : mismatch, 'gap' : gap, 'num_matched_families' : num_matched_families})
     return render(request, template_name, {'json' : json, 'single' : single, 'num' : num, 'non_family' : non_family, 'match' : match, 'mismatch' : mismatch, 'gap' : gap, 'num_matched_families' : num_matched_families})
 
 # this function returns all the GENES for the given chromosome that have the same family as the context derived from the given gene
