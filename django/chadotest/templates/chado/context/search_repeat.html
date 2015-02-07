@@ -127,10 +127,18 @@
         </div>
       </div>
     </div>
+    <!--
     <div class="form-group">
       <label for="track_length" class="col-lg-2 control-label">Max length</label>
       <div class="col-lg-10">
         <input name="length" class="form-control" id="length" value="{{ length }}">
+      </div>
+    </div>
+    -->
+    <div class="form-group">
+      <label for="non_family" class="col-lg-2 control-label">Max non family members between genes</label>
+      <div class="col-lg-10">
+        <input name="non_family" class="form-control" id="non_family" value="{{ non_family }}">
       </div>
     </div>
     <legend>Alignment Parameters</legend>
@@ -181,12 +189,12 @@
 <script type="text/javascript" src="{% static 'js/jquery-ui-1.10.3.custom.min.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/jquery.cookie.js' %}"></script>
 <script src="http://d3js.org/d3.v3.min.js"></script>
-<script type="text/javascript" src="{% static 'js/repeat/context.js' %}"></script>
-<script type="text/javascript" src="{% static 'js/repeat/context_viewer.js' %}"></script>
-<script type="text/javascript" src="{% static 'js/repeat/context_legend.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/context.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/context_viewer.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/context_legend.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/smith.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/enhancement.js' %}"></script>
-<script type="text/javascript" src="{% static 'js/repeat/context_synteny_single.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/context_synteny_single.js' %}"></script>
 
 <script type="text/javascript">
     // make an object to hold the global data

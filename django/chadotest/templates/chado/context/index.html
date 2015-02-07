@@ -111,9 +111,9 @@
 		$.ajax({
 	        url:'/chado/phylo/node/slide/',
 	        data: {
-	        // this is actually a phylonode_id
-	        gene: gene_selection.name,
-	        // all pages are protected against csrf so we need to pass the token for this page
+	            // this is actually a phylonode_id
+	            gene: gene_selection.name,
+	            // all pages are protected against csrf so we need to pass the token for this page
 	            csrfmiddlewaretoken: '{{ csrf_token }}'
 	        },
 	        contentType: "application/json;charset=utf-8",

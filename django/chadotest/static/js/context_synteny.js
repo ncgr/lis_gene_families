@@ -148,7 +148,7 @@ function context_synteny( container_id, color, data, gene_clicked, brush_callbac
 	    		    .attr("class", "tip")
 					.attr("transform", "translate(0, -10) rotate(-45)")
 	    		    .attr("text-anchor", "middle")
-	    		    .html(function(e) { return e.name+": "+e.fmin+" - "+e.fmax; });
+	    		    .text(function(e) { return e.name+": "+e.fmin+" - "+e.fmax; });
 	
 	    		i++;
 			}

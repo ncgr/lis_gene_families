@@ -19,14 +19,16 @@ function context_legend( container_id, color, data, optional_parameters ) {
 	var num_fams = 0;
     if( optional_parameters.selective_coloring === undefined || optional_parameters.selective_coloring !== undefined && optional_parameters.selective_coloring ) {
 	    for( fam in family_size_map ) {
-	    	if( family_size_map[ fam ] > 1 ) {
+	    	if( fam != '' && family_size_map[ fam ] > 1 ) {
 	    		num_fams++;
                 fams.push( fam );
 	    	}
 	    }
     } else {
         for( var fam in family_names ) {
-            fams.push( fam );
+            if( fam != '' ) {
+                fams.push( fam );
+            }
         }
         num_fams = data.families.length;
     }
