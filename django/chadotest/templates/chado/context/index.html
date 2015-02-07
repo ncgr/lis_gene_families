@@ -124,7 +124,7 @@
 				// append the gene's families (if any)
 				html += 'Family: ';
 				if( gene_selection.family != '' ) {
-					html += '<a href="/chado/phylo/'+family_names[gene_selection.family]+'/">'+family_names[gene_selection.family]+'</a>';
+					html += '<a href="http://legumeinfo.org/chado_phylotree/'+family_names[gene_selection.family]+'/">'+family_names[gene_selection.family]+'</a>';
 				} else {
 					html += 'None';
 				}
@@ -158,7 +158,7 @@
 		gene_selection.each(function(d) {
 			genes += '<li><a href="/chado/feature/'+d.id+'/">'+d.name+'</a>: '+d.fmin+' - '+d.fmax+'</li>';
 			if( d.family != '' ) {
-				genes += '<ul><li>Family: <a href="/chado/phylo/'+family_names[d.family]+'/">'+family_names[d.family]+'</a></li></ul>'
+				genes += '<ul><li>Family: <a href="http://legumeinfo.org/chado_phylotree/'+family_names[d.family]+'/">'+family_names[d.family]+'</a></li></ul>'
 			}
 			// add links for the focus gene
 			if( d.x == (track_length-1)/2 ) {
