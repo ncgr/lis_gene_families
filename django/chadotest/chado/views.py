@@ -1148,8 +1148,10 @@ def context_viewer_search( request, template_name, focus_name=None ):
                 if len( matched_families ) >= num_matched_families:
                     # get all the gene ids
                     track_gene_ids = GeneOrder.objects.only( '' ).filter( chromosome=chromosome_id, number__gte=gene_order_map[ genes[ block[ 0 ] ] ], number__lte=gene_order_map[ genes[ block[ -1 ] ] ] ).values_list( 'gene_id', flat=True )
+                    track_gene_families = Featureprop.objects.only( 'value' ).filter( type=gene_family_type, feature_id__in=track_gene_ids )
+                    track_family_map = dict( ( o.feature_id, o.value ) for o in track_gene_families )
                     # make sure all families are present in the json
-                    for f in matched_families:
+                    for f in track_family_map.values():
                         if f not in family_ids:
                             family_ids.append( f )
                     # get all the gene names
@@ -1162,7 +1164,7 @@ def context_viewer_search( request, template_name, focus_name=None ):
                     gene_json = []
                     for j in range( len( track_gene_ids ) ):
                         g = track_gene_ids[ j ]
-                        family = gene_family_map[ g ] if g in gene_family_map else ''
+                        family = track_family_map[ g ] if g in track_family_map else ''
                         gene_json.append('{"name":"'+gene_name_map[ g ]+'", "id":'+str( g )+', "family":"'+family+'", "fmin":'+str( gene_loc_map[ g ].fmin )+', "fmax":'+str( gene_loc_map[ g ].fmax )+', "x":'+str( j )+', "y":'+str( y )+', "strand":'+str( gene_loc_map[ g ].strand )+'}')
                     group = '{"species_name":"'+str( id_organism_map[ id_chromosome_map[ chromosome_id ].organism_id ] )+'", "species_id":'+str( id_chromosome_map[ chromosome_id ].organism_id )+', "chromosome_name":"'+id_chromosome_map[ chromosome_id ].name+'", "chromosome_id":'+str( chromosome_id )+', "genes":['+','.join( gene_json )+']}'
                     groups.append( group )
