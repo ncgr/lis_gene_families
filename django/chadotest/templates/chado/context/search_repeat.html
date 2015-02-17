@@ -127,14 +127,6 @@
         </div>
       </div>
     </div>
-    <!--
-    <div class="form-group">
-      <label for="track_length" class="col-lg-2 control-label">Max length</label>
-      <div class="col-lg-10">
-        <input name="length" class="form-control" id="length" value="{{ length }}">
-      </div>
-    </div>
-    -->
     <div class="form-group">
       <label for="non_family" class="col-lg-2 control-label">Max non family members between genes</label>
       <div class="col-lg-10">
@@ -192,7 +184,7 @@
 <script type="text/javascript" src="{% static 'js/context.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/context_viewer.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/context_legend.js' %}"></script>
-<script type="text/javascript" src="{% static 'js/smith.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/repeat.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/enhancement.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/context_synteny_single.js' %}"></script>
 
@@ -362,7 +354,7 @@
     // align all the tracks with the query track
     alignments = [];
     for( var i = 1; i < data.groups.length; i++ ) {
-        var scoring = {match : {{ match }}, mismatch : {{ mismatch }}, gap : {{ gap }} };
+        var scoring = {match : {{ match }}, mismatch : {{ mismatch }}, gap : {{ gap }}, threshold: 5 };
         alignments.push( align( data.groups[ 0 ].genes, data.groups[ i ].genes, get_family, scoring ) );
     }
 
