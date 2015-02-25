@@ -1,17 +1,8 @@
 /*
- * Source:
- *	  http://my.so-net.net.tw/tzuyichao/javascript/forfun/smithwaterman/smith.waterman.html
- * Description:
- *    Smith-Waterman Algorithm in JavaScript
- *    只是實作不考慮 scoring matrix 和 gap penality 設定這個問題
- *    所以很多東西都定在global scope |-) 
- * Reference:
- *    http://en.wikipedia.org/wiki/Smith-Waterman_algorithm
- * Required: 
- *    enhancement.js
- * Author:
- *    Terence Chao, 2009
+ * this is an implementation of the repeat algorithm, by Durbin et al
+ * the code is derived from smtih.js
  */
+
 
 // define the default accessor
 function default_accessor( item ) {
@@ -27,8 +18,8 @@ var s = function( first, second, scoring ) {
 
 
 var smith = function( sequence, reference, accessor, scoring ) {
-    var rows = reference.length + 1;
-    var cols = sequence.length + 1;
+    var rows = reference.length + 1; // first item is at index 1
+    var cols = sequence.length + 1; // first item is at index 1
     var a = Array.matrix( cols, rows, 0 );
     var i = 0, j = 0;
     var choice = [ 0, 0, 0, 0 ];
@@ -54,24 +45,25 @@ var smith = function( sequence, reference, accessor, scoring ) {
         }
     }
 
-    // traceback
+    // traceback - make a track for each qualified path in the matrix
     i = 0;
-    j = sequence.length;
+    j = sequence.length+1; // start in the extra cell
 	var total_score = 0;
-    var qualified = false;
     while( !(i == 0 && j == 0) ) {
         if( i == 0 ) {
             j--;
             var max = a[j].max();
-            i = a[j].lastIndexOf( max );
-            qualified = max >= scoring.threshold;
-            if( qualified ) {
-                ref.unshift( clone(reference[i]));
+            var max_i = a[j].lastIndexOf( max );
+            // only use i if it's a match
+            if( max_i > 0  && j > 0 && accessor( reference[ max_i-1 ] ) === accessor( sequence[ j-1 ] ) ) {
+                i = max_i;
+                ref.unshift( clone(reference[i-1]) );
+                seq.unshift( clone(sequence[j-1]) );
                 total_score += max;
-            } else {
+            } else if( j > 0 ){
                 ref.unshift( null );
+                seq.unshift( clone( sequence[j-1] ) );
             }
-            seq.unshift( clone(sequence[j]));
         } else if ( j == 0 ) {
             i = 0;
         } else {
@@ -81,30 +73,34 @@ var smith = function( sequence, reference, accessor, scoring ) {
             switch( scores.indexOf( max ) ) {
                 // diag
                 case 0:
-                    if( qualified ) {
-                        ref.unshift( clone(reference[i-1]));
-                    } else {
-                        ref.unshift( null );
-                    }
-                    seq.unshift( clone(sequence[j-1]));
                     i--;
                     j--;
+                    if( i!= 0  && j != 0 ) {
+                        ref.unshift( clone(reference[i-1]) );
+                        seq.unshift( clone(sequence[j-1]) );
+                    } else if( i!= 0 ) {
+                        ref.unshift( clone(reference[i-1]) );
+                        seq.unshift( null );
+                    } else if( j!= 0 ) {
+                        ref.unshift( null );
+                        seq.unshift( clone(sequence[j-1]) );
+                    }
                     break;
                 // up
                 case 1:
-                    if( qualified ) {
-                        ref.unshift( null );
+                    i--;
+                    if( i != 0 ) {
+                        ref.unshift( clone(reference[i-1]) );
+                        seq.unshift( null );
                     }
-                    seq.unshift( clone(sequence[j-1]));
-                    j--;
                     break;
                  // left
                  case 2:
-                    if( qualified ) {
-                        ref.unshift( clone(reference[i-1]));
-                        seq.unshift( null );
+                    j--;
+                    if( j != 0 ) {
+                        ref.unshift( null );
+                        seq.unshift( clone(sequence[j-1]) );
                     }
-                    i--;
                     break;
             }
         }
@@ -130,20 +126,20 @@ var align = function( sequence, reference, accessor, scoring ) {
     if( scoring.gap === undefined ) {
         scoring.gap = -1;
     }
-	var forward = smith( sequence, reference, accessor, scoring );
+	var forwards = smith( sequence, reference, accessor, scoring );
     reference_clone = reference.slice(0);
 	reference_clone.reverse();
-	var reverse = smith( sequence, reference_clone, accessor, scoring );
-	if( forward[2] >= reverse[2] ) {
-		return [forward[0], forward[1]];
+	var reverses = smith( sequence, reference_clone, accessor, scoring );
+	if( forwards[2] >= reverses[2] ) {
+		return [forwards[0], forwards[1]];
 	} else {
         // clone each object in the array
         // flip the strand for each selected gene
-        for( var i = 0; i < reverse[1].length; i++ ) {
-            if( reverse[1][i] != null ) {
-                reverse[1][i].strand = -1*reverse[1][i].strand;
+        for( var i = 0; i < reverses[1].length; i++ ) {
+            if( reverses[1][i] != null ) {
+                reverses[1][i].strand = -1*reverses[1][i].strand;
             }
         }
-	    return [reverse[0], reverse[1]];
+	    return [reverses[0], reverses[1]];
     }
 }

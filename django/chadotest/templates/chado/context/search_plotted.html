@@ -357,6 +357,13 @@
         var scoring = {match : {{ match }}, mismatch : {{ mismatch }}, gap : {{ gap }} };
         alignments.push( align( data.groups[ 0 ].genes, data.groups[ i ].genes, get_family, scoring ) );
     }
+    console.log("alignments");
+    for( var i = 0; i < alignments.length; i++ ) {
+        console.log("seq: "+alignments[i][0].length);
+        console.log(alignments[i][0]);
+        console.log("ref: "+alignments[i][1].length);
+        console.log(alignments[i][1]);
+    }
 
     // merge the alignments
     var result_tracks = data.groups.slice( 1 );

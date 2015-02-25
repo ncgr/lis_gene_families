@@ -356,6 +356,7 @@
     for( var i = 1; i < data.groups.length; i++ ) {
         var scoring = {match : {{ match }}, mismatch : {{ mismatch }}, gap : {{ gap }}, threshold: 0 };
         alignments.push( align( data.groups[ 0 ].genes, data.groups[ i ].genes, get_family, scoring ) );
+        //alignments.concat( align( data.groups[ 0 ].genes, data.groups[ i ].genes, get_family, scoring ) );
     }
 
     // merge the alignments
