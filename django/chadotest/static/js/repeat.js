@@ -78,6 +78,12 @@ var smith = function( sequence, reference, accessor, scoring ) {
                     if( i!= 0  && j != 0 ) {
                         ref.unshift( clone(reference[i-1]) );
                         seq.unshift( clone(sequence[j-1]) );
+                    } else if( i!= 0 ) {
+                        ref.unshift( clone(reference[i-1]) );
+                        seq.unshift( null );
+                    } else if( j!= 0 ) {
+                        ref.unshift( null );
+                        seq.unshift( clone(sequence[j-1]) );
                     }
                     break;
                 // up
