@@ -73,11 +73,11 @@ function get_family_size_map( data ) {
 
 // merges multiple alignments and sets coordinates for the context viewer
 function merge_alignments( context_data, selected_groups, alignments ) {
-    var num_groups = context_data.groups.length;
+    var num_groups = context_data.groups.length,
+        query_length = context_data.groups[0].genes.length;
     // update the context data with the alignment
     for( var k = 0; k < alignments.length; k++ ) {
         var query_count = 0,
-            query_length = context_data.groups[0].genes.length,
             pre_query = 0,
             insertion_count = 0,
             alignment = alignments[k],
