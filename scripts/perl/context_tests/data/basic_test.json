@@ -18,6 +18,17 @@
         {"gene_name": "9-rev", "family_value": "b"},
         {"gene_name": "10-rev", "family_value": "a"},
 
+        {"gene_name": "6-segdup1", "family_value": "a"},
+        {"gene_name": "7-segdup1", "family_value": "b"},
+        {"gene_name": "8-segdup1", "family_value": "c"},
+        {"gene_name": "9-segdup1", "family_value": "d"},
+        {"gene_name": "10-segdup1", "family_value": "e"},
+        {"gene_name": "6-segdup2", "family_value": "a"},
+        {"gene_name": "7-segdup2", "family_value": "b"},
+        {"gene_name": "8-segdup2", "family_value": "c"},
+        {"gene_name": "9-segdup2", "family_value": "d"},
+        {"gene_name": "10-segdup2", "family_value": "e"},
+
         {"gene_name": "11", "family_value": "b"},
         {"gene_name": "12", "family_value": "c"},
         {"gene_name": "13", "family_value": "d"},
@@ -66,7 +77,17 @@
         {"gene_name": "49", "family_value": "d"},
         {"gene_name": "50", "family_value": "c"},
         {"gene_name": "51", "family_value": "b"},
-        {"gene_name": "52", "family_value": "e"}
+        {"gene_name": "52", "family_value": "e"},
+
+        {"gene_name": "53", "family_value": "a"},
+        {"gene_name": "x1", "family_value": "x"},
+        {"gene_name": "54", "family_value": "b"},
+        {"gene_name": "x2", "family_value": "x"},
+        {"gene_name": "55", "family_value": "c"},
+        {"gene_name": "x3", "family_value": "x"},
+        {"gene_name": "56", "family_value": "d"},
+        {"gene_name": "x4", "family_value": "x"},
+        {"gene_name": "57", "family_value": "e"}
     ],
     "gene_orders": [
         {"chromosome_name": "one", "gene_name": "1", "gene_number": 1},
@@ -86,6 +107,17 @@
         {"chromosome_name": "two-rev", "gene_name": "8-rev", "gene_number": 3},
         {"chromosome_name": "two-rev", "gene_name": "9-rev", "gene_number": 2},
         {"chromosome_name": "two-rev", "gene_name": "10-rev", "gene_number": 1},
+
+        {"chromosome_name": "two-segdup", "gene_name": "6-segdup1", "gene_number": 1},
+        {"chromosome_name": "two-segdup", "gene_name": "7-segdup1", "gene_number": 2},
+        {"chromosome_name": "two-segdup", "gene_name": "8-segdup1", "gene_number": 3},
+        {"chromosome_name": "two-segdup", "gene_name": "9-segdup1", "gene_number": 4},
+        {"chromosome_name": "two-segdup", "gene_name": "10-segdup1", "gene_number": 5},
+        {"chromosome_name": "two-segdup", "gene_name": "6-segdup2", "gene_number": 6},
+        {"chromosome_name": "two-segdup", "gene_name": "7-segdup2", "gene_number": 7},
+        {"chromosome_name": "two-segdup", "gene_name": "8-segdup2", "gene_number": 8},
+        {"chromosome_name": "two-segdup", "gene_name": "9-segdup2", "gene_number": 9},
+        {"chromosome_name": "two-segdup", "gene_name": "10-segdup2", "gene_number": 10},
 
         {"chromosome_name": "three", "gene_name": "11", "gene_number": 1},
         {"chromosome_name": "three", "gene_name": "12", "gene_number": 2},
@@ -135,6 +167,16 @@
         {"chromosome_name": "ten", "gene_name": "49", "gene_number": 2},
         {"chromosome_name": "ten", "gene_name": "50", "gene_number": 3},
         {"chromosome_name": "ten", "gene_name": "51", "gene_number": 4},
-        {"chromosome_name": "ten", "gene_name": "52", "gene_number": 5}
+        {"chromosome_name": "ten", "gene_name": "52", "gene_number": 5},
+
+        {"chromosome_name": "eleven", "gene_name": "53", "gene_number": 1},
+        {"chromosome_name": "eleven", "gene_name": "x1", "gene_number": 2},
+        {"chromosome_name": "eleven", "gene_name": "54", "gene_number": 3},
+        {"chromosome_name": "eleven", "gene_name": "x2", "gene_number": 4},
+        {"chromosome_name": "eleven", "gene_name": "55", "gene_number": 5},
+        {"chromosome_name": "eleven", "gene_name": "x3", "gene_number": 6},
+        {"chromosome_name": "eleven", "gene_name": "56", "gene_number": 7},
+        {"chromosome_name": "eleven", "gene_name": "x4", "gene_number": 8},
+        {"chromosome_name": "eleven", "gene_name": "57", "gene_number": 9}
     ]
 }
