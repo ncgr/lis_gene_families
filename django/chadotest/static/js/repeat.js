@@ -48,7 +48,6 @@ var smith = function( sequence, reference, accessor, scoring ) {
     // traceback - make a track for each qualified path in the matrix
     i = 0;
     j = cols; // start in the extra cell
-	var total_score = 0;
     var saving = false;
     while( !(i == 0 && j == 0) ) {
         if( i == 0 ) {
@@ -57,7 +56,6 @@ var smith = function( sequence, reference, accessor, scoring ) {
             var max_i = a[j].lastIndexOf( max );
             // start a new alignment only if i is a matcha
             if( max_i > 0  && j > 0 && accessor( reference[ j-1 ] ) === accessor( sequence[ max_i-1 ] ) ) {
-                total_score += max;
                 i = max_i;
                 // does the alignment's score meet the threshold
                 saving = max >= scoring.threshold;
@@ -125,7 +123,7 @@ var smith = function( sequence, reference, accessor, scoring ) {
         }
     }
     
-    return [alignments, total_score];
+    return alignments;
 };
 
 // returns the higher scoring alignment - forward or reverse
@@ -152,18 +150,16 @@ var align = function( sequence, reference, accessor, scoring ) {
     reference_clone = reference.slice(0);
 	reference_clone.reverse();
 	var reverses = smith( sequence, reference_clone, accessor, scoring );
-	if( forwards[1] >= reverses[1] ) {
-		return forwards[0];
-	} else {
-        // clone each object in the arrays
-        // flip the strand for each selected gene
-        for( var i = 0; i < reverses[0].length; i++ ) {
-            for( var j = 0; j < reverses[0][ i ].length; j++ ) {
-                if( reverses[0][ i ][ j ] != null ) {
-                    reverses[0][ i ][ j ].strand = -1*reverses[0][ i ][ j ].strand;
-                }
+    // clone each object in the arrays
+    // flip the strand for each selected gene
+    var output = forwards;
+    for( var i = 0; i < reverses.length; i++ ) {
+        for( var j = 0; j < reverses[ i ][ 1 ].length; j++ ) {
+            if( reverses[ i ][ 1 ][ j ] != null ) {
+                reverses[ i ][ 1 ][ j ].strand = -1*reverses[ i ][ 1 ][ j ].strand;
             }
         }
-	    return reverses[0];
+        output.push( reverses[ i ] );
     }
+	return output;
 }
