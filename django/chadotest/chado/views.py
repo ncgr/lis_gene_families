@@ -1047,6 +1047,12 @@ def context_viewer_search( request, template_name, focus_name=None ):
             gap = int( request.GET['gap'] )
         except:
             pass
+    threshold = 25
+    if 'threshold' in request.GET:
+        try:
+            threshold = int( request.GET['threshold'] )
+        except:
+            pass
 
     # get the gene family type
     gene_family_type = list( Cvterm.objects.only( 'pk' ).filter( name='gene family' ) )
@@ -1183,7 +1189,7 @@ def context_viewer_search( request, template_name, focus_name=None ):
     # make the final json
     json += ','.join( groups )+']}'
 
-    return render(request, template_name, {'json' : json, 'single' : single, 'num' : num, 'non_family' : non_family, 'match' : match, 'mismatch' : mismatch, 'gap' : gap, 'num_matched_families' : num_matched_families})
+    return render(request, template_name, {'json' : json, 'single' : single, 'num' : num, 'non_family' : non_family, 'match' : match, 'mismatch' : mismatch, 'gap' : gap, 'threshold' : threshold, 'num_matched_families' : num_matched_families})
 
 
 # this function returns all the GENES for the given chromosome that have the same family as the context derived from the given gene

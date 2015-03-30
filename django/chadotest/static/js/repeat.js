@@ -18,13 +18,13 @@ var s = function( first, second, scoring ) {
 
 
 var smith = function( sequence, reference, accessor, scoring ) {
-    var rows = reference.length + 1; // first item is at index 1
-    var cols = sequence.length + 1; // first item is at index 1
+    var rows = sequence.length + 1; // first item is at index 1
+    var cols = reference.length + 1; // first item is at index 1
     var a = Array.matrix( cols, rows, 0 );
     var i = 0, j = 0;
     var choice = [ 0, 0, 0, 0 ];
-    var ref = [];
-    var seq = [];
+    var alignments = [];
+    var index = -1;
     var score_diag, score_up, scroe_left;
     
     // populate the matrix
@@ -38,7 +38,7 @@ var smith = function( sequence, reference, accessor, scoring ) {
         // handle starts of matches and extensions
         for( i=1; i<rows; i++ ) {
             choice[0] = a[j][0];
-            choice[1] = a[j-1][i-1] + s( accessor(reference[i-1]), accessor(sequence[j-1]), scoring );
+            choice[1] = a[j-1][i-1] + s( accessor(reference[j-1]), accessor(sequence[i-1]), scoring );
             choice[2] = a[j-1][i] + scoring.gap;
             choice[3] = a[j][i-1] + scoring.gap;
             a[j][i] = choice.max();
@@ -47,23 +47,33 @@ var smith = function( sequence, reference, accessor, scoring ) {
 
     // traceback - make a track for each qualified path in the matrix
     i = 0;
-    j = sequence.length+1; // start in the extra cell
-	var total_score = 0;
+    j = cols; // start in the extra cell
+    var saving = false;
     while( !(i == 0 && j == 0) ) {
         if( i == 0 ) {
             j--;
             var max = a[j].max();
             var max_i = a[j].lastIndexOf( max );
-            // only use i if it's a match
-            if( max_i > 0  && j > 0 && accessor( reference[ max_i-1 ] ) === accessor( sequence[ j-1 ] ) ) {
+            // start a new alignment only if i is a matcha
+            if( max_i > 0  && j > 0 && accessor( reference[ j-1 ] ) === accessor( sequence[ max_i-1 ] ) ) {
                 i = max_i;
-                ref.unshift( clone(reference[i-1]) );
-                seq.unshift( clone(sequence[j-1]) );
-                total_score += max;
-            } else if( j > 0 ){
-                ref.unshift( null );
-                seq.unshift( clone( sequence[j-1] ) );
+                // does the alignment's score meet the threshold
+                saving = max >= scoring.threshold;
+                if( saving ) {
+                    alignments.push( [[],[]] );
+                    index++;
+                    for( var k = sequence.length-1; k >= i; k-- ) {
+                        alignments[ index ][ 0 ].push( clone(sequence[ k ]) );
+                        alignments[ index ][ 1 ].push( null );
+                    }
+                    alignments[ index ][ 0 ].unshift( clone(sequence[i-1]) );
+                    alignments[ index ][ 1 ].unshift( clone(reference[j-1]) );
+                }
             }
+            //} else if( j > 0 ){
+            //    alignments[ index ][ 0 ].unshift( null );
+            //    alignments[ index ][ 1 ].unshift( clone( reference[j-1] ) );
+            //}
         } else if ( j == 0 ) {
             i = 0;
         } else {
@@ -75,38 +85,45 @@ var smith = function( sequence, reference, accessor, scoring ) {
                 case 0:
                     i--;
                     j--;
-                    if( i!= 0  && j != 0 ) {
-                        ref.unshift( clone(reference[i-1]) );
-                        seq.unshift( clone(sequence[j-1]) );
-                    } else if( i!= 0 ) {
-                        ref.unshift( clone(reference[i-1]) );
-                        seq.unshift( null );
-                    } else if( j!= 0 ) {
-                        ref.unshift( null );
-                        seq.unshift( clone(sequence[j-1]) );
+                    // no alignments happen in the first row or column
+                    if( saving ) {
+                        if( i >  0  && j > 0 ) {
+                            alignments[ index ][ 0 ].unshift( clone(sequence[i-1]) );
+                            alignments[ index ][ 1 ].unshift( clone(reference[j-1]) );
+                        } else if( j > 0 ) {
+                            alignments[ index ][ 0 ].unshift( null );
+                            alignments[ index ][ 1 ].unshift( clone(reference[j-1]) );
+                        } else if( i > 0 ) {
+                            alignments[ index ][ 0 ].unshift( clone(sequence[i-1]) );
+                            alignments[ index ][ 1 ].unshift( null );
+                        }
                     }
                     break;
                 // up
                 case 1:
                     i--;
-                    if( i != 0 ) {
-                        ref.unshift( clone(reference[i-1]) );
-                        seq.unshift( null );
+                    if( saving ) {
+                        if( i > 0 ) {
+                            alignments[ index ][ 0 ].unshift( clone(sequence[i-1]) );
+                            alignments[ index ][ 1 ].unshift( null );
+                        }
                     }
                     break;
-                 // left
-                 case 2:
+                // left
+                case 2:
                     j--;
-                    if( j != 0 ) {
-                        ref.unshift( null );
-                        seq.unshift( clone(sequence[j-1]) );
+                    if( saving ) {
+                        if( j > 0 ) {
+                            alignments[ index ][ 0 ].unshift( null );
+                            alignments[ index ][ 1 ].unshift( clone(reference[j-1]) );
+                        }
                     }
                     break;
             }
         }
     }
     
-    return [seq, ref, total_score];
+    return alignments;
 };
 
 // returns the higher scoring alignment - forward or reverse
@@ -126,20 +143,23 @@ var align = function( sequence, reference, accessor, scoring ) {
     if( scoring.gap === undefined ) {
         scoring.gap = -1;
     }
+    if( scoring.threshold === undefined ) {
+        scoring.threshold = 10;
+    }
 	var forwards = smith( sequence, reference, accessor, scoring );
     reference_clone = reference.slice(0);
 	reference_clone.reverse();
 	var reverses = smith( sequence, reference_clone, accessor, scoring );
-	if( forwards[2] >= reverses[2] ) {
-		return [forwards[0], forwards[1]];
-	} else {
-        // clone each object in the array
-        // flip the strand for each selected gene
-        for( var i = 0; i < reverses[1].length; i++ ) {
-            if( reverses[1][i] != null ) {
-                reverses[1][i].strand = -1*reverses[1][i].strand;
+    // clone each object in the arrays
+    // flip the strand for each selected gene
+    var output = forwards;
+    for( var i = 0; i < reverses.length; i++ ) {
+        for( var j = 0; j < reverses[ i ][ 1 ].length; j++ ) {
+            if( reverses[ i ][ 1 ][ j ] != null ) {
+                reverses[ i ][ 1 ][ j ].strand = -1*reverses[ i ][ 1 ][ j ].strand;
             }
         }
-	    return [reverses[0], reverses[1]];
+        output.push( reverses[ i ] );
     }
+	return output;
 }
