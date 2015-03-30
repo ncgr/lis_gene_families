@@ -49,23 +49,28 @@ var smith = function( sequence, reference, accessor, scoring ) {
     i = 0;
     j = cols; // start in the extra cell
 	var total_score = 0;
+    var saving = false;
     while( !(i == 0 && j == 0) ) {
         if( i == 0 ) {
             j--;
             var max = a[j].max();
             var max_i = a[j].lastIndexOf( max );
-            // start a new alignment only if i is a match
+            // start a new alignment only if i is a matcha
             if( max_i > 0  && j > 0 && accessor( reference[ j-1 ] ) === accessor( sequence[ max_i-1 ] ) ) {
                 total_score += max;
                 i = max_i;
-                alignments.push( [[],[]] );
-                index++;
-                for( var k = sequence.length-1; k >= i; k-- ) {
-                    alignments[ index ][ 0 ].push( clone(sequence[ k ]) );
-                    alignments[ index ][ 1 ].push( null );
+                // does the alignment's score meet the threshold
+                saving = max >= scoring.threshold;
+                if( saving ) {
+                    alignments.push( [[],[]] );
+                    index++;
+                    for( var k = sequence.length-1; k >= i; k-- ) {
+                        alignments[ index ][ 0 ].push( clone(sequence[ k ]) );
+                        alignments[ index ][ 1 ].push( null );
+                    }
+                    alignments[ index ][ 0 ].unshift( clone(sequence[i-1]) );
+                    alignments[ index ][ 1 ].unshift( clone(reference[j-1]) );
                 }
-                alignments[ index ][ 0 ].unshift( clone(sequence[i-1]) );
-                alignments[ index ][ 1 ].unshift( clone(reference[j-1]) );
             }
             //} else if( j > 0 ){
             //    alignments[ index ][ 0 ].unshift( null );
@@ -83,31 +88,37 @@ var smith = function( sequence, reference, accessor, scoring ) {
                     i--;
                     j--;
                     // no alignments happen in the first row or column
-                    if( i >  0  && j > 0 ) {
-                        alignments[ index ][ 0 ].unshift( clone(sequence[i-1]) );
-                        alignments[ index ][ 1 ].unshift( clone(reference[j-1]) );
-                    } else if( j > 0 ) {
-                        alignments[ index ][ 0 ].unshift( null );
-                        alignments[ index ][ 1 ].unshift( clone(reference[j-1]) );
-                    } else if( i > 0 ) {
-                        alignments[ index ][ 0 ].unshift( clone(sequence[i-1]) );
-                        alignments[ index ][ 1 ].unshift( null );
+                    if( saving ) {
+                        if( i >  0  && j > 0 ) {
+                            alignments[ index ][ 0 ].unshift( clone(sequence[i-1]) );
+                            alignments[ index ][ 1 ].unshift( clone(reference[j-1]) );
+                        } else if( j > 0 ) {
+                            alignments[ index ][ 0 ].unshift( null );
+                            alignments[ index ][ 1 ].unshift( clone(reference[j-1]) );
+                        } else if( i > 0 ) {
+                            alignments[ index ][ 0 ].unshift( clone(sequence[i-1]) );
+                            alignments[ index ][ 1 ].unshift( null );
+                        }
                     }
                     break;
                 // up
                 case 1:
                     i--;
-                    if( i > 0 ) {
-                        alignments[ index ][ 0 ].unshift( clone(sequence[i-1]) );
-                        alignments[ index ][ 1 ].unshift( null );
+                    if( saving ) {
+                        if( i > 0 ) {
+                            alignments[ index ][ 0 ].unshift( clone(sequence[i-1]) );
+                            alignments[ index ][ 1 ].unshift( null );
+                        }
                     }
                     break;
                 // left
                 case 2:
                     j--;
-                    if( j > 0 ) {
-                        alignments[ index ][ 0 ].unshift( null );
-                        alignments[ index ][ 1 ].unshift( clone(reference[j-1]) );
+                    if( saving ) {
+                        if( j > 0 ) {
+                            alignments[ index ][ 0 ].unshift( null );
+                            alignments[ index ][ 1 ].unshift( clone(reference[j-1]) );
+                        }
                     }
                     break;
             }
@@ -133,6 +144,9 @@ var align = function( sequence, reference, accessor, scoring ) {
     }
     if( scoring.gap === undefined ) {
         scoring.gap = -1;
+    }
+    if( scoring.threshold === undefined ) {
+        scoring.threshold = 10;
     }
 	var forwards = smith( sequence, reference, accessor, scoring );
     reference_clone = reference.slice(0);
