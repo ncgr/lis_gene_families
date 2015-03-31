@@ -47,11 +47,10 @@ var smith = function( sequence, reference, accessor, scoring ) {
 
     // traceback - make a track for each qualified path in the matrix
     i = 0;
-    j = cols; // start in the extra cell
+    j = cols-1; // start in the extra cell
     var saving = false;
     while( !(i == 0 && j == 0) ) {
         if( i == 0 ) {
-            j--;
             var max = a[j].max();
             var max_i = a[j].lastIndexOf( max );
             // start a new alignment only if i is a matcha
@@ -69,11 +68,9 @@ var smith = function( sequence, reference, accessor, scoring ) {
                     alignments[ index ][ 0 ].unshift( clone(sequence[i-1]) );
                     alignments[ index ][ 1 ].unshift( clone(reference[j-1]) );
                 }
+            } else {
+                j--;
             }
-            //} else if( j > 0 ){
-            //    alignments[ index ][ 0 ].unshift( null );
-            //    alignments[ index ][ 1 ].unshift( clone( reference[j-1] ) );
-            //}
         } else if ( j == 0 ) {
             i = 0;
         } else {
