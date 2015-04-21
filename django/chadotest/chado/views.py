@@ -992,6 +992,11 @@ def context_viewer_json(focus_genes, num):
 
 
 def context_viewer_search( request, template_name, focus_name=None ):
+
+    ###############################
+    # begin - function parameters #
+    ###############################
+
     # get the focus gene of the query track
     focus = Feature.objects.only( 'pk', 'name' ).get( name=focus_name )
     if not focus:
@@ -1001,10 +1006,8 @@ def context_viewer_search( request, template_name, focus_name=None ):
     if len( focus_order ) == 0:
         raise Http404
     focus_order = focus_order[ 0 ]
-
     # get the parameters for the algorithm
     single = 'single' in request.GET and request.GET['single'] == 'true'
-
     # how many neighbors should there be?
     num = 8
     if 'num' in request.GET:
@@ -1053,24 +1056,29 @@ def context_viewer_search( request, template_name, focus_name=None ):
             threshold = int( request.GET['threshold'] )
         except:
             pass
-
     # get the gene family type
     gene_family_type = list( Cvterm.objects.only( 'pk' ).filter( name='gene family' ) )
     if len( gene_family_type ) == 0:
         raise Http404
     gene_family_type = gene_family_type[ 0 ]
 
+    #############################
+    # end - function parameters #
+    #############################
+
+    #################################
+    # begin - construct query track #
+    #################################
+
     # get the neighbors of focus via their ordering
-    neighbor_orders = GeneOrder.objects.only( ).filter( chromosome=focus_order.chromosome_id, number__gte=focus_order.number-num, number__lte=focus_order.number+num ).order_by( 'number' )
-    neighbor_ids = neighbor_orders.values_list( 'gene_id', flat=True )
+    neighbor_ids = GeneOrder.objects.only( ).filter( chromosome=focus_order.chromosome_id, number__gte=focus_order.number-num, number__lte=focus_order.number+num ).order_by( 'number' ).values_list( 'gene_id', flat=True )
 
     # actually get the gene families
     neighbor_families = Featureprop.objects.only( 'value' ).filter( type=gene_family_type, feature__in=neighbor_ids )
     neighbor_family_map = dict( ( o.feature_id, o.value ) for o in neighbor_families )
-    neighbor_families = neighbor_families.values_list( 'value', flat=True )
     family_ids = []
     query_families = {}
-    for n in neighbor_families:
+    for n in neighbor_family_map.values():
         if n not in family_ids:
             family_ids.append( n )
             query_families[n] = 1
@@ -1088,25 +1096,32 @@ def context_viewer_search( request, template_name, focus_name=None ):
     # get the track organism
     organism = Organism.objects.only( 'genus', 'species' ).filter( pk=chromosome.organism_id )
     organism = organism[ 0 ]
-    # generate the json for the genes
+    # generate the json for the query genes
     genes = []
     query_align = []
-    for i in range( len( neighbor_orders ) ):
-        g = neighbor_orders[ i ].gene_id
+    for i in range( len( neighbor_ids ) ):
+        g = neighbor_ids[ i ]
         family = str( neighbor_family_map[ g ] ) if g in neighbor_family_map else ''
         floc = neighbor_floc_map[ g ]
         genes.append('{"name":"'+neighbor_name_map[ g ]+'", "id":'+str( g )+', "family":"'+family+'", "fmin":'+str( floc.fmin )+', "fmax":'+str( floc.fmax )+', "strand":'+str( floc.strand )+', "x":'+str( i )+', "y":0}')
         query_align.append( ( g, family ) )
     query_group = '{"species_name":"'+organism.genus[ 0 ]+'.'+organism.species+'", "species_id":'+str( organism.pk )+', "chromosome_name":"'+chromosome.name+'", "chromosome_id":'+str( chromosome.pk )+', "genes":['+','.join( genes )+']}'
 
+    ###############################
+    # end - construct query track #
+    ###############################
+
+    ##################
+    # begin - search #
+    ##################
+
     # find all genes with the same families (excluding the query genes)
-    related_genes = Featureprop.objects.only( 'feature' ).filter( type=gene_family_type, value__in=neighbor_families ).exclude(feature_id__in=neighbor_ids)
-    related_gene_ids = related_genes.values_list('feature', flat=True )
+    related_genes = Featureprop.objects.only( 'feature' ).filter( type=gene_family_type, value__in=neighbor_family_map.values() ).exclude(feature_id__in=neighbor_ids)
+    gene_family_map = dict( ( o.feature_id, o.value ) for o in related_genes )
 
     # get the orders (and chromosomes) of the genes
-    related_orders = GeneOrder.objects.only( 'number' ).filter( gene__in=related_gene_ids )
+    related_orders = GeneOrder.objects.only( 'number' ).filter( gene__in=gene_family_map.keys() )
     gene_order_map = dict( ( o.gene_id, o.number ) for o in related_orders )
-    gene_family_map = dict( ( o.feature_id, o.value ) for o in related_genes )
     # group the genes by their chromosomes
     chromosome_genes_map = {}
     for o in related_orders:
@@ -1126,27 +1141,25 @@ def context_viewer_search( request, template_name, focus_name=None ):
 
     chromosome_candidates = {}
 
-    # a function that will help us order genes
-    def get_gene_order( g_id ):
-        return gene_order_map[ g_id ]
-
     # construct tracks for each chromosome
     groups = [ query_group ]
     y = 1
     for chromosome_id, genes in chromosome_genes_map.iteritems():
         if len( genes ) < 2:
             continue
-        genes.sort( key=get_gene_order )
-        # find all disjoint subsets of the genes where all sequential genes in the set are separated by no more than non_family non query family genes
+        # put the genes in order
+        genes.sort( key=lambda g_id: gene_order_map[ g_id ] )
+        # find all disjoint subsets of the genes where all sequential genes in the set are separated by no more than non_family non-query-family genes
         candidates = []
         block = [ 0 ]
         matched_families = set([ gene_family_map[ genes[ 0 ] ] ])
         # traverse the genes in the order they appear on the chromosome
         for i in range( 1, len( genes ) ):
+            g = genes[ i ]
             # add the gene to the current block if it meets the non query family criteria
-            gap_size = gene_order_map[ genes[ i ] ]-gene_order_map[ genes[ block[ -1 ] ] ]-1
+            gap_size = gene_order_map[ g ]-gene_order_map[ genes[ block[ -1 ] ] ]-1
             if gap_size <= non_family:
-                matched_families.add( gene_family_map[ genes[ i ] ] )
+                matched_families.add( gene_family_map[ g ] )
                 block.append( i )
             # otherwise, generate a track from the block and start a new block
             if gap_size > non_family or i == len(genes)-1:
@@ -1178,7 +1191,15 @@ def context_viewer_search( request, template_name, focus_name=None ):
                     y += 1
                 # start the new block
                 block = [ i ]
-                matched_families = set([ gene_family_map[ genes[ i ] ] ])
+                matched_families = set([ gene_family_map[ g ] ])
+
+    ################
+    # end - search #
+    ################
+
+    ################
+    # begin - json #
+    ################
 
     # make the family json
     family_json = []
@@ -1188,6 +1209,10 @@ def context_viewer_search( request, template_name, focus_name=None ):
 
     # make the final json
     json += ','.join( groups )+']}'
+
+    ##############
+    # end - json #
+    ##############
 
     return render(request, template_name, {'json' : json, 'single' : single, 'num' : num, 'non_family' : non_family, 'match' : match, 'mismatch' : mismatch, 'gap' : gap, 'threshold' : threshold, 'num_matched_families' : num_matched_families})
 
