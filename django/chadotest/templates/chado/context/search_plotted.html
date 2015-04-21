@@ -269,9 +269,10 @@
     }
     plot_data.groups = plot_groups;
 
-    // a function that resizes the element containing the plots
+    // a function that resizes the elements containing the plots and the legend
     function resize_plot() {
         $('#plot').height( $('#plot').width()+$('#plot .nav').height() );
+        $('#legend').height( $('#plot').offset().top-$('#legend').offset().top );
     }
 
 	// make sure the toggle div is not showing when the page loads and that the plot window is correctly sized
@@ -281,7 +282,7 @@
 	});
 
     // resize the plot div every time the window is resized
-    $(window).resize( resize_plot() );
+    $(window).resize( resize_plot );
 
 	// hide the toggle div when the click isn't in it or on a gene
 	$(document).on('click', function(e) {
