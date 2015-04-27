@@ -251,6 +251,12 @@
         }
     });
 
+    // only submit the parameter form when it needs to be submitted
+    $("form").submit(function (e) {
+        e.preventDefault();
+        console.log("stopped");
+    });
+
     // show and hide the lightbox
     $('.lightbox').on('click', function(e) {
         e.preventDefault();
@@ -314,6 +320,7 @@
         var id = "miner_"+i;
         $('#miner').append('<div id="'+id+'" class="col-lg-4"></div>');
         context_synteny( id, color, plot_data, i );
+        $('#'+id).append('<a>Local</a>&nbsp|&nbsp<a>Global</a>');
     }
 
     // a function that resizes the elements containing the plots and the legend
@@ -438,7 +445,6 @@
 	}
 
 	// make the context legend
-	context_legend( 'legend', color, data, {
-        "legend_click":legend_click });
+	context_legend( 'legend', color, data, {"legend_click":legend_click });
 </script>
 {% endblock %}

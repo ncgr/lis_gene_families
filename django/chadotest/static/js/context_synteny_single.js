@@ -23,17 +23,7 @@ function context_synteny( container_id, color, data, i, optional_parameters ) {
 	// set some variables
 	var p = 75,
         l = w-2*p,
-	    //p = 100,
         h = l;
-	    //plots_per_row = 3,
-	    //l = (w-(p*4))/plots_per_row,
-	    //rect_h = 18,
-	    //rect_p = 2,
-		//num_plots = data.groups.length,
-	    //num_rows = Math.ceil(num_plots/plots_per_row),
-	    //h = num_rows*l + (num_rows+1)*p,
-	    //num_fams = data.families.length,
-	    //legend_h = num_fams*(rect_h+rect_p);
 
 	// get the family size map
 	var family_sizes = get_family_size_map( data );
@@ -55,17 +45,6 @@ function context_synteny( container_id, color, data, i, optional_parameters ) {
 	//    plot_y = Math.ceil((1/3)*(l+p));
     var plot_x = p,
         plot_y = p;
-	
-    /*
-	// the plot's rectangle
-	matrix.append("rect")
-	    .attr("class", "rect")
-	    .attr("x", p)
-	    .attr("y", p)
-	    .attr("width", l)
-	    .attr("height", l)
-		.style("cursor", "crosshair");
-    */
 	
 	// the x axis
 	var min_x = d3.min(d.genes, function(e) { return e.x; }),
