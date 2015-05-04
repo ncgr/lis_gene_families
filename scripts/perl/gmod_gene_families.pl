@@ -23,6 +23,7 @@ gmod_gene_families.pl - Adds an entry in the featureprop table in a chado databa
   --password    The password to log into the database with
   --host        The host the database is on (default=localhost)
   --port        The port the database is on
+  --family_name The prefix used to identify the families of interest
 
 =head1 DESCRIPTION
 
@@ -62,8 +63,10 @@ $password = $ENV{CHADO_DB_PASS} if ($ENV{CHADO_DB_USER});
 my $host = "localhost";
 $host = $ENV{CHADO_DB_HOST} if ($ENV{CHADO_DB_HOST});
 my $nuke = 0;
+my $family_name;
 
 GetOptions("nuke"             => \$nuke,
+           "family_name=s"      => \$family_name,
            "dbname=s"           => \$dbname,
            "username=s"         => \$username,
            "password=s"         => \$password,
@@ -149,9 +152,12 @@ if( $nuke ) {
     $query = $conn->prepare($query_string);
     $query->execute();
 }
-
+my %gene2families;
 # get all the phylotree from the database
-$query_string = "SELECT phylotree_id, name FROM phylotree WHERE name!='NCBI taxonomy tree';";
+$query_string = "SELECT phylotree_id, name FROM phylotree WHERE name!='NCBI taxonomy tree'";
+if (defined $family_name) {
+    $query_string .= " AND name like '$family_name%'"
+}
 $query = $conn->prepare($query_string);
 $query->execute();
 # get all the genes for each tree and add an entry into the featureprop table
@@ -190,23 +196,31 @@ while( my @tree = $query->fetchrow_array() ) {
     if( $gene_query->rows() == 0 ) {
         next;
     }
-    # add an entry to the featureprop table for each gene
-    my $insert_featureprop = $conn->prepare("INSERT INTO featureprop (feature_id, type_id, value, rank) VALUES(?, $gene_family_id, '$tree_name', ?);");
     while( my @gene = $gene_query->fetchrow_array() ) {
         my ($gene_id) = @gene;
-        my $featureprop_id = $conn->selectrow_array("SELECT featureprop_id FROM featureprop WHERE feature_id=$gene_id AND value='$tree_name' AND type_id=$gene_family_id LIMIT 1;");
-        # does it exist?
-        if ( !$featureprop_id ) {
-            my $max_rank = $conn->selectrow_array("SELECT max(rank) FROM featureprop WHERE feature_id=$gene_id AND type_id=$gene_family_id;");
-            if( !( defined $max_rank ) ) {
-                $insert_featureprop->execute($gene_id, 0);
-            } else {
-                $insert_featureprop->execute($gene_id, $max_rank+1);
-            }
-        }
+	$gene2families{$gene_id}->{$tree_name} = 1;
     }
 }
-
+my $insert_featureprop = $conn->prepare("INSERT INTO featureprop (feature_id, type_id, value, rank) VALUES(?, $gene_family_id, ?, ?);");
+foreach my $gene_id (keys %gene2families) {
+    my $families = join(" ", sort keys %{$gene2families{$gene_id}});
+    # add an entry to the featureprop table for each gene
+    if ($nuke) {
+        $insert_featureprop->execute($gene_id, $families, 0);
+    }
+    else {
+            my $featureprop_id = $conn->selectrow_array("SELECT featureprop_id FROM featureprop WHERE feature_id=$gene_id AND value='$families' AND type_id=$gene_family_id LIMIT 1;");
+            # does it exist?
+            if ( !$featureprop_id ) {
+                my $max_rank = $conn->selectrow_array("SELECT max(rank) FROM featureprop WHERE feature_id=$gene_id AND type_id=$gene_family_id;");
+                if( !( defined $max_rank ) ) {
+                        $insert_featureprop->execute($gene_id, $families, 0);
+                } else {
+                        $insert_featureprop->execute($gene_id, $families, $max_rank+1);
+                }
+            }
+    }
+}
 
 print "Committing changes\n";
 eval{ $conn->commit() } or Retreat("The commit failed\n");
