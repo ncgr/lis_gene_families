@@ -63,7 +63,7 @@ my $host = "localhost";
 $host = $ENV{CHADO_DB_HOST} if ($ENV{CHADO_DB_HOST});
 my $nuke = 0;
 
-GetOptions("nuke|?"             => \$nuke,
+GetOptions("nuke"             => \$nuke,
            "dbname=s"           => \$dbname,
            "username=s"         => \$username,
            "password=s"         => \$password,
@@ -145,28 +145,18 @@ if ( !$gene_family_id ) {
 # nuke the old featureprop entries... if we're supposed to
 if( $nuke ) {
     print "Deleting old entries\n";
-    $query_string = "SELECT featureprop_id FROM featureprop WHERE type_id=$gene_family_id;";
+    $query_string = "DELETE FROM featureprop WHERE type_id=$gene_family_id;";
     $query = $conn->prepare($query_string);
     $query->execute();
-    if( $query->rows() > 0 ) {
-        my $delete_query = "DELETE FROM featureprop WHERE featureprop_id IN (";
-        while( my @featureprop = $query->fetchrow_array() ) {
-            my ($featureprop_id) = @featureprop;
-            $delete_query .= $featureprop_id . ",";
-        }
-        $query_string = substr($query_string, 0, -1) . ");";
-        $query = $conn->prepare($query_string);
-        $query->execute();
-    }
 }
 
 # get all the phylotree from the database
-$query_string = "SELECT phylotree_id FROM phylotree WHERE name!='NCBI taxonomy tree';";
+$query_string = "SELECT phylotree_id, name FROM phylotree WHERE name!='NCBI taxonomy tree';";
 $query = $conn->prepare($query_string);
 $query->execute();
 # get all the genes for each tree and add an entry into the featureprop table
 while( my @tree = $query->fetchrow_array() ) {
-    my ($tree_id) = @tree;
+    my ($tree_id, $tree_name) = @tree;
     print "Adding entries for tree $tree_id\n";
     # get the peptide ids
     $query_string = "SELECT DISTINCT feature_id FROM phylonode WHERE phylotree_id=$tree_id;";
@@ -201,10 +191,10 @@ while( my @tree = $query->fetchrow_array() ) {
         next;
     }
     # add an entry to the featureprop table for each gene
-    my $insert_featureprop = $conn->prepare("INSERT INTO featureprop (feature_id, type_id, value, rank) VALUES(?, $gene_family_id, '$tree_id', ?);");
+    my $insert_featureprop = $conn->prepare("INSERT INTO featureprop (feature_id, type_id, value, rank) VALUES(?, $gene_family_id, '$tree_name', ?);");
     while( my @gene = $gene_query->fetchrow_array() ) {
         my ($gene_id) = @gene;
-        my $featureprop_id = $conn->selectrow_array("SELECT featureprop_id FROM featureprop WHERE feature_id=$gene_id AND value='$tree_id' AND type_id=$gene_family_id LIMIT 1;");
+        my $featureprop_id = $conn->selectrow_array("SELECT featureprop_id FROM featureprop WHERE feature_id=$gene_id AND value='$tree_name' AND type_id=$gene_family_id LIMIT 1;");
         # does it exist?
         if ( !$featureprop_id ) {
             my $max_rank = $conn->selectrow_array("SELECT max(rank) FROM featureprop WHERE feature_id=$gene_id AND type_id=$gene_family_id;");
