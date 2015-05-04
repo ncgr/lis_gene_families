@@ -1,22 +1,35 @@
 
 //function context_legend( container_id, color, data, legend_click, selective_coloring ) {
 function context_legend( container_id, color, data, optional_parameters ) {
+    // make sure optional parameters is at least defined
+    if( optional_parameters === undefined ) {
+        optional_parameters = {};
+    }
 	// clear the contents of the target element first
 	document.getElementById(container_id).innerHTML = "";
 
 	// get the family id name map
 	var family_names = get_family_name_map( data );
 
+
+    // omit any family that don't have a name
+    var fams = [];
 	// determine how many families will be in the legend
 	var family_size_map = get_family_size_map( data );
 	var num_fams = 0;
     if( optional_parameters.selective_coloring === undefined || optional_parameters.selective_coloring !== undefined && optional_parameters.selective_coloring ) {
 	    for( fam in family_size_map ) {
-	    	if( family_size_map[ fam ] > 1 ) {
+	    	if( fam != '' && family_size_map[ fam ] > 1 ) {
 	    		num_fams++;
+                fams.push( fam );
 	    	}
 	    }
     } else {
+        for( var fam in family_names ) {
+            if( fam != '' ) {
+                fams.push( fam );
+            }
+        }
         num_fams = data.families.length;
     }
 
@@ -36,7 +49,8 @@ function context_legend( container_id, color, data, optional_parameters ) {
 
 	// add the legend groups
 	var legend_groups = legend.selectAll(".legend")
-	    .data(color.domain())
+	    //.data(color.domain())
+        .data(fams)
 	    .enter().append("g")
 	    .attr("class", "legend")
 	    .attr("transform", function(d, i) {

@@ -10,6 +10,7 @@
     {% endblock %}
 </head>
 <body>
+{% block body %}
 <div class="navbar navbar-fixed-top">
   <div class="container">
     <button class="navbar-toggle" type="button" data-toggle="collapse" data-target=".navbar-collapse">
@@ -27,11 +28,6 @@
         <li>
           <a href="{% url 'phylo_index' %}">Phylogenetic Trees</a>
         </li>
-        <li>
-            <form action="{% url 'search' %}" method="GET" class="navbar-form" role="search">
-                    <input type="text" name="q" class="form-control" placeholder="Search">
-            </form>
-        </li>
       </ul>
     </div>
   </div>
@@ -40,6 +36,7 @@
 {% block content %}
 {% endblock %}
 </div>
+{% endblock %}
 {% block bottom %}
 {% endblock %}
 {% block javascript %}

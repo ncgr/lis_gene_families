@@ -3,6 +3,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, HttpResponseBadRequest, Http404
 from django.utils import simplejson
+import json as pyjson
 from django.core.urlresolvers import reverse
 # file generation stuffs
 import cStringIO as StringIO
@@ -434,93 +435,110 @@ def phylo_view(request, phylotree_name, template_name):
     # we've got the goods
     return render(request, template_name, {'tree' : tree, 'xml' : xml, 'num_leafs' : num_leafs})
 
-
 def phylo_view_ajax(request):
-	if request.is_ajax():
-		try:
-                        import re;
-                        if 'phylonode' in request.GET:
-			    node = get_object_or_404(Phylonode, pk=request.GET['phylonode'])
-			    tree = get_object_or_404(Phylotree, pk=node.phylotree_id)
-                        elif 'gene' in request.GET:
-                            node = get_object_or_404(Feature, pk=request.GET['gene'])
-                            node.label = node.name
-			slidedict = {}
+    if request.is_ajax():
+        try:
+            import re
+            if 'phylonode' in request.GET:
+                node = get_object_or_404(Phylonode, pk=request.GET['phylonode'])
+                tree = get_object_or_404(Phylotree, pk=node.phylotree_id)
+            elif 'gene' in request.GET:
+                node = get_object_or_404(Feature, name=request.GET['gene'])
+                node.label = node.name
+                tree = None
+            slidedict = {}
             # external nodes
-			if node.label:
-                                import sys
-                                sys.stderr.write("label is " + node.label + "\n")
-				slidedict['label'] = node.label
-				slidedict['meta'] = "This is meta information for "+node.label
-                                slidedict['links'] = []
-                                #FIXME: will need to check dbxref when we have more than phytozome trees
-                                slidedict['links'].append({'Phytozome Gene Family':'http://phytozome.jgi.doe.gov/pz/portal.html#!showCluster?search=1&detail=0&method=4835&searchText=clusterid:'+tree.name})
-                                m = re.match('^([A-Z][a-z]{4,4})\\|(.*?)(\.[0-9]+)?$', node.label);
-                                species=m.group(1)
-                                gene=m.group(2)
-                                if m.group(3):
-                                    transcript=gene+m.group(3)
-                                sys.stderr.write("species is " + species)
-                                sys.stderr.write("gene is " + gene)
-                                sys.stderr.write("transcript is " + transcript)
-                                if species == 'Medtr':
-                                    slidedict['links'].append({'LIS Mt4.0 GBrowse':'http://medtr.comparative-legumes.org/gb2/gbrowse/Mt4.0?name='+gene})
-                                    slidedict['links'].append({'LIS Mt3.5.1 GBrowse':'http://medtr.comparative-legumes.org/gb2/gbrowse/Mt3.5.1?name='+gene})
-                                    slidedict['links'].append({'JCVI JBrowse':'http://www.jcvi.org/medicago/jbrowse/?data=data%2Fjson%2Fmedicago&loc='+transcript})
-                                    slidedict['links'].append({'Mt HapMap':'http://www.medicagohapmap.org/fgb2/gbrowse/mt35/?name='+gene})
-                                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=4432&searchText='+gene})
-                                    slidedict['links'].append({'LegumeIP':'http://plantgrn.noble.org/LegumeIP/getseq.do?seq_acc=IMGA|'+gene})
-                                    #for whatever reason, medicago seems to have gotten their nomenclature into NCBI
-                                    slidedict['links'].append({'NCBI Gene':'http://www.ncbi.nlm.nih.gov/gene/?term='+gene})
-                                    #but that doesn't mean that it gave other people the message!
-                                    slidedict['links'].append({'Genomicus':'http://www.genomicus.biologie.ens.fr/genomicus-plants/cgi-bin/search.pl?view=default&amp;query=MTR_'+gene.replace("Medtr","")})
-
-                                elif species == 'Glyma':
-                                    slidedict['links'].append({'Soybase':'http://soybase.org/gb2/gbrowse/gmax1.01/?name='+gene})
-                                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=4433&searchText='+gene})
-                                    slidedict['links'].append({'SoyKB':'http://soykb.org/gene_card.php?gene='+gene})
-                                    slidedict['links'].append({'Genomicus':'http://www.genomicus.biologie.ens.fr/genomicus-plants/cgi-bin/search.pl?view=default&amp;query='+gene})
-                                elif species == 'Phavu':
-                                    slidedict['links'].append({'LIS GBrowse':'http://phavu.comparative-legumes.org/gb2/gbrowse/Pv1.0/?name='+gene})
-                                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=3253&searchText='+gene})
-                                elif species == 'Arath':
-                                    slidedict['links'].append({'TAIR':'http://www.arabidopsis.org/servlets/TairObject?type=locus&name='+gene})
-                                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=2296&searchText='+gene})
-                                elif species == 'Orysa':
-                                    slidedict['links'].append({'MSU':'http://rice.plantbiology.msu.edu/cgi-bin/gbrowse/rice/?name='+gene})
-                                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=3301&searchText='+gene})
-                                elif species == 'Zeama':
-                                    slidedict['links'].append({'MaizeGDB':'http://maizegdb.org/cgi-bin/displaygenemodelrecord.cgi?id='+gene})
-                                    slidedict['links'].append({'Gramene':'http://www.gramene.org/Zea_mays/Gene/Summary?g='+gene})
-                                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=4431&searchText='+gene})
-                                elif species == 'Solly':
-                                    slidedict['links'].append({'Sol Genomics Network':'http://solgenomics.net/gbrowse/bin/gbrowse/ITAG2.3_genomic/?name='+gene+'&h_feat='+gene})
-                                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=3308&searchText='+gene})
-                                elif species == 'Vitvi':
-                                    slidedict['links'].append({'Genoscope':'http://www.genoscope.cns.fr/cgi-bin/ggb/vitis/12X/gbrowse/vitis/?name='+gene})
-                                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=2299&searchText='+gene})
-                                elif species == 'Ambtr':
-                                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=4851&searchText='+transcript})
-                                slidedict['links'].append({'google':'http://www.google.com/search?q='+gene})
+            if node.label:
+                #import sys
+                #sys.stderr.write("label is " + node.label + "\n")
+                slidedict['label'] = node.label
+                slidedict['meta'] = "This is meta information for "+node.label
+                slidedict['links'] = []
+                if tree is not None:
+                    #FIXME: will need to check dbxref when we have more than phytozome trees
+                    slidedict['links'].append({'Phytozome Gene Family':'http://phytozome.jgi.doe.gov/pz/portal.html#!showCluster?search=1&detail=0&method=4835&searchText=clusterid:'+tree.name})
+                m = re.match('^([a-z]{5,5})\.(.*?)(\.[0-9]+)?$', node.label);
+                species=m.group(1)
+                gene=m.group(2)
+                if m.group(3):
+                    transcript=gene+m.group(3)
+                #sys.stderr.write("species is " + species)
+                #sys.stderr.write("gene is " + gene)
+                #sys.stderr.write("transcript is " + transcript)
+                if species == 'medtr':
+                    slidedict['links'].append({'LIS Mt4.0 GBrowse':'http://medtr.comparative-legumes.org/gb2/gbrowse/Mt4.0?name='+gene})
+                    slidedict['links'].append({'LIS Mt3.5.1 GBrowse':'http://medtr.comparative-legumes.org/gb2/gbrowse/Mt3.5.1?name='+gene})
+                    try :
+                        transcript 
+                    except NameError:
+                        slidedict['links'].append({'JCVI JBrowse':'http://www.jcvi.org/medicago/jbrowse/?data=data%2Fjson%2Fmedicago&loc='+gene+'.1'})
+                    else:
+                        slidedict['links'].append({'JCVI JBrowse':'http://www.jcvi.org/medicago/jbrowse/?data=data%2Fjson%2Fmedicago&loc='+transcript})
+                    slidedict['links'].append({'Mt HapMap':'http://www.medicagohapmap.org/fgb2/gbrowse/mt35/?name='+gene})
+                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=4432&searchText='+gene})
+                    slidedict['links'].append({'LegumeIP':'http://plantgrn.noble.org/LegumeIP/getseq.do?seq_acc=IMGA|'+gene})
+                    #for whatever reason, medicago seems to have gotten their nomenclature into NCBI
+                    slidedict['links'].append({'NCBI Gene':'http://www.ncbi.nlm.nih.gov/gene/?term='+gene})
+                    #but that doesn't mean that it gave other people the message!
+                    slidedict['links'].append({'Genomicus':'http://www.genomicus.biologie.ens.fr/genomicus-plants/cgi-bin/search.pl?view=default&amp;query=MTR_'+gene.replace("Medtr","")})
+                
+                elif species == 'glyma':
+                    slidedict['links'].append({'Soybase':'http://soybase.org/gb2/gbrowse/gmax2.0/?name='+gene})
+                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=4433&searchText='+gene})
+                    slidedict['links'].append({'SoyKB':'http://soykb.org/gene_card.php?gene='+gene})
+                    slidedict['links'].append({'Genomicus':'http://www.genomicus.biologie.ens.fr/genomicus-plants/cgi-bin/search.pl?view=default&amp;query='+gene})
+                elif species == 'phavu':
+                    slidedict['links'].append({'LIS GBrowse':'http://phavu.comparative-legumes.org/gb2/gbrowse/Pv1.0/?name='+gene})
+                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=3253&searchText='+gene})
+                elif species == 'aradu':
+                    slidedict['links'].append({'PeanutBase GBrowse':'http://peanutbase.org/gb2/gbrowse/Aradu1.0/?q='+gene+';dbid=gene_models'})
+                    slidedict['links'].append({'PeanutBase Gene Page':'http://peanutbase.org//feature/Arachis/duranensis/gene/'+gene})
+                elif species == 'araip':
+                    slidedict['links'].append({'PeanutBase GBrowse':'http://peanutbase.org/gb2/gbrowse/Araip1.0/?q='+gene+';dbid=gene_models'})
+                    slidedict['links'].append({'PeanutBase Gene Page':'http://peanutbase.org//feature/Arachis/ipaensis/gene/'+gene})
+                elif species == 'arath':
+                    slidedict['links'].append({'TAIR':'http://www.arabidopsis.org/servlets/TairObject?type=locus&name='+gene})
+                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=2296&searchText='+gene})
+                elif species == 'orysa':
+                    slidedict['links'].append({'MSU':'http://rice.plantbiology.msu.edu/cgi-bin/gbrowse/rice/?name='+gene})
+                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=3301&searchText='+gene})
+                elif species == 'zeama':
+                    slidedict['links'].append({'MaizeGDB':'http://maizegdb.org/cgi-bin/displaygenemodelrecord.cgi?id='+gene})
+                    slidedict['links'].append({'Gramene':'http://www.gramene.org/Zea_mays/Gene/Summary?g='+gene})
+                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=4431&searchText='+gene})
+                elif species == 'solly':
+                    slidedict['links'].append({'Sol Genomics Network':'http://solgenomics.net/gbrowse/bin/gbrowse/ITAG2.3_genomic/?name='+gene+'&h_feat='+gene})
+                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=3308&searchText='+gene})
+                elif species == 'vitvi':
+                    slidedict['links'].append({'Genoscope':'http://www.genoscope.cns.fr/cgi-bin/ggb/vitis/12X/gbrowse/vitis/?name='+gene})
+                    slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=2299&searchText='+gene})
+                elif species == 'ambtr':
+                    try:
+                        transcript
+                    except NameError:
+                            sys.stderr.write("transcript is not defined here")
+                    else:
+                        slidedict['links'].append({'Phytozome':'http://phytozome.jgi.doe.gov/pz/portal.html#!results?search=0&crown=1&star=0&method=4851&searchText='+transcript})
+                slidedict['links'].append({'google':'http://www.google.com/search?q='+gene})
             # internal nodes
-			else:
-				slidedict['label'] = "Interior Node"
-                                slidedict['links'] = [{'CMTV':'http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://'+request.get_host()+'/chado/phylo/node/gff_download/'+str(node.phylonode_id)}]
-                                slidedict['links'].append({'NodeGraphWordCloud':'/chado/d3viz_force_directed/phylonode/viz/'+str(node.phylonode_id)}) 
-                                #TODO: extract the subset MSA for the sequences in the subtree
-                                #slidedict['links'].append({'MSA':'/chado/msa/'+str(node.feature_id)})
-                                #hack: use the naming convention to get the consensus feature; trees don't appear to
-                                #be easily connected with their MSAs otherwise
-                                #consensus_feature = features.get(uniquename=node.phylotree.name+'-consensus');
-                                #consensus_feature = Feature.objects.get(uniquename='consn|'+node.phylotree.name);
-                                #slidedict['links'].append({'MSA':'/chado/msa/'+str(consensus_feature.feature_id)})
-                                # load the context viewer with each node in the subtree as a focus gene 
-                                #slidedict['links'].append({'Context Viewer':'/chado/context_viewer/demo'+str(node.pk)})
-                                slidedict['links'].append({'Context Viewer':'/chado/context_viewer/'+str(node.pk)})
-			return HttpResponse(simplejson.dumps(slidedict), content_type = 'application/javascript; charset=utf8')
-		except:
-			return HttpResponse("bad request")
-                return HttpResponse("bad request")
+            else:
+                slidedict['label'] = "Interior Node"
+                slidedict['links'] = [{'CMTV':'http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://'+request.get_host()+'/chado/phylo/node/gff_download/'+str(node.phylonode_id)}]
+                slidedict['links'].append({'NodeGraphWordCloud':'/chado/d3viz_force_directed/phylonode/viz/'+str(node.phylonode_id)}) 
+                #TODO: extract the subset MSA for the sequences in the subtree
+                #slidedict['links'].append({'MSA':'/chado/msa/'+str(node.feature_id)})
+                #hack: use the naming convention to get the consensus feature; trees don't appear to
+                #be easily connected with their MSAs otherwise
+                #consensus_feature = features.get(uniquename=node.phylotree.name+'-consensus');
+                #consensus_feature = Feature.objects.get(uniquename='consn.'+node.phylotree.name);
+                #slidedict['links'].append({'MSA':'/chado/msa/'+str(consensus_feature.feature_id)})
+                # load the context viewer with each node in the subtree as a focus gene 
+                #slidedict['links'].append({'Context Viewer':'/chado/context_viewer/demo'+str(node.pk)})
+                slidedict['links'].append({'Context Viewer':'/chado/context_viewer/'+str(node.pk)})
+            return HttpResponse(simplejson.dumps(slidedict), content_type = 'application/javascript; charset=utf8')
+        except:
+            pass
+    return HttpResponse("bad request")
 
 
 def phylo_newick(request, phylotree_name, template_name):
@@ -679,8 +697,8 @@ def phylo_sample(request, template_name):
 # feature #
 ###########
 
-def feature_view(request, feature_id, template_name):
-    feature = get_object_or_404(Feature, pk=feature_id)
+def feature_view(request, feature_name, template_name):
+    feature = get_object_or_404(Feature, name=feature_name)
     return render(request, template_name, {'feature' : feature})
 
 
@@ -974,6 +992,11 @@ def context_viewer_json(focus_genes, num):
 
 
 def context_viewer_search( request, template_name, focus_name=None ):
+
+    ###############################
+    # begin - function parameters #
+    ###############################
+
     # get the focus gene of the query track
     focus = Feature.objects.only( 'pk', 'name' ).get( name=focus_name )
     if not focus:
@@ -983,46 +1006,39 @@ def context_viewer_search( request, template_name, focus_name=None ):
     if len( focus_order ) == 0:
         raise Http404
     focus_order = focus_order[ 0 ]
-
     # get the parameters for the algorithm
     single = 'single' in request.GET and request.GET['single'] == 'true'
-
     # how many neighbors should there be?
-    num = 4
+    num = 8
     if 'num' in request.GET:
         try:
             num = int( request.GET['num'] )
         except:
             pass
     # how many matched_families should there be?
-    num_matched_families = 3
+    num_matched_families = 6
     if 'num_matched_families' in request.GET:
         try:
             num_matched_families = int( request.GET['num_matched_families'] )
         except:
             pass
-    max_num = 40
-    max_length = max_num
-    if 'length' in request.GET:
-        if request.GET['length'] == 'double':
-            max_length = 2*num+1
-        else:
-            try:
-                max_length = int( request.GET['length'] )
-            except:
-               pass
-    max_genes = max_num*2+1
-    if num > max_num:
-        num = max_num
-
+    # the number of non query family genes tolerated between each pair of family genes
+    non_family = 5
+    if 'non_family' in request.GET:
+        try:
+            non_family = int( request.GET )
+            if non_family > 20:
+                non_family = 5
+        except:
+            pass
     # what are the parameters for smith-waterman?
-    match = 1
+    match = 5
     if 'match' in request.GET:
         try:
             match = int( request.GET['match'] )
         except:
             pass
-    mismatch = 0 
+    mismatch = -1 
     if 'mismatch' in request.GET:
         try:
             mismatch = int( request.GET['mismatch'] )
@@ -1034,34 +1050,35 @@ def context_viewer_search( request, template_name, focus_name=None ):
             gap = int( request.GET['gap'] )
         except:
             pass
-
-
-    # get the focus gene of the query track
-    focus = Feature.objects.only( 'pk', 'name' ).get( pk=focus_id )
-    if not focus:
-        raise Http404
-    focus_order = list( GeneOrder.objects.filter( gene=focus ) )
-    if len( focus_order ) == 0:
-        raise Http404
-    focus_order = focus_order[ 0 ]
-
+    threshold = 25
+    if 'threshold' in request.GET:
+        try:
+            threshold = int( request.GET['threshold'] )
+        except:
+            pass
     # get the gene family type
     gene_family_type = list( Cvterm.objects.only( 'pk' ).filter( name='gene family' ) )
     if len( gene_family_type ) == 0:
         raise Http404
     gene_family_type = gene_family_type[ 0 ]
 
+    #############################
+    # end - function parameters #
+    #############################
+
+    #################################
+    # begin - construct query track #
+    #################################
+
     # get the neighbors of focus via their ordering
-    neighbor_orders = GeneOrder.objects.only( ).filter( chromosome=focus_order.chromosome_id, number__gte=focus_order.number-num, number__lte=focus_order.number+num ).order_by( 'number' )
-    neighbor_ids = neighbor_orders.values_list( 'gene_id', flat=True )
+    neighbor_ids = GeneOrder.objects.only( ).filter( chromosome=focus_order.chromosome_id, number__gte=focus_order.number-num, number__lte=focus_order.number+num ).order_by( 'number' ).values_list( 'gene_id', flat=True )
 
     # actually get the gene families
-    neighbor_families = Featureprop.objects.only( 'value' ).filter( type=gene_family_type, feature__in=neighbor_ids )#.values_list( 'value', flat=True )
+    neighbor_families = Featureprop.objects.only( 'value' ).filter( type=gene_family_type, feature__in=neighbor_ids )
     neighbor_family_map = dict( ( o.feature_id, o.value ) for o in neighbor_families )
-    neighbor_families = neighbor_families.values_list( 'value', flat=True )
     family_ids = []
     query_families = {}
-    for n in neighbor_families:
+    for n in neighbor_family_map.values():
         if n not in family_ids:
             family_ids.append( n )
             query_families[n] = 1
@@ -1079,41 +1096,38 @@ def context_viewer_search( request, template_name, focus_name=None ):
     # get the track organism
     organism = Organism.objects.only( 'genus', 'species' ).filter( pk=chromosome.organism_id )
     organism = organism[ 0 ]
-    # generate the json for the genes
+    # generate the json for the query genes
     genes = []
     query_align = []
-    for i in range( len( neighbor_orders ) ):
-        g = neighbor_orders[ i ].gene_id
+    for i in range( len( neighbor_ids ) ):
+        g = neighbor_ids[ i ]
         family = str( neighbor_family_map[ g ] ) if g in neighbor_family_map else ''
         floc = neighbor_floc_map[ g ]
         genes.append('{"name":"'+neighbor_name_map[ g ]+'", "id":'+str( g )+', "family":"'+family+'", "fmin":'+str( floc.fmin )+', "fmax":'+str( floc.fmax )+', "strand":'+str( floc.strand )+', "x":'+str( i )+', "y":0}')
         query_align.append( ( g, family ) )
     query_group = '{"species_name":"'+organism.genus[ 0 ]+'.'+organism.species+'", "species_id":'+str( organism.pk )+', "chromosome_name":"'+chromosome.name+'", "chromosome_id":'+str( chromosome.pk )+', "genes":['+','.join( genes )+']}'
 
+    ###############################
+    # end - construct query track #
+    ###############################
+
+    ##################
+    # begin - search #
+    ##################
+
     # find all genes with the same families (excluding the query genes)
-    related_genes = Featureprop.objects.only( 'feature' ).filter( type=gene_family_type, value__in=neighbor_families ).exclude(feature_id__in=neighbor_ids)
-    related_gene_ids = related_genes.values_list('feature', flat=True )
-    #related_genes = Feature.objects.only().filter( pk__in=related_gene_ids )
-    #id_gene_map = dict( ( o.pk, o ) for o in related_genes )
-    #get rid of genes from query
+    related_genes = Featureprop.objects.only( 'feature' ).filter( type=gene_family_type, value__in=neighbor_family_map.values() ).exclude(feature_id__in=neighbor_ids)
+    gene_family_map = dict( ( o.feature_id, o.value ) for o in related_genes )
 
     # get the orders (and chromosomes) of the genes
-    related_orders = GeneOrder.objects.only( 'number' ).filter( gene__in=related_gene_ids )
+    related_orders = GeneOrder.objects.only( 'number' ).filter( gene__in=gene_family_map.keys() )
     gene_order_map = dict( ( o.gene_id, o.number ) for o in related_orders )
-    related_family_map = dict( ( o.feature_id, o.value ) for o in related_genes )
-
-    # find the chromosomes the genes are on
-    #chromosome_relations = list(FeatureRelationship.objects.filter(subject__in=related_genes))
-
     # group the genes by their chromosomes
     chromosome_genes_map = {}
-    #for o in chromosome_relations:
     for o in related_orders:
         if o.chromosome_id in chromosome_genes_map:
-            #chromosome_genes_map[ o.chromosome_id ].append( id_gene_map[ o.gene_id ] )
             chromosome_genes_map[ o.chromosome_id ].append( o.gene_id )
         else:
-            #chromosome_genes_map[ o.chromosome_id ] = [ id_gene_map[ o.gene_id ] ]
             chromosome_genes_map[ o.chromosome_id ] = [ o.gene_id ]
 
     # fetch all the chromosome names (organism_id and pk are implicit)
@@ -1125,159 +1139,161 @@ def context_viewer_search( request, template_name, focus_name=None ):
     organisms = Organism.objects.only( 'genus', 'species' ).filter( pk__in=organism_ids )
     id_organism_map = dict( ( o.pk, o.genus[ 0 ]+'.'+o.species ) for o in organisms )
 
-    # userful variables for finding similar tracks
-    #adf: though apparently not used anymore...
-    query_size = num*2+1
-    stratification_coefficient = max_genes/( query_size*1.0 )
-    num_results = 20
-
     chromosome_candidates = {}
 
-    # a function that will help us order genes
-    #def get_gene_order( g ):
-    #    return gene_order_map[ g.pk ]
-    def get_gene_order( g_id ):
-        return gene_order_map[ g_id ]
-
-    #adf: not used?
-    # a function that will help us order subsets by distance
-    def get_candidate_distance( c ):
-        return c['distance']
-
     # construct tracks for each chromosome
+    groups = [ query_group ]
+    y = 1
     for chromosome_id, genes in chromosome_genes_map.iteritems():
         if len( genes ) < 2:
             continue
-        genes.sort( key=get_gene_order )
-        # find all subsets of the genes of maximum order-gap size between first and last members <= max_length and whose symmetric difference and intersection with all other such sets are non-empty
+        # put the genes in order
+        genes.sort( key=lambda g_id: gene_order_map[ g_id ] )
+        # find all disjoint subsets of the genes where all sequential genes in the set are separated by no more than non_family non-query-family genes
         candidates = []
-        last_j = 0
-        for i in range( len( genes ) ):
-            prev_size = 0
-            matched_families = {}
-            #import sys
-            #sys.stderr.write("key is " + str(genes[i])+"\n")
-            if genes[i] in related_family_map and query_families[related_family_map[genes[i]]] :
-                matched_families[ related_family_map[ genes[i] ] ] = 1
-            for j in range( i+1, len( genes ) ):
-                if genes[j] in related_family_map and query_families[related_family_map[genes[j]]] :
-                    matched_families[ related_family_map[ genes[j] ] ] = 1
-                #size = gene_order_map[ genes[ j ].pk ]-gene_order_map[ genes[ i ].pk ]
-                size = gene_order_map[ genes[ j ] ]-gene_order_map[ genes[ i ] ]
-                #if size < max_num:
-                if size < max_length :
-                    prev_size = size
-                    if j+1 == len( genes ) and j > last_j and len(matched_families.keys()) >= num_matched_families :
-                        candidates.append( { 'first':i, 'last':j, 'size':prev_size, 'hits':j-i+1 } )
-                        last_j = j
-                else:
-                    # no subsets allowed!
-                    if prev_size > 0 and j-1 > last_j and len(matched_families.keys()) >= num_matched_families :
-                        candidates.append( { 'first':i, 'last':j-1, 'size':prev_size, 'hits':j-i } )
-                        last_j = j-1
-                    break
-        if candidates:
-            chromosome_candidates[ chromosome_id ] = candidates
+        block = [ 0 ]
+        matched_families = set([ gene_family_map[ genes[ 0 ] ] ])
+        # traverse the genes in the order they appear on the chromosome
+        for i in range( 1, len( genes ) ):
+            g = genes[ i ]
+            # add the gene to the current block if it meets the non query family criteria
+            gap_size = gene_order_map[ g ]-gene_order_map[ genes[ block[ -1 ] ] ]-1
+            if gap_size <= non_family:
+                matched_families.add( gene_family_map[ g ] )
+                block.append( i )
+            # otherwise, generate a track from the block and start a new block
+            if gap_size > non_family or i == len(genes)-1:
+                # generate a track from the block
+                if len( matched_families ) >= num_matched_families:
+                    # get all the gene ids
+                    track_gene_ids = GeneOrder.objects.only( '' ).filter( chromosome=chromosome_id, number__gte=gene_order_map[ genes[ block[ 0 ] ] ], number__lte=gene_order_map[ genes[ block[ -1 ] ] ] ).values_list( 'gene_id', flat=True )
+                    track_gene_families = Featureprop.objects.only( 'value' ).filter( type=gene_family_type, feature_id__in=track_gene_ids )
+                    track_family_map = dict( ( o.feature_id, o.value ) for o in track_gene_families )
+                    # make sure all families are present in the json
+                    for f in track_family_map.values():
+                        if f not in family_ids:
+                            family_ids.append( f )
+                    # get all the gene names
+                    gene_names = Feature.objects.only( 'name' ).filter( pk__in=track_gene_ids )
+                    gene_name_map = dict( ( o.pk, o.name ) for o in gene_names ) 
+                    # get all the gene featurelocs
+                    gene_locs = Featureloc.objects.only( 'fmin', 'fmax', 'strand' ).filter( feature__in=track_gene_ids )
+                    gene_loc_map = dict( ( o.feature_id, o ) for o in gene_locs )
+                    # make the track json
+                    gene_json = []
+                    for j in range( len( track_gene_ids ) ):
+                        g = track_gene_ids[ j ]
+                        family = track_family_map[ g ] if g in track_family_map else ''
+                        gene_json.append('{"name":"'+gene_name_map[ g ]+'", "id":'+str( g )+', "family":"'+family+'", "fmin":'+str( gene_loc_map[ g ].fmin )+', "fmax":'+str( gene_loc_map[ g ].fmax )+', "x":'+str( j )+', "y":'+str( y )+', "strand":'+str( gene_loc_map[ g ].strand )+'}')
+                    group = '{"species_name":"'+str( id_organism_map[ id_chromosome_map[ chromosome_id ].organism_id ] )+'", "species_id":'+str( id_chromosome_map[ chromosome_id ].organism_id )+', "chromosome_name":"'+id_chromosome_map[ chromosome_id ].name+'", "chromosome_id":'+str( chromosome_id )+', "genes":['+','.join( gene_json )+']}'
+                    groups.append( group )
+                    # prepare for the next track
+                    y += 1
+                # start the new block
+                block = [ i ]
+                matched_families = set([ gene_family_map[ g ] ])
 
-    # a helper function for accessing gene families during the alignment
-    def accessor( gene_tuple ):
-        return gene_tuple[1]
+    ################
+    # end - search #
+    ################
 
-    # a helper function for creating new tuple elements during the alignment
-    def new_element( value ):
-        return ( None, value )
+    ################
+    # begin - json #
+    ################
 
-    # fill in the tracks
-    groups = [ query_group ]
-    y = 1
-    for chromosome_id, candidates in chromosome_candidates.iteritems():
-        for c in candidates:
-            # get all the gene ids
-            track_gene_ids = GeneOrder.objects.only( '' ).filter( chromosome=chromosome_id, number__gte=gene_order_map[ chromosome_genes_map[ chromosome_id ][ c[ 'first' ] ] ], number__lte=gene_order_map[ chromosome_genes_map[ chromosome_id ][ c[ 'last' ] ] ] ).values_list( 'gene_id', flat=True )
-
-            # get all the gene families
-            track_families = Featureprop.objects.only( 'value' ).filter( type=gene_family_type, feature__in=track_gene_ids )
-            gene_family_map = dict( ( o.feature_id, o.value ) for o in track_families )
-            for f in track_families.values_list( 'value', flat=True ):
-                if f not in family_ids:
-                    family_ids.append( f )
-
-            # create a list of tuples to feed to smith and waterman
-            align = []
-            for g in track_gene_ids:
-                if g in gene_family_map:
-                    align.append( ( g, gene_family_map[ g ] ) )
-                else:
-                    align.append( ( g, -1 ) )
-
-            # run smith-waterman on the forward and reverse of the track
-            forward_score, forward_alignment = smith_waterman( align, query_align, accessor, new_element, match = match, mismatch = mismatch, gap = gap )
-            reverse_score, reverse_alignment = smith_waterman( align[::-1], query_align, accessor, new_element, match = match, mismatch = mismatch, gap = gap )
-
-            # only keep the remaining genes
-            track_gene_ids = []
-            if reverse_score > forward_score:
-                reverse_alignment = reverse_alignment[::-1]
-                for t in reverse_alignment:
-                    if t[ 0 ]:
-                        track_gene_ids.append( t[ 0 ] )
-            else:
-                for t in forward_alignment:
-                    if t[ 0 ]:
-                        track_gene_ids.append( t[ 0 ] )
-
-            # exclude tracks with only one gene
-            if len( track_gene_ids ) < 2:
-                continue
-
-            # exclude single family tracks
-            if not single:
-                unique_families = set( gene_family_map.values() )
-                if( len( unique_families ) < 2 ):
-                    continue
-
-
-            # get all the gene names
-            track_names = Feature.objects.only( 'name' ).filter( pk__in=track_gene_ids )
-            gene_name_map = dict( ( o.pk, o.name ) for o in track_names ) 
-
-            # get all the gene featurelocs
-            track_locs = Featureloc.objects.only( 'fmin', 'fmax', 'strand' ).filter( feature__in=track_gene_ids )
-            gene_loc_map = dict( ( o.feature_id, o ) for o in track_locs )
-
-            genes = []
-            for i in range( len( track_gene_ids ) ):
-                g = track_gene_ids[ i ]
-                family = gene_family_map[ g ] if g in gene_family_map else ''
-                genes.append('{"name":"'+gene_name_map[ g ]+'", "id":'+str( g )+', "family":"'+family+'", "fmin":'+str( gene_loc_map[ g ].fmin )+', "fmax":'+str( gene_loc_map[ g ].fmax )+', "x":'+str( i )+', "y":'+str( y )+', "strand":'+str( gene_loc_map[ g ].strand )+'}')
-            group = '{"species_name":"'+str( id_organism_map[ id_chromosome_map[ chromosome_id ].organism_id ] )+'", "species_id":'+str( id_chromosome_map[ chromosome_id ].organism_id )+', "chromosome_name":"'+id_chromosome_map[ chromosome_id ].name+'", "chromosome_id":'+str( chromosome_id )+', "genes":['+','.join( genes )+']}'
-            groups.append( group )
-
-            y += 1
-
-    families = []
+    # make the family json
+    family_json = []
     for f in family_ids :
-        families.append('{"name":"'+f+'", "id":"'+f+'"}')
+        family_json.append('{"name":"'+f+'", "id":"'+f+'"}')
+    json = '{"families":['+','.join( family_json )+'], "groups":['
 
-    json = '{"families":['+','.join( families )+'], "groups":['
-
+    # make the final json
     json += ','.join( groups )+']}'
 
-    return render(request, template_name, {'json' : json, 'single' : single, 'num' : num, 'length' : max_length, 'match' : match, 'mismatch' : mismatch, 'gap' : gap, 'num_matched_families' : num_matched_families})
+    ##############
+    # end - json #
+    ##############
+
+    return render(request, template_name, {'json' : json, 'single' : single, 'num' : num, 'non_family' : non_family, 'match' : match, 'mismatch' : mismatch, 'gap' : gap, 'threshold' : threshold, 'num_matched_families' : num_matched_families})
+
+
+# this function returns all the GENES for the given chromosome that have the same family as the context derived from the given gene
+def context_viewer_search_global_ajax( request ):
+    # note: a lot of this code has been taken from context_viewer_search
+    # once it's set in stone we should look into encapsulation
+
+    if request.is_ajax():
+        if "focus_id" not in request.GET or "chromosome_id" not in request.GET:
+            raise Http404
+        # get the focus gene of the query track
+        focus_order = list( GeneOrder.objects.filter( gene__pk=request.GET["focus_id"] ) )
+        if len( focus_order ) == 0:
+            raise Http404
+        focus_order = focus_order[ 0 ]
+
+        # how many neighbours should there be?
+        num = 4
+        if 'num' in request.GET:
+            try:
+                num = int( request.GET[ 'num' ] )
+            except:
+                pass
+
+        # get the gene family type
+        gene_family_type = list( Cvterm.objects.only( 'pk' ).filter( name='gene family' ) )
+        if len( gene_family_type ) == 0:
+            raise Http404
+        gene_family_type = gene_family_type[ 0 ]
+
+        # get the neighbors of focus via their ordering
+        neighbor_orders = GeneOrder.objects.only( ).filter( chromosome=focus_order.chromosome_id, number__gte=focus_order.number-num, number__lte=focus_order.number+num ).order_by( 'number' )
+        neighbor_ids = neighbor_orders.values_list( 'gene_id', flat=True )
+
+        # actually get the gene families
+        neighbor_families = Featureprop.objects.only( 'value' ).filter( type=gene_family_type, feature__in=neighbor_ids )#.values_list( 'value', flat=True )
+        neighbor_family_map = dict( ( o.feature_id, o.value ) for o in neighbor_families )
+        neighbor_families = neighbor_families.values_list( 'value', flat=True )
+        family_ids = []
+        query_families = {}
+        for n in neighbor_families:
+            if n not in family_ids:
+                family_ids.append( n )
+                query_families[n] = 1
+
+        # find all genes with the same families (excluding the query genes)
+        chromosome_gene_orders = GeneOrder.objects.filter( chromosome=request.GET["chromosome_id"] )
+        chromosome_gene_ids = chromosome_gene_orders.values_list( "gene", flat=True )
+        related_genes = Featureprop.objects.only( 'feature' ).filter( type=gene_family_type, value__in=neighbor_families, feature__in=chromosome_gene_ids )
+        gene_family_map = dict( ( o.feature_id, o.value ) for o in related_genes )
+        related_gene_ids = gene_family_map.keys()
+
+        # get all the gene names
+        gene_names = Feature.objects.only( 'name' ).filter( pk__in=related_gene_ids )
+        gene_name_map = dict( ( o.pk, o.name ) for o in gene_names ) 
+
+        # get all the gene featurelocs
+        gene_locs = Featureloc.objects.only( 'fmin', 'fmax', 'strand' ).filter( feature__in=related_gene_ids )
+        gene_loc_map = dict( ( o.feature_id, o ) for o in gene_locs )
+
+        # make the json
+        gene_json = []
+        for g in related_gene_ids:
+            loc = gene_loc_map[ g ]
+            gene_json.append( {"name": gene_name_map[ g ], "id": g, "family": str( gene_family_map[ g ] ), "fmin": loc.fmin, "fmax": loc.fmax, "strand": loc.strand, "x":0, "y": 0} )
+        # return the plot data as encoded as json
+        return HttpResponse(simplejson.dumps( gene_json ), content_type='application/json; charset=utf8')
+        #return HttpResponse('OK')
+    return HttpResponseBadRequest('Bad Request')
 
 # https://github.com/kevinakwok/bioinfo/tree/master/Smith-Waterman
 def smith_waterman( seqA, seqB, accessor, new_element, match = 1, mismatch = 0, gap = -1 ):
-    seqB = seqB[:-1]
+    #this was causing alignments to miss their last element; why was it here?!
+    #seqB = seqB[:-1]
 
     #seqA = "-"+seqA
     seqA.insert( 0, new_element('-') )
     #seqB = "-"+seqB
     seqB.insert( 0, new_element('-') )
-
-    #Sets the values for match, mismatch, and gap.
-    #match = 1 
-    #mismatch = 0 
-    #gap = -1
 
     row = len(seqA)
     col = len(seqB)
@@ -1302,17 +1318,19 @@ def smith_waterman( seqA, seqB, accessor, new_element, match = 1, mismatch = 0, 
 
     #Returns the new value if up is used
     def up(i,j):
-        return A[i-1][j] + isMatch(i,j) + gap 
+        return A[i-1][j] + gap 
 
     #Returns the new value if left is used
     def left(i,j):
-        return A[i][j-1] + isMatch(i,j) + gap 
+        return A[i][j-1] + gap 
 
     #Fills matrix with correct scores.
     def complete_matrix(row,col):
         for i in range(1,row):
             for j in range(1,col):
                 A[i][j] = max(0,diag(i,j),up(i,j),left(i,j))
+        #import sys
+        #sys.stderr.write("completed matrix: " + str(A) + "\n");
         return A
 
     #FInd the highest scoring cell.
@@ -1362,6 +1380,8 @@ def smith_waterman( seqA, seqB, accessor, new_element, match = 1, mismatch = 0, 
             elif tracer[i][k] == tracer[i+1][k]:
                 #seq = seq + "-"
                 seq.append( new_element('-') )
+        #import sys
+        #sys.stderr.write("seq is " + str(seq) + "\n");
         return seq
 
     #Shows the relevant lines for matching pairs
@@ -1380,6 +1400,8 @@ def smith_waterman( seqA, seqB, accessor, new_element, match = 1, mismatch = 0, 
     A = complete_matrix(row,col)
 
     answers = get_max(A)
+    #import sys;
+    #sys.stderr.write("answers is " + str(answers) + "\n");
 
     # return the first highest scoring local alignment and it's score
     tracer = trace_back( A, [answers[0]] )

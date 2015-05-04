@@ -1,6 +1,6 @@
 BEGIN;
 CREATE TABLE "db" (
-    "db_id" integer NOT NULL PRIMARY KEY,
+    "db_id" SERIAL NOT NULL PRIMARY KEY,
     "name" varchar(255) NOT NULL UNIQUE,
     "description" varchar(255) NOT NULL,
     "urlprefix" varchar(255) NOT NULL,
@@ -8,7 +8,7 @@ CREATE TABLE "db" (
 )
 ;
 CREATE TABLE "dbxref" (
-    "dbxref_id" integer NOT NULL PRIMARY KEY,
+    "dbxref_id" SERIAL NOT NULL PRIMARY KEY,
     "db_id" integer NOT NULL REFERENCES "db" ("db_id") DEFERRABLE INITIALLY DEFERRED,
     "accession" varchar(255) NOT NULL,
     "version" varchar(255) NOT NULL,
@@ -16,13 +16,13 @@ CREATE TABLE "dbxref" (
 )
 ;
 CREATE TABLE "cv" (
-    "cv_id" integer NOT NULL PRIMARY KEY,
+    "cv_id" SERIAL NOT NULL PRIMARY KEY,
     "name" varchar(255) NOT NULL UNIQUE,
     "definition" text NOT NULL
 )
 ;
 CREATE TABLE "featureloc" (
-    "featureloc_id" integer NOT NULL PRIMARY KEY,
+    "featureloc_id" SERIAL NOT NULL PRIMARY KEY,
     "feature_id" integer NOT NULL,
     "srcfeature_id" integer,
     "fmin" integer,
@@ -37,7 +37,7 @@ CREATE TABLE "featureloc" (
 )
 ;
 CREATE TABLE "organism" (
-    "organism_id" integer NOT NULL PRIMARY KEY,
+    "organism_id" SERIAL NOT NULL PRIMARY KEY,
     "abbreviation" varchar(255) NOT NULL,
     "genus" varchar(255) NOT NULL,
     "species" varchar(255) NOT NULL,
@@ -46,13 +46,14 @@ CREATE TABLE "organism" (
 )
 ;
 CREATE TABLE "featureprop" (
-    "featureprop_id" integer NOT NULL PRIMARY KEY,
+    "featureprop_id" SERIAL NOT NULL PRIMARY KEY,
     "feature_id" integer NOT NULL,
     "type_id" integer NOT NULL,
     "value" text NOT NULL,
     "rank" integer NOT NULL
 )
 ;
+/*
 CREATE TABLE "feature_relationship" (
     "feature_relationship_id" integer NOT NULL PRIMARY KEY,
     "subject_id" integer NOT NULL,
@@ -62,8 +63,9 @@ CREATE TABLE "feature_relationship" (
     "rank" integer NOT NULL
 )
 ;
+*/
 CREATE TABLE "feature" (
-    "feature_id" integer NOT NULL PRIMARY KEY,
+    "feature_id" SERIAL NOT NULL PRIMARY KEY,
     "dbxref_id" integer REFERENCES "dbxref" ("dbxref_id") DEFERRABLE INITIALLY DEFERRED,
     "organism_id" integer NOT NULL REFERENCES "organism" ("organism_id") DEFERRABLE INITIALLY DEFERRED,
     "name" varchar(255) NOT NULL,
@@ -81,6 +83,7 @@ CREATE TABLE "feature" (
 ALTER TABLE "featureloc" ADD CONSTRAINT "feature_id_refs_feature_id_3614c62d" FOREIGN KEY ("feature_id") REFERENCES "feature" ("feature_id") DEFERRABLE INITIALLY DEFERRED;
 ALTER TABLE "featureloc" ADD CONSTRAINT "srcfeature_id_refs_feature_id_3614c62d" FOREIGN KEY ("srcfeature_id") REFERENCES "feature" ("feature_id") DEFERRABLE INITIALLY DEFERRED;
 ALTER TABLE "featureprop" ADD CONSTRAINT "feature_id_refs_feature_id_107cbe6f" FOREIGN KEY ("feature_id") REFERENCES "feature" ("feature_id") DEFERRABLE INITIALLY DEFERRED;
+/*
 ALTER TABLE "feature_relationship" ADD CONSTRAINT "subject_id_refs_feature_id_61bbb3c3" FOREIGN KEY ("subject_id") REFERENCES "feature" ("feature_id") DEFERRABLE INITIALLY DEFERRED;
 ALTER TABLE "feature_relationship" ADD CONSTRAINT "object_id_refs_feature_id_61bbb3c3" FOREIGN KEY ("object_id") REFERENCES "feature" ("feature_id") DEFERRABLE INITIALLY DEFERRED;
 CREATE TABLE "analysis" (
@@ -96,8 +99,9 @@ CREATE TABLE "analysis" (
     "timeexecuted" timestamp with time zone NOT NULL
 )
 ;
+*/
 CREATE TABLE "cvterm" (
-    "cvterm_id" integer NOT NULL PRIMARY KEY,
+    "cvterm_id" SERIAL NOT NULL PRIMARY KEY,
     "cv_id" integer NOT NULL REFERENCES "cv" ("cv_id") DEFERRABLE INITIALLY DEFERRED,
     "name" varchar(1024) NOT NULL,
     "definition" text NOT NULL,
@@ -107,8 +111,11 @@ CREATE TABLE "cvterm" (
 )
 ;
 ALTER TABLE "featureprop" ADD CONSTRAINT "type_id_refs_cvterm_id_8381b794" FOREIGN KEY ("type_id") REFERENCES "cvterm" ("cvterm_id") DEFERRABLE INITIALLY DEFERRED;
+/*
 ALTER TABLE "feature_relationship" ADD CONSTRAINT "type_id_refs_cvterm_id_84dbd372" FOREIGN KEY ("type_id") REFERENCES "cvterm" ("cvterm_id") DEFERRABLE INITIALLY DEFERRED;
+*/
 ALTER TABLE "feature" ADD CONSTRAINT "type_id_refs_cvterm_id_0158f16d" FOREIGN KEY ("type_id") REFERENCES "cvterm" ("cvterm_id") DEFERRABLE INITIALLY DEFERRED;
+/*
 CREATE TABLE "phylonode" (
     "phylonode_id" integer NOT NULL PRIMARY KEY,
     "phylotree_id" integer NOT NULL,
@@ -132,8 +139,9 @@ CREATE TABLE "phylotree" (
 )
 ;
 ALTER TABLE "phylonode" ADD CONSTRAINT "phylotree_id_refs_phylotree_id_36a0bc6e" FOREIGN KEY ("phylotree_id") REFERENCES "phylotree" ("phylotree_id") DEFERRABLE INITIALLY DEFERRED;
+*/
 CREATE TABLE "gene_order" (
-    "gene_order_id" integer NOT NULL PRIMARY KEY,
+    "gene_order_id" SERIAL NOT NULL PRIMARY KEY,
     "chromosome_id" integer NOT NULL REFERENCES "feature" ("feature_id") DEFERRABLE INITIALLY DEFERRED,
     "gene_id" integer NOT NULL REFERENCES "feature" ("feature_id") DEFERRABLE INITIALLY DEFERRED,
     "number" integer

@@ -28,7 +28,7 @@ body {
         <div class="col-lg-12">
             <h1>{{ tree.name }}</h1>
             <p>{{ tree.comment }}</p>
-            <a href="{% url 'phylo_newick' tree.name %}">view newick</a> | <a href="{% url 'phylo_newick_download' tree.name %}">download</a> | <a href="{% url 'phylo_xml_download' tree.name %}">xml</a> | <a href="{% url 'msa_view' 'consn|'|add:tree.name|cut:'Phytozome_10|' %}">msa</a>
+            <a href="{% url 'phylo_newick' tree.name %}">view newick</a> | <a href="{% url 'phylo_newick_download' tree.name %}">download</a> | <a href="{% url 'phylo_xml_download' tree.name %}">xml</a> | <a href="{% url 'msa_view' tree.name|cut:'Phytozome_10|'|add:'-consensus' %}">msa</a>
         </div>
     </div>
 </div>

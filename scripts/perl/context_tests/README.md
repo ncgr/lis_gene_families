@@ -36,17 +36,14 @@ The JSON uses the following schema
                 {
                     "type":"object",
                     "properties":{
-                        "feature_id": {
-                            "type":"number",
-                        },
-                        "value": {
+                        "family_value": {
                             "type":"string",
                         },
-                        "name": {
+                        "gene_name": {
                             "type":"string",
                         }
                     },
-                    "required":["feature_id", "value"]
+                    "required":["name", "value"]
                 }
         },
         "gene_orders": {
@@ -55,29 +52,23 @@ The JSON uses the following schema
                 {
                     "type":"object",
                     "properties":{
-                        "chromosome_id": {
-                            "type":"number",
+                        "chromosome_name": {
+                            "type":"string",
                         },
-                        "feature_id": {
-                            "type":"number",
+                        "gene_name": {
+                            "type":"string",
                         },
-                        "number": {
+                        "gene_number": {
                             "type":"number",
                         }
                     },
-                    "required":["chromosome_id", "feature_id", "number"]
+                    "required":["chromosome_name", "gene_name", "gene_number"]
                 }
         }
     }
 }
 ```
 
-Note that the corresponding feature, phylotree, and phylonode entries for the given data will be infered.
-The feature_id will be used as a feature's name unless one is explicitly given. 
-Features that will be used as the focus gene in a search should have names since the a name required by the search url.
+Note that the corresponding featureloc entries for the given data will be infered.
 Dummy values for dependent tables, such as organism and dbxref, will be used.
 
-```bash
-perl gmod_gene_families.pl
-perl gmod_gene_ordering.pl
-```
