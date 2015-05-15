@@ -148,7 +148,7 @@
 	// gene clicked callback function
 	function gene_clicked( selection ) {
 		$.ajax({
-	        url:'/chado/phylo/node/slide/',
+	        url:{% url 'phylo_view_ajax' %},
 	        data: {
 	        // this is actually a phylonode_id
 	        gene: selection.id,
@@ -196,7 +196,7 @@
 		// add the track's links to the content box
 		var html = '<h4><a href="/chado/organism/'+data.groups[axis_selection].species_id+'/">'+data.groups[axis_selection].species_name+'</a> - <a href="/chado/feature/'+data.groups[axis_selection].chromosome_id+'/">'+data.groups[axis_selection].chromosome_name+'</a></h4>';
 		var l3 = '<a href="/chado/context_viewer/search/',
-			l4 = '<a href="/chado/context_viewer/synteny/';
+			l4 = '<a href="'+{% url '/chado/context_viewer/synteny/'};
 			//l5 = '<a href="/chado/context_viewer/synteny2/';
 		var genes = '<ul>';
 		var families = [];

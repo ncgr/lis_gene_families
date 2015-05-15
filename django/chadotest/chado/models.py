@@ -20,7 +20,7 @@
 from django.db import models
 from django.db.models import Count
 # import extra stuff
-from django.utils import simplejson # for preparing json objects
+import simplejson # for preparing json objects
 
 
 class Db(models.Model):
