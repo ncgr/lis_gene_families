@@ -96,7 +96,7 @@
 </div>
     <ul class="nav nav-tabs">
         <li class="active"><a id="viewer_tab" href="#viewer" data-toggle="tab">Viewer</a></li>
-        <li><a id="miner_tab" href="#miner" data-toggle="tab">Miner</a></li>
+        <li><a id="miner_tab" href="#miner" data-toggle="tab">Dotplots</a></li>
     </ul>
 <div id="lightbox" class="hidden"><div class="horizontal col-lg-6"><div class="vertical">
     <div class="well bs-component">
@@ -452,10 +452,10 @@
     }
 	// context legend click callback
 	function legend_click( family_selection, gene_selection ) {
-		html = '<h4><a href="/chado/phylo/'+family_names[ family_selection ]+'/">'+family_names[ family_selection ]+'</a></h4>';
+		html = '<h4><a href="/chado_phylotree/'+family_names[ family_selection ]+'/">'+family_names[ family_selection ]+'</a></h4>';
 		html += 'Genes:<ul>';
 	    gene_selection.each(function(f) {
-			html += '<li><a href="/chado/feature/'+f.name+'/">'+f.name+'</a>: '+f.fmin+' - '+f.fmax+'</li>';
+			html += '<li><a href="{{ APP_URL }}/chado/feature/'+f.name+'/">'+f.name+'</a>: '+f.fmin+' - '+f.fmax+'</li>';
 		});
 		html += '</ul>';
 		$("#toggle").html(html);

@@ -2,7 +2,7 @@
 # import http stuffs
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, HttpResponseBadRequest, Http404
-from django.utils import simplejson
+import simplejson
 import json as pyjson
 from django.core.urlresolvers import reverse
 # file generation stuffs
@@ -23,6 +23,8 @@ from django.db.models import Q
 from django.contrib import messages
 # context view
 import operator
+
+from chadotest.settings import APP_URL
 
 
 #########
@@ -74,8 +76,8 @@ def search(request):
         for k in request.session.keys():
             if k.startswith('results_'):
                 del request.session[k]
-        return redirect('/chado/search/0/new/?q='+request.GET['q']);
-    return redirect(request.META.get('HTTP_REFERER', '/chado/'))
+        return redirect(APP_URL+'/chado/search/0/new/?q='+request.GET['q']);
+    return redirect(request.META.get('HTTP_REFERER', APP_URL+'/chado/'))
 
 
 #def search(request, template_name):
@@ -87,7 +89,7 @@ def search(request):
 #        results = FeatureCvterm.objects.filter(term_query)
 #        return render(request, template_name, {'query_string' : query_string, 'results' : paginate(request, results, 'search_num'), 'result_nums' : RESULT_NUMS, 'selected' : get_results(request, 0)})
 #    # redirect if there wasn't a query
-#	return redirect(request.META.get('HTTP_REFERER', '/chado/'))
+#	return redirect(request.META.get('HTTP_REFERER', APP_URL+'/chado/'))
 
 def search_organism(request, depth, template_name, who):
     # if there's a query
@@ -109,7 +111,7 @@ def search_organism(request, depth, template_name, who):
         result_organisms = Organism.objects.filter(pk__in=features.values_list('organism_id', flat=True))
         return render(request, template_name, {'query_string' : request.GET['q'], 'result_organisms' : paginate(request, result_organisms, 'search_organism_num'), 'result_nums' : RESULT_NUMS, 'depth' : depth, 'prev_depth' : depth-1, 'nav' : nav})
     # redirect if there wasn't a query
-	return redirect(request.META.get('HTTP_REFERER', '/chado/'))
+	return redirect(request.META.get('HTTP_REFERER', APP_URL+'/chado/'))
 
 def search_msa(request, depth, template_name, who):
     # if there's a query
@@ -132,7 +134,7 @@ def search_msa(request, depth, template_name, who):
         selected = get_results(request, depth, 'msa')
         return render(request, template_name, {'query_string' : request.GET['q'], 'result_msas' : paginate(request, result_msas, 'search_msa_num'), 'result_nums' : RESULT_NUMS, 'selected' : selected, 'depth' : depth, 'prev_depth' : depth-1, 'nav' : nav})
     # redirect if there wasn't a query
-	return redirect(request.META.get('HTTP_REFERER', '/chado/'))
+	return redirect(request.META.get('HTTP_REFERER', APP_URL+'/chado/'))
 
 def search_phylo(request, depth, template_name, who):
     # if there's a query
@@ -182,7 +184,7 @@ def search_feature(request, depth, template_name, who):
         return render(request, template_name, {'query_string' : request.GET['q'], 'results' : paginate(request, results, 'search_feature_num'), 'result_nums' : RESULT_NUMS, 'selected' : selected, 'depth' : depth, 'prev_depth' : depth-1, 'nav' : nav})
     # rediect if there wasn't a query or the sender wasn't recognized
     messages.error(request, 'Bad request!')
-    return redirect(request.META.get('HTTP_REFERER', '/chado/'))
+    return redirect(request.META.get('HTTP_REFERER', APP_URL+'/chado/'))
 
 def initialize_results_session(request, depth, who=''):
     request.session['results_'+str(depth)+who] = {}
@@ -358,15 +360,15 @@ def phylo_xml(tree, url):
         else:
             xmltree += '<name>&#9675;</name>'
         #xmltree += '<desc>This is a description</desc>'
-        #xmltree += '<uri>/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
-        #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40http://'+request.get_host()+'/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
+        #xmltree += '<uri>'+APP_URL+'/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
+        #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40http://'+request.get_host()+APP_URL+'/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
         #if node.distance:
-        #xmltree += '<annotation><uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://'+request.get_host()+'/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
+        #xmltree += '<annotation><uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://'+request.get_host()+APP_URL+'/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
         xmltree += '<annotation><uri>'+url+str(node.phylonode_id)+'</uri></annotation>'
 	    #xmltree += '<annotation><uri>http://www.google.com/|http://www.comparative-legumes.org/|http://www.ncbi.nlm.nih.gov/</uri></annotation>'
-        #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--no_graphic%40http://'+request.get_host()+'/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
-        #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--no_graphic%40http://'+request.get_host()+'/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
-        #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40http://'+request.get_host()+'/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
+        #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--no_graphic%40http://'+request.get_host()+APP_URL+'/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
+        #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--no_graphic%40http://'+request.get_host()+APP_URL+'/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
+        #xmltree += '<uri>http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40http://'+request.get_host()+APP_URL+'/chado/phylo/node/'+str(node.phylonode_id)+'/gff_download</uri></annotation>'
         for child in family.filter(parent_phylonode=node):
             xmltree, leafs = add_node(xmltree, child, family, leafs)
         xmltree += '</clade>'
@@ -523,18 +525,18 @@ def phylo_view_ajax(request):
             # internal nodes
             else:
                 slidedict['label'] = "Interior Node"
-                slidedict['links'] = [{'CMTV':'http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://'+request.get_host()+'/chado/phylo/node/gff_download/'+str(node.phylonode_id)}]
-                slidedict['links'].append({'NodeGraphWordCloud':'/chado/d3viz_force_directed/phylonode/viz/'+str(node.phylonode_id)}) 
+                slidedict['links'] = [{'CMTV':'http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://'+request.get_host()+APP_URL+'/chado/phylo/node/gff_download/'+str(node.phylonode_id)}]
+                slidedict['links'].append({'NodeGraphWordCloud':APP_URL+'/chado/d3viz_force_directed/phylonode/viz/'+str(node.phylonode_id)}) 
                 #TODO: extract the subset MSA for the sequences in the subtree
-                #slidedict['links'].append({'MSA':'/chado/msa/'+str(node.feature_id)})
+                #slidedict['links'].append({'MSA':APP_URL+'/chado/msa/'+str(node.feature_id)})
                 #hack: use the naming convention to get the consensus feature; trees don't appear to
                 #be easily connected with their MSAs otherwise
                 #consensus_feature = features.get(uniquename=node.phylotree.name+'-consensus');
                 #consensus_feature = Feature.objects.get(uniquename='consn.'+node.phylotree.name);
-                #slidedict['links'].append({'MSA':'/chado/msa/'+str(consensus_feature.feature_id)})
+                #slidedict['links'].append({'MSA':APP_URL+'/chado/msa/'+str(consensus_feature.feature_id)})
                 # load the context viewer with each node in the subtree as a focus gene 
-                #slidedict['links'].append({'Context Viewer':'/chado/context_viewer/demo'+str(node.pk)})
-                slidedict['links'].append({'Context Viewer':'/chado/context_viewer/'+str(node.pk)})
+                #slidedict['links'].append({'Context Viewer':APP_URL+'/chado/context_viewer/demo'+str(node.pk)})
+                slidedict['links'].append({'Context Viewer': APP_URL + '/chado/context_viewer/'+str(node.pk)})
             return HttpResponse(simplejson.dumps(slidedict), content_type = 'application/javascript; charset=utf8')
         except:
             pass
@@ -785,7 +787,7 @@ def context_viewer(request, node_id, template_name):
     focus_genes = [ g for g in focus_genes ]
     # generate the context view using the focus genes
     json, floc_id_string, focus_family = context_viewer_json_refactor(focus_genes, num)
-    return render(request, template_name, {'json' : json, 'floc_id_string' : floc_id_string, 'focus_family' : focus_family})
+    return render(request, template_name, {'json' : json, 'floc_id_string' : floc_id_string, 'focus_family' : focus_family, 'APP_URL' : APP_URL})
 
 # focus_genes is a list of tuples, the first element is a gene object, the second is the orientation (-1 flip, 1 leave as is, 0 flip if on reverse strand)
 def context_viewer_json_refactor(focus_genes, num):
@@ -1078,6 +1080,7 @@ def context_viewer_search( request, template_name, focus_name=None ):
     neighbor_family_map = dict( ( o.feature_id, o.value ) for o in neighbor_families )
     family_ids = []
     query_families = {}
+    flocs = []
     for n in neighbor_family_map.values():
         if n not in family_ids:
             family_ids.append( n )
@@ -1103,6 +1106,7 @@ def context_viewer_search( request, template_name, focus_name=None ):
         g = neighbor_ids[ i ]
         family = str( neighbor_family_map[ g ] ) if g in neighbor_family_map else ''
         floc = neighbor_floc_map[ g ]
+	flocs.append(floc.pk)
         genes.append('{"name":"'+neighbor_name_map[ g ]+'", "id":'+str( g )+', "family":"'+family+'", "fmin":'+str( floc.fmin )+', "fmax":'+str( floc.fmax )+', "strand":'+str( floc.strand )+', "x":'+str( i )+', "y":0}')
         query_align.append( ( g, family ) )
     query_group = '{"species_name":"'+organism.genus[ 0 ]+'.'+organism.species+'", "species_id":'+str( organism.pk )+', "chromosome_name":"'+chromosome.name+'", "chromosome_id":'+str( chromosome.pk )+', "genes":['+','.join( genes )+']}'
@@ -1179,6 +1183,8 @@ def context_viewer_search( request, template_name, focus_name=None ):
                     # get all the gene featurelocs
                     gene_locs = Featureloc.objects.only( 'fmin', 'fmax', 'strand' ).filter( feature__in=track_gene_ids )
                     gene_loc_map = dict( ( o.feature_id, o ) for o in gene_locs )
+                    for gl in gene_locs : 
+                        flocs.append(gl.pk);
                     # make the track json
                     gene_json = []
                     for j in range( len( track_gene_ids ) ):
@@ -1213,8 +1219,9 @@ def context_viewer_search( request, template_name, focus_name=None ):
     ##############
     # end - json #
     ##############
+    floc_id_string = ','.join(map(str, flocs))
 
-    return render(request, template_name, {'json' : json, 'single' : single, 'num' : num, 'non_family' : non_family, 'match' : match, 'mismatch' : mismatch, 'gap' : gap, 'threshold' : threshold, 'num_matched_families' : num_matched_families})
+    return render(request, template_name, {'json' : json, 'single' : single, 'num' : num, 'non_family' : non_family, 'match' : match, 'mismatch' : mismatch, 'gap' : gap, 'threshold' : threshold, 'num_matched_families' : num_matched_families, 'floc_id_string' : floc_id_string, 'APP_URL' : APP_URL})
 
 
 # this function returns all the GENES for the given chromosome that have the same family as the context derived from the given gene
