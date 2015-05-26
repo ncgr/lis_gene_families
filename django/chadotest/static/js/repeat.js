@@ -17,7 +17,7 @@ var s = function( first, second, scoring ) {
 }
 
 
-var smith = function( sequence, reference, accessor, scoring ) {
+var repeat_align = function( sequence, reference, accessor, scoring ) {
     var rows = sequence.length + 1; // first item is at index 1
     var cols = reference.length + 1; // first item is at index 1
     var a = Array.matrix( cols, rows, 0 );
@@ -53,7 +53,7 @@ var smith = function( sequence, reference, accessor, scoring ) {
         if( i == 0 ) {
             var max = a[j].max();
             var max_i = a[j].lastIndexOf( max );
-            // start a new alignment only if i is a matcha
+            // start a new alignment only if i is a match
             if( max_i > 0  && j > 0 && accessor( reference[ j-1 ] ) === accessor( sequence[ max_i-1 ] ) ) {
                 i = max_i;
                 // does the alignment's score meet the threshold
@@ -124,7 +124,7 @@ var smith = function( sequence, reference, accessor, scoring ) {
 };
 
 // returns the higher scoring alignment - forward or reverse
-var align = function( sequence, reference, accessor, scoring ) {
+var repeat = function( sequence, reference, accessor, scoring ) {
     if( accessor === undefined ) {
         accessor = default_accessor;
     }
@@ -143,10 +143,10 @@ var align = function( sequence, reference, accessor, scoring ) {
     if( scoring.threshold === undefined ) {
         scoring.threshold = 10;
     }
-	var forwards = smith( sequence, reference, accessor, scoring );
+	var forwards = repeat_align( sequence, reference, accessor, scoring );
     reference_clone = reference.slice(0);
 	reference_clone.reverse();
-	var reverses = smith( sequence, reference_clone, accessor, scoring );
+	var reverses = repeat_align( sequence, reference_clone, accessor, scoring );
     // clone each object in the arrays
     // flip the strand for each selected gene
     var output = forwards;

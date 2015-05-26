@@ -68,3 +68,8 @@ function clone(obj) {
     }
     return temp;
 }
+
+// checks if a string is a number
+function isNumber(n) {
+    return !isNaN(parseInt(n)) && isFinite(n);
+}
