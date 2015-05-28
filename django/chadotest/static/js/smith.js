@@ -32,13 +32,11 @@ var smith_align = function( sequence, reference, accessor, scoring ) {
     var a = Array.matrix( rows, cols, 0 );
     var i = 0, j = 0;
     var choice = [ 0, 0, 0, 0 ];
-    var ref = [];
-    var seq = [];
-    var score, score_diag, score_up, scroe_left;
     
     // populate the matrix
-	var last_i_align,
-		last_j_align;
+    var max = 0,
+        max_i = 0,
+        max_j = 0;
     for( i=1; i<rows; i++ ) {
         for( j=1; j<cols; j++ ) {
             choice[0] = 0;
@@ -46,18 +44,25 @@ var smith_align = function( sequence, reference, accessor, scoring ) {
             choice[2] = a[i-1][j] + scoring.gap;
             choice[3] = a[i][j-1] + scoring.gap;
             a[i][j] = choice.max();
-			if( a[i][j] === choice[1] ) {
-				last_i_align = i;
-				last_j_align = j;
-			}
+            if( a[i][j] >= max ) {
+                max = a[i][j];
+                max_i = i;
+                max_j = j;
+            }
         }
     }
 
     // traceback
-    i = reference.length;
-    j = sequence.length;
+    i = max_i;
+    j = max_j;
+    var score = max,
+        score_diag,
+        score_up,
+        scroe_left;
+    var ref = [];
+    var seq = [];
 	var total_score = 0;
-    while( i>0 && j>0 ) {
+    while( i>0 && j>0 && score > 0 ) {
         score = a[i][j];
 		total_score += score;
         score_diag = a[i-1][j-1];
