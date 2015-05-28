@@ -13,7 +13,7 @@ function default_accessor( item ) {
 var s = function( first, second, scoring ) {
 	if( first === second ) {
 		return scoring.match;
-	} return scoring.mismatch;
+	} return scoring.mismatch; // passed value should be negative
 }
 
 
@@ -118,6 +118,13 @@ var repeat_align = function( sequence, reference, accessor, scoring ) {
                         }
                     }
                     break;
+            }
+            // add any missing genes
+            if( i == 0 && saving ) {
+                for( var k = j-2; k >= 0; k-- ) {
+                    alignments[ index ][ 0 ].unshift( clone(sequence[ k ]) );
+                    alignments[ index ][ 1 ].unshift( null );
+                }
             }
         }
     }
