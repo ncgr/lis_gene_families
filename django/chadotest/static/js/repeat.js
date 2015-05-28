@@ -79,45 +79,50 @@ var repeat_align = function( sequence, reference, accessor, scoring ) {
             // diag, up, left
             var scores = [ a[i-1][j-1], a[i][j-1], a[i-1][j] ];
             var max = scores.max();
-            switch( scores.indexOf( max ) ) {
-                // diag
-                case 0:
-                    j--;
-                    i--;
-                    // no alignments happen in the first row or column
-                    if( saving ) {
-                        if( j >  0  && i > 0 ) {
-                            alignments[ index ][ 0 ].unshift( clone(sequence[j-1]) );
-                            alignments[ index ][ 1 ].unshift( clone(reference[i-1]) );
-                        } else if( i > 0 ) {
-                            alignments[ index ][ 0 ].unshift( null );
-                            alignments[ index ][ 1 ].unshift( clone(reference[i-1]) );
-                        } else if( j > 0 ) {
-                            alignments[ index ][ 0 ].unshift( clone(sequence[j-1]) );
-                            alignments[ index ][ 1 ].unshift( null );
+            // stop aligning if a 0 cell was reached
+            if( max == 0 ) {
+                i = 0;
+            } else {
+                switch( scores.indexOf( max ) ) {
+                    // diag
+                    case 0:
+                        j--;
+                        i--;
+                        // no alignments happen in the first row or column
+                        if( saving ) {
+                            if( j >  0  && i > 0 ) {
+                                alignments[ index ][ 0 ].unshift( clone(sequence[j-1]) );
+                                alignments[ index ][ 1 ].unshift( clone(reference[i-1]) );
+                            } else if( i > 0 ) {
+                                alignments[ index ][ 0 ].unshift( null );
+                                alignments[ index ][ 1 ].unshift( clone(reference[i-1]) );
+                            } else if( j > 0 ) {
+                                alignments[ index ][ 0 ].unshift( clone(sequence[j-1]) );
+                                alignments[ index ][ 1 ].unshift( null );
+                            }
                         }
-                    }
-                    break;
-                // up
-                case 1:
-                    j--;
-                    if( saving ) {
-                        if( j > 0 ) {
-                            alignments[ index ][ 0 ].unshift( clone(sequence[j-1]) );
-                            alignments[ index ][ 1 ].unshift( null );
+                        break;
+                    // up
+                    case 1:
+                        j--;
+                        if( saving ) {
+                            if( j > 0 ) {
+                                alignments[ index ][ 0 ].unshift( clone(sequence[j-1]) );
+                                alignments[ index ][ 1 ].unshift( null );
+                            }
                         }
-                    }
-                    break;
-                // left
-                case 2:
-                    i--;
-                    if( saving ) {
-                        if( i > 0 ) {
-                            alignments[ index ][ 0 ].unshift( null );
-                            alignments[ index ][ 1 ].unshift( clone(reference[i-1]) );
+                        break;
+                    // left
+                    case 2:
+                        i--;
+                        if( saving ) {
+                            if( i > 0 ) {
+                                alignments[ index ][ 0 ].unshift( null );
+                                alignments[ index ][ 1 ].unshift( clone(reference[i-1]) );
+                            }
                         }
-                    }
-                    break;
+                        break;
+                }
             }
             // add any missing genes
             if( i == 0 && saving ) {

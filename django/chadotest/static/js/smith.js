@@ -62,8 +62,11 @@ var smith_align = function( sequence, reference, accessor, scoring ) {
     var ref = [];
     var seq = [];
 	var total_score = 0;
-    while( i>0 && j>0 && score > 0 ) {
+    while( i>0 && j>0 ) {
         score = a[i][j];
+        if( score == 0 ) {
+            break;
+        }
 		total_score += score;
         score_diag = a[i-1][j-1];
         score_up = a[i][j-1];
