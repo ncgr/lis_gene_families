@@ -18,101 +18,103 @@ var s = function( first, second, scoring ) {
 
 
 var repeat_align = function( sequence, reference, accessor, scoring ) {
+    // populate the matrix
     var rows = sequence.length + 1; // first item is at index 1
     var cols = reference.length + 1; // first item is at index 1
     var a = Array.matrix( cols, rows, 0 );
-    var i = 0, j = 0;
+    var i; // cols
     var choice = [ 0, 0, 0, 0 ];
-    var alignments = [];
-    var index = -1;
-    var score_diag, score_up, scroe_left;
     
-    // populate the matrix
-    for( j=1; j<cols; j++ ) {
+    for( i=1; i<cols; i++ ) { // first column is all 0's
         // handle unmatched regions and ends of matches
-        var scores = a[j-1].map(function(score, index) {
-            if( index > 0 ) {
+        var scores = a[i-1].map(function(score, j) {
+            if( j > 0 ) {
                 return score - scoring.threshold;
             } return score;
         });
+        a[i][0] = scores.max();
         // handle starts of matches and extensions
-        for( i=1; i<rows; i++ ) {
-            choice[0] = a[j][0];
-            choice[1] = a[j-1][i-1] + s( accessor(reference[j-1]), accessor(sequence[i-1]), scoring );
-            choice[2] = a[j-1][i] + scoring.gap;
-            choice[3] = a[j][i-1] + scoring.gap;
-            a[j][i] = choice.max();
+        for( j=1; j<rows; j++ ) {
+            choice[0] = a[i][0];
+            choice[1] = a[i-1][j-1] + s( accessor(reference[i-1]), accessor(sequence[j-1]), scoring );
+            choice[2] = a[i-1][j] + scoring.gap; // adding because passed value should be negative
+            choice[3] = a[i][j-1] + scoring.gap;
+            a[i][j] = choice.max();
         }
     }
-
-    // traceback - make a track for each qualified path in the matrix
-    i = 0;
-    j = cols-1; // start in the extra cell
+ 
+    // traceback - make a track for each qualified path in the matrix   
+    i = cols-1; // start in the extra cell
+    var j = 0; // rows
+    var alignments = [];
+    var index = -1;
+    var score_diag, score_up, scroe_left;
     var saving = false;
+
     while( !(i == 0 && j == 0) ) {
-        if( i == 0 ) {
-            var max = a[j].max();
-            var max_i = a[j].lastIndexOf( max );
-            // start a new alignment only if i is a match
-            if( max_i > 0  && j > 0 && accessor( reference[ j-1 ] ) === accessor( sequence[ max_i-1 ] ) ) {
-                i = max_i;
+        if( j == 0 ) {
+            var max = a[i].max();
+            var max_j = a[i].lastIndexOf( max );
+            // start a new alignment only if j is a match
+            if( max_j > 0 && i > 0 && accessor( reference[ i-1 ] ) === accessor( sequence[ max_j-1 ] ) ) {
+                j = max_j;
                 // does the alignment's score meet the threshold
                 saving = max >= scoring.threshold;
                 if( saving ) {
                     alignments.push( [[],[]] );
                     index++;
-                    for( var k = sequence.length-1; k >= i; k-- ) {
+                    for( var k = sequence.length-1; k >= j; k-- ) {
                         alignments[ index ][ 0 ].push( clone(sequence[ k ]) );
                         alignments[ index ][ 1 ].push( null );
                     }
-                    alignments[ index ][ 0 ].unshift( clone(sequence[i-1]) );
-                    alignments[ index ][ 1 ].unshift( clone(reference[j-1]) );
+                    alignments[ index ][ 0 ].unshift( clone(sequence[j-1]) );
+                    alignments[ index ][ 1 ].unshift( clone(reference[i-1]) );
                 }
             } else {
-                j--;
+                i--;
             }
-        } else if ( j == 0 ) {
-            i = 0;
+        } else if ( i == 0 ) {
+            j = 0;
         } else {
             // diag, up, left
-            var scores = [ a[j-1][i-1], a[j][i-1], a[j-1][i] ];
+            var scores = [ a[i-1][j-1], a[i][j-1], a[i-1][j] ];
             var max = scores.max();
             switch( scores.indexOf( max ) ) {
                 // diag
                 case 0:
-                    i--;
                     j--;
+                    i--;
                     // no alignments happen in the first row or column
                     if( saving ) {
-                        if( i >  0  && j > 0 ) {
-                            alignments[ index ][ 0 ].unshift( clone(sequence[i-1]) );
-                            alignments[ index ][ 1 ].unshift( clone(reference[j-1]) );
-                        } else if( j > 0 ) {
-                            alignments[ index ][ 0 ].unshift( null );
-                            alignments[ index ][ 1 ].unshift( clone(reference[j-1]) );
+                        if( j >  0  && i > 0 ) {
+                            alignments[ index ][ 0 ].unshift( clone(sequence[j-1]) );
+                            alignments[ index ][ 1 ].unshift( clone(reference[i-1]) );
                         } else if( i > 0 ) {
-                            alignments[ index ][ 0 ].unshift( clone(sequence[i-1]) );
+                            alignments[ index ][ 0 ].unshift( null );
+                            alignments[ index ][ 1 ].unshift( clone(reference[i-1]) );
+                        } else if( j > 0 ) {
+                            alignments[ index ][ 0 ].unshift( clone(sequence[j-1]) );
                             alignments[ index ][ 1 ].unshift( null );
                         }
                     }
                     break;
                 // up
                 case 1:
-                    i--;
+                    j--;
                     if( saving ) {
-                        if( i > 0 ) {
-                            alignments[ index ][ 0 ].unshift( clone(sequence[i-1]) );
+                        if( j > 0 ) {
+                            alignments[ index ][ 0 ].unshift( clone(sequence[j-1]) );
                             alignments[ index ][ 1 ].unshift( null );
                         }
                     }
                     break;
                 // left
                 case 2:
-                    j--;
+                    i--;
                     if( saving ) {
-                        if( j > 0 ) {
+                        if( i > 0 ) {
                             alignments[ index ][ 0 ].unshift( null );
-                            alignments[ index ][ 1 ].unshift( clone(reference[j-1]) );
+                            alignments[ index ][ 1 ].unshift( clone(reference[i-1]) );
                         }
                     }
                     break;

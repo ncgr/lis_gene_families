@@ -429,7 +429,7 @@
         var alignments = [],
             result_tracks = params.algorithm ? data.groups.slice( 1 ) : [];
         for( var i = 1; i < data.groups.length; i++ ) {
-            var scoring = { match : {{ match }}/*params.match*/, mismatch : {{ mismatch }}/*params.mismatch*/, gap : {{ gap }}/*params.gap*/, threshold : {{ threshold }}/*params.threshold*/ };
+            var scoring = { match : params.match, mismatch : params.mismatch, gap : params.gap, threshold : params.threshold };
             var al = align( data.groups[ 0 ].genes, data.groups[ i ].genes, get_family, scoring );
             if( params.algorithm ) {
                 alignments.push( al );
