@@ -89,12 +89,6 @@ var smith_align = function( sequence, reference, accessor, scoring ) {
 		}
     }
     
-    while( i>0 ) {
-        ref.unshift( clone(reference[i-1]));
-        seq.unshift( null );
-        i -= 1;
-    }
-    
     while( j>0 ) {
         ref.unshift( null );
         seq.unshift( clone(sequence[j-1]));
