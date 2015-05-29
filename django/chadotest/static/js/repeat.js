@@ -171,5 +171,7 @@ var repeat = function( sequence, reference, accessor, scoring ) {
         }
         output.push( reverses[ i ] );
     }
-	return output;
+	return output.sort(function(a, b) {
+        return a[1].count(null)-b[1].count(null);
+    });
 }

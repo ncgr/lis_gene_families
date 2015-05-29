@@ -33,6 +33,12 @@ Array.method( 'max', function() {
     return tmp;
 } );
 
+Array.prototype.count = function(value) {
+    return this.reduce(function(c,el) {
+        return el === value ? c+1 : c
+    }, 0);
+}
+
 // multi dimension array from JavaScript: The Good Parts
 Array.matrix = function (m, n, initial) {
     var a, i, j, mat = [];
