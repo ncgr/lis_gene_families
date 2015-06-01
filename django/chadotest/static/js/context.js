@@ -116,9 +116,11 @@ function merge_alignments( context_data, selected_groups, alignments ) {
                 } else if( insertion_count > 0 ) {
                     var step = 1.0/(insertion_count+1);
                     for( var j = i-insertion_count; j < i; j++ ) {
-                        alignment[1][j].x = query_count+(step*(i-j))-1;
-                        alignment[1][j].y = k+1;
-                        context_data.groups[index].genes.push(alignment[1][j]);
+                        if( alignment[1][j] != null ) {
+                            alignment[1][j].x = query_count+(step*(i-j))-1;
+                            alignment[1][j].y = k+1;
+                            context_data.groups[index].genes.push(alignment[1][j]);
+                        }
                     }
                     insertion_count = 0;
                 }
