@@ -384,15 +384,17 @@
     }
     plot_data.groups = plot_groups;
 	// context viewer callback functions
+    var plot_axis_map = [];
 	var track_length = get_track_length( data );
     function gene_clicked( gene_selected ) {}
     function axis_clicked( axis_selection, gene_selection, rail_selection ) {
         $('#global').html('<img src="{% static 'gif/ajax-loader.gif' %}" />');
         // make the context synteny plot
-        context_synteny( 'local', color, plot_data, axis_selection, {"width":Math.max(document.getElementById('local').offsetWidth, document.getElementById('global').offsetWidth)} );
+        var plot_selection = plot_axis_map[ axis_selection ];
+        context_synteny( 'local', color, plot_data, plot_selection, {"width":Math.max(document.getElementById('local').offsetWidth, document.getElementById('global').offsetWidth)} );
 	    var focus_id = data.groups[ 0 ].genes[ (data.groups[ 0 ].genes.length-1)/2 ].id;
-        var chromosome_id = data.groups[ axis_selection ].chromosome_id;
-        if( global_data[ axis_selection ] === undefined ) {
+        var chromosome_id = data.groups[ plot_selection ].chromosome_id;
+        if( global_data[ plot_selection ] === undefined ) {
 		    $.ajax({
 	            url:"{% url 'context_viewer_search_global_ajax' %}",
 	            data: {
@@ -404,10 +406,10 @@
 	            contentType: "application/json;charset=utf-8",
 	            dataType: "json",
 	            success: function(genes) {
-                    global_data[ axis_selection ] = genes;
-                    global_plot_data.groups[ axis_selection ].genes = genes;
-                    global_plot_data.groups[ axis_selection ].genes = plot_points( global_plot_data.groups[ axis_selection ] );
-                    context_synteny( 'global', color, global_plot_data, axis_selection, {"width":Math.max(document.getElementById('local').offsetWidth, document.getElementById('global').offsetWidth)} );
+                    global_data[ plot_selection ] = genes;
+                    global_plot_data.groups[ plot_selection ].genes = genes;
+                    global_plot_data.groups[ plot_selection ].genes = plot_points( global_plot_data.groups[ plot_selection ] );
+                    context_synteny( 'global', color, global_plot_data, plot_selection, {"width":Math.max(document.getElementById('local').offsetWidth, document.getElementById('global').offsetWidth)} );
 	            },
 	            error: function(ts) { 
 	            // this is for debugging, not production!
@@ -428,15 +430,18 @@
         // align all the tracks with the query track
         var alignments = [],
             result_tracks = params.algorithm ? data.groups.slice( 1 ) : [];
+        plot_axis_map = [0];
         for( var i = 1; i < data.groups.length; i++ ) {
             var scoring = { match : params.match, mismatch : params.mismatch, gap : params.gap, threshold : params.threshold };
             var al = align( data.groups[ 0 ].genes, data.groups[ i ].genes, get_family, scoring );
             if( params.algorithm ) {
                 alignments.push( al );
+                plot_axis_map.push(i);
             } else {
                 for( var j = 0; j < al.length; j++ ) {
                     result_tracks.push( clone(data.groups[ i ]) );
                     alignments.push( al[ j ] );
+                    plot_axis_map.push(i);
                 }
             }
         }
