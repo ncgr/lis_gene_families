@@ -400,6 +400,7 @@
 	            data: {
 	                focus_id: focus_id,
                     chromosome_id: chromosome_id,
+                    num: {{ num }},
 	                // all pages are protected against csrf so we need to pass the token for this page
 	                csrfmiddlewaretoken: '{{ csrf_token }}'
 	            },
@@ -417,8 +418,8 @@
 	            }
 	        });
         }
-        if( global_data[ axis_selection ] !== undefined ) {
-            context_synteny( 'global', color, global_plot_data, axis_selection, {"width":Math.max(document.getElementById('local').offsetWidth, document.getElementById('global').offsetWidth)} );
+        if( global_data[ plot_selection ] !== undefined ) {
+            context_synteny( 'global', color, global_plot_data, plot_selection, {"width":Math.max(document.getElementById('local').offsetWidth, document.getElementById('global').offsetWidth)} );
         }
     }
     // define the accessor used by the alignment algorithm
