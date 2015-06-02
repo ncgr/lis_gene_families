@@ -44,8 +44,6 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 	// initialize the x and y scales
 	var x = d3.scale.linear().domain([min_x, max_x]).range([left_pad, w-pad-l_pad]),
 		y = d3.scale.linear().domain([0, num_tracks-1]).range([top_pad, h-bottom_pad]);
-	//var x = d3.scale.linear().domain([0, num_genes-1]).range([left_pad, w-pad-l_pad]),
-	//	y = d3.scale.linear().domain([0, num_tracks-1]).range([top_pad, h-bottom_pad]);
 
 	// for constructing the y-axis
 	var tick_values = [];
@@ -70,7 +68,6 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 		gene_groups.append("path")
 		    .attr("d", d3.svg.symbol().type("triangle-up").size(200))
 		    .attr("class", function(d) {
-				//if( d.x == (num_genes-1)/2 && ( optional_parameters.focus !== undefined && optional_parameters.focus ) ) {
 				if( optional_parameters.focus !== undefined && optional_parameters.focus == d.family ) {
 					return "point focus";
 				} else if ( d.family == '' ) {
