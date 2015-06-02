@@ -155,6 +155,8 @@ function context_viewer( container_id, color, data, optional_parameters ) {
         }
 
 		// add rails to the tracks
+        // this is all rather hacky
+        var partition = false;
 		gene_groups.each(function(d) {
 			var closest;
 			var neighbors = gene_groups.filter(function(e) {
@@ -166,15 +168,22 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 				}
 			});
 			if( closest !== undefined ) {
-                // inner-track line
-                draw_line(d, closest);
                 // draw inter-track lines
-			    if( begin_genes[ closest.name ] !== undefined ) {
-                    draw_line(d, begin_genes[ closest.name ]);
-			    }
-			    if( end_genes[ d.name ] !== undefined ) {
+			    if( end_genes[ d.name ] !== undefined && end_genes[ d.name ].y != d.y ) {
+                    partition = true;
                     draw_line(closest, end_genes[ d.name ]);
                 }
+                if( !partition ) {
+                    // inner-track line
+                    draw_line(d, closest);
+                }
+			    if( begin_genes[ closest.name ] !== undefined && begin_genes[ closest.name ].y != closest.y ) {
+                    partition = false;
+                    draw_line(d, begin_genes[ closest.name ]);
+			    }
+                if( partition ) {
+                    d3.select(this).remove();
+                } 
             }
 		});
 	}
