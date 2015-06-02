@@ -48,6 +48,20 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 	// for constructing the y-axis
 	var tick_values = [];
 
+    // plotted genes
+    var begin_genes = {};
+    var end_genes = {};
+	// find the beginning and end of each track
+	for( var i = 0; i < data.groups.length; i++ ) {
+        data.groups[i].genes.sort(function(a, b) {
+              return a.x - b.x;
+        });
+        var begin = data.groups[i].genes[0],
+            end = data.groups[i].genes[ data.groups[i].genes.length-1 ];
+        begin_genes[ begin.name ] = begin;
+        end_genes[ end.name ] = end;
+    }
+
 	// add the tracks (groups)
 	for( var i = 0; i < data.groups.length; i++ ) {
 		// add the group to the y-axis
@@ -105,59 +119,64 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 				return e.name+": "+e.fmin+" - "+e.fmax;
 			});
 
-		// draw a line between the given gene and it's closest left neighbor
-		function add_rails() {
-			// find the neighbor
-			gene_groups.each(function(d) {
-				var closest;
-				var neighbors = gene_groups.filter(function(e) {
-					return e.y == d.y;
-				});
-				neighbors.each(function(e) {
-					if( e.x < d.x && (closest === undefined || e.x > closest.x ) ) {
-						closest = e;
+		// helper that draws lines between two given genes
+        function draw_line(a, b) {
+			var length = x(a.x)-x(b.x);
+
+			var rail_group = viewer.append("g")
+				.attr("class", "rail")
+				.attr("transform", function() {
+					return "translate("+x(b.x)+", "+y(b.y)+")";
+				})
+				.attr("y", b.y) // does nothing besides hold the datum
+		    	.data(function() {
+					if( a.fmin > b.fmax ) {
+						return [a.fmin-b.fmax];
 					}
+					return [b.fmin-a.fmax];
 				});
 
-				// draw the line
-				if( closest !== undefined ) {
-					var length = x(d.x)-x(closest.x);
+		    rail_group.append("line")
+				.attr("class", "line")
+		    	.attr("x1", 0)
+		    	.attr("x2", length)
+		    	.attr("y1", 0)
+		    	.attr("y2", y(a.y)-y(b.y));
 
-					var rail_group = viewer.append("g")
-						.attr("class", "rail")
-						.attr("transform", function() {
-							return "translate("+x(closest.x)+", "+y(closest.y)+")";
-						})
-						.attr("y", closest.y) // does nothing besides hold the datum
-		    	    	.data(function() {
-							if( d.fmin > closest.fmax ) {
-								return [d.fmin-closest.fmax];
-							}
-							return [closest.fmin-d.fmax];
-						});
+			rail_group.append("text")
+				.attr("class", "tip")
+				.attr("transform", "translate("+(length/2)+", 10) rotate(45)")
+				.attr("text-anchor", "left")
+				.text(function(e) {
+					return rail_group.data();
+				});
 
-		    	    rail_group.append("line")
-						.attr("class", "line")
-		    	    	.attr("x1", 0)
-		    	    	.attr("x2", length)
-		    	    	.attr("y1", 0)
-		    	    	.attr("y2", 0);
-
-					rail_group.append("text")
-						.attr("class", "tip")
-						.attr("transform", "translate("+(length/2)+", 10) rotate(45)")
-						.attr("text-anchor", "left")
-						.text(function(e) {
-							return rail_group.data();
-						});
-
-					rail_group.moveToBack();
-		    	}
-			});
-		}
+			rail_group.moveToBack();
+        }
 
 		// add rails to the tracks
-		add_rails();
+		gene_groups.each(function(d) {
+			var closest;
+			var neighbors = gene_groups.filter(function(e) {
+				return e.y == d.y;
+			});
+			neighbors.each(function(e) {
+				if( e.x < d.x && (closest === undefined || e.x > closest.x ) ) {
+					closest = e;
+				}
+			});
+			if( closest !== undefined ) {
+                // inner-track line
+                draw_line(d, closest);
+                // draw inter-track lines
+			    if( begin_genes[ closest.name ] !== undefined ) {
+                    draw_line(d, begin_genes[ closest.name ]);
+			    }
+			    if( end_genes[ d.name ] !== undefined ) {
+                    draw_line(closest, end_genes[ d.name ]);
+                }
+            }
+		});
 	}
 
 	// make global group selections
