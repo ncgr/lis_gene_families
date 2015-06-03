@@ -6,6 +6,83 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 	// clear the contents of the target element first
 	document.getElementById(container_id).innerHTML = "";
 
+    // data preprocessing
+    var begin_genes = {};
+    var end_genes = {};
+    var partitions = {};
+    var groups = {};
+	for( var i = 0; i < data.groups.length; i++ ) {
+	    // find the beginning and end of each track
+        data.groups[i].genes.sort(function(a, b) {
+              return a.x - b.x;
+        });
+        var begin = data.groups[i].genes[0],
+            end = data.groups[i].genes[ data.groups[i].genes.length-1 ];
+        begin_genes[ begin.name ] = begin;
+        end_genes[ end.name ] = end;
+        // prepare to merge partitions
+        if( optional_parameters.merge !== undefined && optional_parameters.merge == true ) {
+            var id = data.groups[i].species_id+":"+data.groups[i].chromosome_id;
+            if( partitions[ id ] === undefined ) {
+                partitions[ id ] = [];
+                groups[ id ] = clone(data.groups[i]);
+                groups[ id ].genes = [];
+            }
+            partitions[ id ].push(data.groups[i].genes);
+        }
+    }
+
+    // merge partitions from same chromosome with the interval scheduling greedy algorithm
+    if( optional_parameters.merge !== undefined && optional_parameters.merge == true ) {
+        data.groups = [];
+        var group_y = 0;
+        for( var id in partitions ) {
+            var partition_groups = [];
+            // sort the partitions by "finish time"
+            partitions[ id ].sort( function(a, b) {
+                return a[ a.length-1 ].x-b[ b.length-1 ].x;
+            });
+            // generate the merged tracks
+            while( partitions[ id ].length > 0 ) {
+                var track_genes = [];
+                var remove = [];
+                for( var i=0; i<partitions[ id ].length; i++ ) {
+                    // make sure the genes are ordered by x coordinate
+                    partitions[ id ].sort( function(a, b) {
+                        return a.x-b.x;
+                    });
+                    // greedy ordering
+                    var partition = partitions[ id ][ i ];
+                    if( track_genes.length == 0 || partition[ 0 ].x > track_genes[ track_genes.length-1 ].x ) {
+                        track_genes = track_genes.concat( partition );
+                        remove.push(i);
+                    }
+                }
+                // remove the tracks that were merged
+                for( var i=remove.length-1; i>=0; i-- ) {
+                    partitions[ id ].splice( remove[ i ], 1);
+                }
+                // save the new group
+                var group = clone(groups[ id ]);
+                group.genes = track_genes.slice(0);
+                partition_groups.push(group);
+            }
+            // order the new groups largest to smallest
+            partition_groups.sort( function(a, b) {
+                return b.genes.length-a.genes.length;
+            });
+            // add the new groups to the data
+            for( var i=0; i<partition_groups.length; i++ ) {
+                partition_groups[ i ].genes = partition_groups[ i ].genes.map( function(gene) {
+                    gene.y = group_y;
+                    return gene;
+                });
+                group_y++;
+                data.groups.push( partition_groups[ i ] );
+            }
+        }
+    }
+
 	// get the family size map
 	var family_sizes = get_family_size_map( data );
 	
@@ -47,20 +124,6 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 
 	// for constructing the y-axis
 	var tick_values = [];
-
-    // plotted genes
-    var begin_genes = {};
-    var end_genes = {};
-	// find the beginning and end of each track
-	for( var i = 0; i < data.groups.length; i++ ) {
-        data.groups[i].genes.sort(function(a, b) {
-              return a.x - b.x;
-        });
-        var begin = data.groups[i].genes[0],
-            end = data.groups[i].genes[ data.groups[i].genes.length-1 ];
-        begin_genes[ begin.name ] = begin;
-        end_genes[ end.name ] = end;
-    }
 
 	// add the tracks (groups)
 	for( var i = 0; i < data.groups.length; i++ ) {
@@ -174,7 +237,7 @@ function context_viewer( container_id, color, data, optional_parameters ) {
                         partition = true;
                         draw_line(closest, end_genes[ d.name ]);
                     }
-                    if( !partition ) {
+                    if( !partition && begin_genes[ d.name ] === undefined && end_genes[ closest.name ] === undefined ) {
                         // inner-track line
                         draw_line(d, closest);
                     }
