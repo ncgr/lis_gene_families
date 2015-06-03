@@ -387,6 +387,22 @@
     var plot_axis_map = [];
 	var track_length = get_track_length( data );
     function gene_clicked( gene_selected ) {}
+	function left_axis_clicked( axis_selection, gene_selection, rail_selection ) {
+		// add the track's links to the content box
+		var html = '<h4><a href="{{ APP_URL }}/chado/organism/'+data.groups[axis_selection].species_id+'/">'+data.groups[axis_selection].species_name+'</a> - <a href="{{ APP_URL }}/chado/feature/'+data.groups[axis_selection].chromosome_id+'/">'+data.groups[axis_selection].chromosome_name+'</a></h4>';
+		var genes = '<ul>';
+		var families = [];
+		gene_selection.each(function(d) {
+			genes += '<li><a href="{{ APP_URL }}/chado/feature/'+d.name+'/">'+d.name+'</a>: '+d.fmin+' - '+d.fmax+'</li>';
+			if( d.family != '' ) {
+				genes += '<ul><li>Family: <a href="/chado_phylotree/'+family_names[d.family]+'/">'+family_names[d.family]+'</a></li></ul>'
+			}
+		});
+		genes += '</ul>';
+		html += 'Genes:'+genes;
+		$("#toggle").html(html);
+		show_toggle();
+	}
     function right_axis_clicked( axis_selection, gene_selection, rail_selection ) {
         $('#global').html('<img src="{% static 'gif/ajax-loader.gif' %}" />');
         // make the context synteny plot
@@ -453,6 +469,7 @@
 	    // make the context viewer
 	    context_viewer( 'viewer', color, context_data, {
             "gene_clicked":gene_clicked,
+            "left_axis_clicked":left_axis_clicked,
             "right_axis_clicked":right_axis_clicked,
             "selective_coloring":true,
             "inter_track":true,

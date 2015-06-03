@@ -93,11 +93,11 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 	var w = d3.max([1000,document.getElementById(container_id).offsetWidth]),
 		rect_h = 18,
 		rect_pad = 2,
- 	        top_pad = 200,
+ 	    top_pad = 200,
 		bottom_pad = 50,
 	    pad = 20,
-	    l_pad = 150,
 	    left_pad = 250,
+	    right_pad = 150,
 		num_tracks = data.groups.length,
 	    num_genes = get_track_length( data ),
 		h = num_tracks*30+bottom_pad+top_pad,
@@ -119,7 +119,7 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 	        .attr("height", h);
 
 	// initialize the x and y scales
-	var x = d3.scale.linear().domain([min_x, max_x]).range([left_pad, w-2*pad-l_pad]),
+	var x = d3.scale.linear().domain([min_x, max_x]).range([left_pad, w-right_pad]),
 		y = d3.scale.linear().domain([0, num_tracks-1]).range([top_pad, h-bottom_pad]);
 
 	// for constructing the y-axis
@@ -271,22 +271,28 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 	var yAxis_left = d3.svg.axis().scale(y).orient("left")
 		.tickValues(tick_values) // we don't want d3 taking liberties to make things pretty
 	    .tickFormat(function (d, i) {
-                var l = data.groups[d].genes.length;
+            var l = data.groups[d].genes.length;
 	        return data.groups[d].chromosome_name +":"+(l > 0 ? (data.groups[d].genes[0].fmin+"-"+data.groups[d].genes[l-1].fmax) : "");
 	    });
-	var yAxis_right = d3.svg.axis().scale(y).orient("right")
-		.tickValues(tick_values) // we don't want d3 taking liberties to make things pretty
-	    .tickFormat("plot");
 
 	// draw the axes of the graph
 	viewer.append("g")
 	    .attr("class", "axis axis_left")
 	    .attr("transform", "translate("+(left_pad-pad)+", 0)")
 	    .call(yAxis_left);
-	viewer.append("g")
-	    .attr("class", "axis axis_right")
-	    .attr("transform", "translate("+(w-pad-l_pad)+", 0)")
-	    .call(yAxis_right);
+
+    if( optional_parameters.right_axis_clicked !== undefined ) {
+	    var yAxis_right = d3.svg.axis().scale(y).orient("right")
+	    	.tickValues(tick_values) // we don't want d3 taking liberties to make things pretty
+	        .tickFormat("plot");
+	    viewer.append("g")
+	        .attr("class", "axis axis_right")
+	        .attr("transform", "translate("+(w-right_pad+pad)+", 0)")
+	        .call(yAxis_right);
+	    var yAxis_right = d3.svg.axis().scale(y).orient("right")
+	    	.tickValues(tick_values) // we don't want d3 taking liberties to make things pretty
+	        .tickFormat("plot");
+    }
 
 	// interact with the y-axes
 	d3.selectAll(".axis_left text")
@@ -315,8 +321,9 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 			var rail_selection = rail_groups.filter(function(e) {
 				return d3.select(this).attr("y") == y;
 			});
-            if( optional_parameters.left_axis_clicked !== undefined )
-			left_axis_clicked( d, gene_selection, rail_selection );
+            if( optional_parameters.left_axis_clicked !== undefined ) {
+			    optional_parameters.left_axis_clicked( d, gene_selection, rail_selection );
+            }
 		});
 	d3.selectAll(".axis_right text")
 		.style("cursor", "pointer")
@@ -327,7 +334,7 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 			var rail_selection = rail_groups.filter(function(e) {
 				return d3.select(this).attr("y") == y;
 			});
-            if( optional_parameters.right_axis_clicked !== undefined )
-			right_axis_clicked( d, gene_selection, rail_selection );
+            // will only be called if optional_parameters.right_axis_clicked !== undefined
+			optional_parameters.right_axis_clicked( d, gene_selection, rail_selection );
 		});
 }
