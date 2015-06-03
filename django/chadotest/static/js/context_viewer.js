@@ -169,21 +169,25 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 			});
 			if( closest !== undefined ) {
                 // draw inter-track lines
-			    if( end_genes[ d.name ] !== undefined && end_genes[ d.name ].y != d.y ) {
-                    partition = true;
-                    draw_line(closest, end_genes[ d.name ]);
-                }
-                if( !partition ) {
-                    // inner-track line
+                if( optional_parameters.inter_track !== undefined && optional_parameters.inter_track == true ) {
+			        if( end_genes[ d.name ] !== undefined && end_genes[ d.name ].y != d.y ) {
+                        partition = true;
+                        draw_line(closest, end_genes[ d.name ]);
+                    }
+                    if( !partition ) {
+                        // inner-track line
+                        draw_line(d, closest);
+                    }
+			        if( begin_genes[ closest.name ] !== undefined && begin_genes[ closest.name ].y != closest.y ) {
+                        partition = false;
+                        draw_line(d, begin_genes[ closest.name ]);
+			        }
+                    if( partition ) {
+                        d3.select(this).remove();
+                    } 
+                } else {
                     draw_line(d, closest);
                 }
-			    if( begin_genes[ closest.name ] !== undefined && begin_genes[ closest.name ].y != closest.y ) {
-                    partition = false;
-                    draw_line(d, begin_genes[ closest.name ]);
-			    }
-                if( partition ) {
-                    d3.select(this).remove();
-                } 
             }
 		});
 	}
