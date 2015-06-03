@@ -387,7 +387,7 @@
     var plot_axis_map = [];
 	var track_length = get_track_length( data );
     function gene_clicked( gene_selected ) {}
-    function axis_clicked( axis_selection, gene_selection, rail_selection ) {
+    function right_axis_clicked( axis_selection, gene_selection, rail_selection ) {
         $('#global').html('<img src="{% static 'gif/ajax-loader.gif' %}" />');
         // make the context synteny plot
         var plot_selection = plot_axis_map[ axis_selection ];
@@ -453,7 +453,7 @@
 	    // make the context viewer
 	    context_viewer( 'viewer', color, context_data, {
             "gene_clicked":gene_clicked,
-            "axis_clicked":axis_clicked,
+            "right_axis_clicked":right_axis_clicked,
             "selective_coloring":true,
             "inter_track":true,
             "merge":true });

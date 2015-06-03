@@ -119,7 +119,7 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 	        .attr("height", h);
 
 	// initialize the x and y scales
-	var x = d3.scale.linear().domain([min_x, max_x]).range([left_pad, w-pad-l_pad]),
+	var x = d3.scale.linear().domain([min_x, max_x]).range([left_pad, w-2*pad-l_pad]),
 		y = d3.scale.linear().domain([0, num_tracks-1]).range([top_pad, h-bottom_pad]);
 
 	// for constructing the y-axis
@@ -267,22 +267,29 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 	    .range([.1, 5]);
 	rail_groups.attr("stroke-width", function(e) { return width(e); });
 
-	// construct the y-axis
-	var yAxis = d3.svg.axis().scale(y).orient("left")
+	// construct the y-axes
+	var yAxis_left = d3.svg.axis().scale(y).orient("left")
 		.tickValues(tick_values) // we don't want d3 taking liberties to make things pretty
 	    .tickFormat(function (d, i) {
                 var l = data.groups[d].genes.length;
 	        return data.groups[d].chromosome_name +":"+(l > 0 ? (data.groups[d].genes[0].fmin+"-"+data.groups[d].genes[l-1].fmax) : "");
 	    });
+	var yAxis_right = d3.svg.axis().scale(y).orient("right")
+		.tickValues(tick_values) // we don't want d3 taking liberties to make things pretty
+	    .tickFormat("plot");
 
-	// draw the axis of the graph
+	// draw the axes of the graph
 	viewer.append("g")
-	    .attr("class", "axis")
+	    .attr("class", "axis axis_left")
 	    .attr("transform", "translate("+(left_pad-pad)+", 0)")
-	    .call(yAxis);
+	    .call(yAxis_left);
+	viewer.append("g")
+	    .attr("class", "axis axis_right")
+	    .attr("transform", "translate("+(w-pad-l_pad)+", 0)")
+	    .call(yAxis_right);
 
-	// interact with the yaxis
-	d3.selectAll(".axis text")
+	// interact with the y-axes
+	d3.selectAll(".axis_left text")
 		.style("cursor", "pointer")
         .on("mouseover", function(d, y) {
 			var gene_selection = gene_groups.filter(function(e) {
@@ -308,7 +315,19 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 			var rail_selection = rail_groups.filter(function(e) {
 				return d3.select(this).attr("y") == y;
 			});
-            if( optional_parameters.axis_clicked !== undefined )
-			axis_clicked( d, gene_selection, rail_selection );
+            if( optional_parameters.left_axis_clicked !== undefined )
+			left_axis_clicked( d, gene_selection, rail_selection );
+		});
+	d3.selectAll(".axis_right text")
+		.style("cursor", "pointer")
+        .on("click", function(d, y){
+			var gene_selection = gene_groups.filter(function(e) {
+				return e.y == y;
+			});
+			var rail_selection = rail_groups.filter(function(e) {
+				return d3.select(this).attr("y") == y;
+			});
+            if( optional_parameters.right_axis_clicked !== undefined )
+			right_axis_clicked( d, gene_selection, rail_selection );
 		});
 }
