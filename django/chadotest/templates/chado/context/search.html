@@ -4,6 +4,13 @@
 <link rel="stylesheet" type="text/css" href="{% static 'css/context.css' %}">
 <style>
 
+.spinner {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    vertical-align: middle;
+}
+
 .hidden {
     /*display: none;*/
 }
@@ -75,10 +82,10 @@
     <div class="row">
         <div class="col-lg-12">
             <h1>Context Search</h1>
-            <a href="{% url 'context_gff_download' %}?flocs={{ floc_id_string }}">download gff</a>
+            <!--=<a href="{% url 'context_gff_download' %}?flocs={{ floc_id_string }}">download gff</a>
             <br />
             <a href="http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://{{ request.get_host }}{% url 'context_gff_download' %}?flocs={{ floc_id_string }}">view in CMTV</a>
-            <br />
+            <br />-->
             <a class="lightbox" href="">Search Parameters</a>
         </div>
     </div>
@@ -106,7 +113,7 @@
         <div class="form-group">
           <label for="num_neighbors" class="col-lg-2 control-label">Neighbors</label>
           <div class="col-lg-10">
-            <input name="num" class="form-control" id="num" value="{{ num }}">
+            <input name="num_neighbors" class="form-control" id="num_neighbors" value="{{ num_neighbors }}">
           </div>
           <label for="num_matched_families" class="col-lg-2 control-label">Families</label>
           <div class="col-lg-10">
@@ -114,23 +121,6 @@
           </div>
         </div>
         <legend>Result Parameters</legend>
-        <div class="form-group">
-          <label class="col-lg-2 control-label">Families</label>
-          <div class="col-lg-10">
-            <div class="radio">
-              <label>
-                <input name="single" id="false" value="false" {% if not single %}checked="" {% endif %}type="radio">
-                Hide single family tracks
-              </label>
-            </div>
-            <div class="radio">
-              <label>
-                <input name="single" id="true" value="true" {% if single %}checked="" {% endif %}type="radio">
-                Show single family tracks
-              </label>
-            </div>
-          </div>
-        </div>
         <div class="form-group">
           <label for="non_family" class="col-lg-2 control-label">Inter. genes</label>
           <div class="col-lg-10">
@@ -225,9 +215,10 @@
     // make an object to hold the global plot data
     var global_data = {};
     // make the tabs work
+    var loading = false;
     $('#viewer_tab').on('click', function(e) {
         e.preventDefault();
-        if( !$(this).closest('li').hasClass('active') ) {
+        if( !$(this).closest('li').hasClass('active') && !loading ) {
             $(this).closest('li').addClass('active');
             $('#miner_tab').closest('li').removeClass('active');
             $('#viewer').removeClass('hidden');
@@ -236,7 +227,7 @@
     });
     $('#miner_tab').on('click', function(e) {
         e.preventDefault();
-        if( !$(this).hasClass('active') ) {
+        if( !$(this).hasClass('active') && !loading ) {
             $(this).closest('li').addClass('active');
             $('#viewer_tab').closest('li').removeClass('active');
             $('#viewer').addClass('hidden');
@@ -245,7 +236,7 @@
     });
     $('#local_tab').on('click', function(e) {
         e.preventDefault();
-        if( !$(this).closest('li').hasClass('active') ) {
+        if( !$(this).closest('li').hasClass('active') && !loading ) {
             $(this).closest('li').addClass('active');
             $('#global_tab').closest('li').removeClass('active');
             $('#local').removeClass('hidden');
@@ -254,7 +245,7 @@
     });
     $('#global_tab').on('click', function(e) {
         e.preventDefault();
-        if( !$(this).hasClass('active') ) {
+        if( !$(this).hasClass('active') && !loading ) {
             $(this).closest('li').addClass('active');
             $('#local_tab').closest('li').removeClass('active');
             $('#local').addClass('hidden');
@@ -270,6 +261,7 @@
     $(window).resize( resize_plot );
     // only submit the parameter form when it needs to be submitted
     $("#parameters").submit(function (e) {
+        e.preventDefault();
         $('#lightbox').toggleClass('hidden');
         // update the alignment parameters
         var match = $('#parameters #match').val(),
@@ -287,14 +279,21 @@
             $.cookie("context_parameters", JSON.stringify(params), {expires:1, path:"/"});
         }
         // trigger a new search (page refresh)
-        var num_neighbors = $('#parameters #num').val(),
+        var num_neighbors = $('#parameters #num_neighbors').val(),
             num_matched_families = $('#parameters #num_matched_families').val(),
             non_family = $('#parameters #non_family').val();
         // refresh the page for new search arguments
-        if( !(isNumber(num_neighbors) && isNumber(num_matched_families) && isNumber(non_family) &&
-             (parseInt(num_neighbors) != {{ num }} || parseInt(num_matched_families) != {{ num_matched_families }} || parseInt(non_family) != {{ non_family }})) ) {
+        if( isNumber(num_neighbors) && isNumber(num_matched_families) && isNumber(non_family) &&
+            //(parseInt(num_neighbors) != {{ num_neighbors }} || parseInt(num_matched_families) != {{ num_matched_families }} || parseInt(non_family) != {{ non_family }}) ) {
+            (parseInt(num_neighbors) != params.num_neighbors || parseInt(num_matched_families) != params.num_matched_families || parseInt(non_family) != params.non_family) ) {
+            params.num_neighbors = parseInt(num_neighbors);
+            params.num_matched_families = parseInt(num_matched_families);
+            params.non_family = parseInt(non_family);
+            // update the search parameters
+            $.cookie("context_parameters", JSON.stringify(params), {expires:1, path:"/"});
+            get_context_data();
+        } else {
             generate_context();
-            return false;
         }
     });
     // show and hide the lightbox
@@ -330,62 +329,30 @@
     if( $.cookie("context_parameters") !== undefined ) {
         params = JSON.parse($.cookie("context_parameters"));
     } else {
-        params = {"algorithm":true, // defaults to smith
-                      "match":5,
-                      "mismatch":-1,
-                      "gap":-1,
-                      "threshold":25};
+        params = {"algorithm":false, // defaults to repeat
+                  "match":5,
+                  "mismatch":-1,
+                  "gap":-1,
+                  "threshold":25,
+                  "num_neighbors":{{ num_neighbors }},
+                  "num_matched_families":{{ num_matched_families }},
+                  "non_family":{{ non_family }}};
         $.cookie("context_parameters", JSON.stringify(params), {expires:1, path:"/"});
     }
 	// shared variables
-	var json = '{{ json|safe }}',
-	    data = JSON.parse(json),
-        plot_data = JSON.parse(json),
-        global_plot_data = JSON.parse(json),
+	var json = null,
+        data = null,
+        plot_data = null,
+        global_plot_data = null,
         color = context_color,
-		family_names = get_family_name_map( data );
+		family_names = null;
     // if there's a color object from the previous view
     if( $.cookie("context_color_domain") !== undefined ) {
         color.domain( JSON.parse($.cookie("context_color_domain")) );
     }
-    // prepare the plot data for show and tell
-    var family_map = {};
-    // make a map of points all genes will be plotted against
-    for( var i = 0; i < plot_data.groups[ 0 ].genes.length; i++ ) {
-        var g = plot_data.groups[ 0 ].genes[ i ];
-        if( g.family in family_map ) {
-            family_map[ g.family ].push( (g.fmin/2)+(g.fmax/2) );
-        } else if( g.family != '' ) {
-            family_map[ g.family ] = [(g.fmin/2)+(g.fmax/2)];
-        }
-    }
-    // a helper function that plots genes against genes
-    function plot_points( group ) {
-        var plot_genes = [];
-        for( var j = 0; j < group.genes.length; j++ ) {
-            if( group.genes[ j ].family in family_map ) {
-                for( var k = 0; k < family_map[ group.genes[ j ].family ].length; k++ ) {
-                    group.genes[ j ].x = ((group.genes[ j ].fmin/2)+(group.genes[ j ].fmax/2));
-                    group.genes[ j ].y = family_map[ group.genes[ j ].family ][ k ];
-                }
-            } else {
-                group.genes[ j ].x = ((group.genes[ j ].fmin/2)+(group.genes[ j ].fmax/2));
-                group.genes[ j ].y = -1;
-            }
-            plot_genes.push( group.genes[ j ] );
-        }
-        return plot_genes;
-    }
-    // plot all the genes against the list of points
-    var plot_groups = [];
-    for( var i = 0; i < plot_data.groups.length; i++ ) {
-        plot_data.groups[ i ].genes = plot_points( plot_data.groups[ i ] );
-        plot_groups.push( plot_data.groups[ i ] );
-    }
-    plot_data.groups = plot_groups;
 	// context viewer callback functions
-    var plot_axis_map = [];
-	var track_length = get_track_length( data );
+    var plot_axis_map = null;
+	var track_length = null;
     function gene_clicked( gene_selected ) {}
 	function left_axis_clicked( axis_selection, gene_selection, rail_selection ) {
 		// add the track's links to the content box
@@ -405,7 +372,7 @@
 		show_toggle();
 	}
     function right_axis_clicked( axis_selection, gene_selection, rail_selection ) {
-        $('#global').html('<img src="{% static 'gif/ajax-loader.gif' %}" />');
+        $('#global').html('<img class="spinner" src="{% static 'gif/ajax-loader.gif' %}" />');
         // make the context synteny plot
         var plot_selection = plot_axis_map[ axis_selection ];
         context_synteny( 'local', color, plot_data, plot_selection, {"width":Math.max(document.getElementById('local').offsetWidth, document.getElementById('global').offsetWidth)} );
@@ -417,7 +384,7 @@
 	            data: {
 	                focus_id: focus_id,
                     chromosome_id: chromosome_id,
-                    num: {{ num }},
+                    num_neighbors: $('#parameters #num_neighbors').val(),
 	                // all pages are protected against csrf so we need to pass the token for this page
 	                csrfmiddlewaretoken: '{{ csrf_token }}'
 	            },
@@ -496,6 +463,96 @@
 		$("#toggle").html(html);
 		show_toggle();
 	}
+        // a helper function that plots genes against genes
+        var family_map = {};
+        function plot_points( group ) {
+            var plot_genes = [];
+            for( var j = 0; j < group.genes.length; j++ ) {
+                if( group.genes[ j ].family in family_map ) {
+                    for( var k = 0; k < family_map[ group.genes[ j ].family ].length; k++ ) {
+                        group.genes[ j ].x = ((group.genes[ j ].fmin/2)+(group.genes[ j ].fmax/2));
+                        group.genes[ j ].y = family_map[ group.genes[ j ].family ][ k ];
+                    }
+                } else {
+                    group.genes[ j ].x = ((group.genes[ j ].fmin/2)+(group.genes[ j ].fmax/2));
+                    group.genes[ j ].y = -1;
+                }
+                plot_genes.push( group.genes[ j ] );
+            }
+            return plot_genes;
+        }
+    // function that updates all context on page driven by context data
+    function update_page(context_json) {
+        json = context_json;
+        // update shared variables
+	    data = JSON.parse(json);
+        plot_data = JSON.parse(json);
+        global_plot_data = JSON.parse(json);
+		family_names = get_family_name_map( data );
+        plot_axis_map = [];
+	    track_length = get_track_length( data );
+        // prepare the plot data for show and tell
+        family_map = {};
+        // make a map of points all genes will be plotted against
+        for( var i = 0; i < plot_data.groups[ 0 ].genes.length; i++ ) {
+            var g = plot_data.groups[ 0 ].genes[ i ];
+            if( g.family in family_map ) {
+                family_map[ g.family ].push( (g.fmin/2)+(g.fmax/2) );
+            } else if( g.family != '' ) {
+                family_map[ g.family ] = [(g.fmin/2)+(g.fmax/2)];
+            }
+        }
+        // plot all the genes against the list of points
+        var plot_groups = [];
+        for( var i = 0; i < plot_data.groups.length; i++ ) {
+            plot_data.groups[ i ].genes = plot_points( plot_data.groups[ i ] );
+            plot_groups.push( plot_data.groups[ i ] );
+        }
+        plot_data.groups = plot_groups;
+        // plot each local plot in the miner
+        $('#miner').html('');
+        $('#miner').removeClass("hidden");
+        for( var i = 0; i < plot_data.groups.length; i++ ) {
+            var id = "miner_"+i;
+            $('#miner').append('<div id="'+id+'" class="col-lg-4"></div>');
+            context_synteny( id, color, plot_data, i );
+            //$('#'+id).append('<a>Local</a>&nbsp|&nbsp<a>Global</a>');
+        }
+        $('#miner').addClass("hidden");
+        // generate the context
+        generate_context();
+	    // make the context legend
+	    context_legend( 'legend', color, data, {"legend_click":legend_click });
+        loading = false;
+    }
+    // get json data via ajax
+    function get_context_data() {
+        $('#viewer').html('<img class="spinner" src="{% static 'gif/ajax-loader.gif' %}" />');
+        $('#miner').html('');
+        $('#viewer_tab').trigger('click');
+        loading = true;
+        $('#legend').html('<img class="spinner" src="{% static 'gif/ajax-loader.gif' %}" />');
+        $('#local').html('');
+        $('#global').html('');
+		$.ajax({
+	        url:"{% url 'context_viewer_search_tracks_ajax' %}",
+	        data: {
+	            focus_name: '{{ focus_name }}',
+                num_neighbors: $('#parameters #num_neighbors').val(),
+                num_matched_families: $('#parameters #num_matched_families').val(),
+                non_family: $('#parameters #non_family').val(),
+	            // all pages are protected against csrf so we need to pass the token for this page
+	            csrfmiddlewaretoken: '{{ csrf_token }}'
+	        },
+	        contentType: "application/json;charset=utf-8",
+	        dataType: "json",
+	        success: update_page,
+	        error: function(ts) { 
+	        // this is for debugging, not production!
+	            alert(ts.responseText);
+	        }
+	    });
+    }
 
     ///////////////////
     // DOM sensitive //
@@ -506,17 +563,6 @@
         $('#toggle').hide();
         // resize the plot div
         resize_plot();
-        // plot each local plot in the miner
-        for( var i = 0; i < plot_data.groups.length; i++ ) {
-            var id = "miner_"+i;
-            $('#miner').append('<div id="'+id+'" class="col-lg-4"></div>');
-            context_synteny( id, color, plot_data, i );
-            //$('#'+id).append('<a>Local</a>&nbsp|&nbsp<a>Global</a>');
-        }
-        // hide the miner plots
-        $('#miner').addClass("hidden");
-        // generate the context
-        generate_context();
         // set the parameter form field initial values
         params = JSON.parse($.cookie("context_parameters"));
         $('#parameters #match').val(params.match),
@@ -525,8 +571,11 @@
         $('#parameters #threshold').val(params.threshold);
         $('#parameters #smith').prop("checked",params.algorithm);
         $('#parameters #repeat').prop("checked",!params.algorithm);
-	    // make the context legend
-	    context_legend( 'legend', color, data, {"legend_click":legend_click });
+        $('#parameters #num_neighbors').val(params.num_neighbors);
+        $('#parameters #num_matched_families').val(params.num_matched_families);
+        $('#parameters #non_family').val(params.non_family);
+        // actually get the data for the page
+        get_context_data();
 	});
 </script>
 {% endblock %}
