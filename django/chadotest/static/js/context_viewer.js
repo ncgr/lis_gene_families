@@ -272,6 +272,9 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 		.tickValues(tick_values) // we don't want d3 taking liberties to make things pretty
 	    .tickFormat(function (d, i) {
             var l = data.groups[d].genes.length;
+            if( d > 0 && data.groups[d-1].species_id+":"+data.groups[d-1].chromsome_id === data.groups[d].species_id+":"+data.groups[d].chromsome_id ) {
+	            return (l > 0 ? (data.groups[d].genes[0].fmin+"-"+data.groups[d].genes[l-1].fmax) : "");
+            }
 	        return data.groups[d].chromosome_name +":"+(l > 0 ? (data.groups[d].genes[0].fmin+"-"+data.groups[d].genes[l-1].fmax) : "");
 	    });
 
@@ -284,7 +287,12 @@ function context_viewer( container_id, color, data, optional_parameters ) {
     if( optional_parameters.right_axis_clicked !== undefined ) {
 	    var yAxis_right = d3.svg.axis().scale(y).orient("right")
 	    	.tickValues(tick_values) // we don't want d3 taking liberties to make things pretty
-	        .tickFormat("plot");
+	        .tickFormat(function(d, i) {
+                if( d > 0 && data.groups[d-1].species_id+":"+data.groups[d-1].chromsome_id === data.groups[d].species_id+":"+data.groups[d].chromsome_id ) {
+                    return "";
+                }
+                return "plot";
+            });
 	    viewer.append("g")
 	        .attr("class", "axis axis_right")
 	        .attr("transform", "translate("+(w-right_pad+pad)+", 0)")
