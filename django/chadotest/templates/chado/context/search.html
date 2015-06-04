@@ -4,6 +4,14 @@
 <link rel="stylesheet" type="text/css" href="{% static 'css/context.css' %}">
 <style>
 
+#scroll {
+    padding: 0 50px;
+}
+
+#scroll input {
+    text-align: center;
+}
+
 .spinner {
     display: block;
     margin-left: auto;
@@ -345,7 +353,8 @@
         plot_data = null,
         global_plot_data = null,
         color = context_color,
-		family_names = null;
+		family_names = null
+        focus_name = '{{ focus_name }}';
     // if there's a color object from the previous view
     if( $.cookie("context_color_domain") !== undefined ) {
         color.domain( JSON.parse($.cookie("context_color_domain")) );
@@ -521,6 +530,25 @@
         $('#miner').addClass("hidden");
         // generate the context
         generate_context();
+        // add the scroll buttons
+        $('#viewer').append('<div id="scroll"><span style="float:right;"><input type="text" name="scroll_right" maxlength="2" size="2" value="5">&nbsp;<a id="scroll_right" href="#">&gt;</a></span><a id="scroll_left" href="#">&lt;</a>&nbsp;<input type="text" name="scroll_left" maxlength="2" size="2" value="5"></div>');
+        // bind the click event to the links
+        $('#scroll_left').on('click', function(e) {
+            e.preventDefault();
+            var step = $('#scroll input[name=scroll_left]').val();
+            if( isNumber(step) && parseInt(step)*2+1 <= data.groups[0].genes.length && !loading ) {
+                focus_name = data.groups[0].genes[ ((data.groups[0].genes.length-1)/2)-parseInt(step) ].name;
+                get_context_data();
+            }
+        });
+        $('#scroll_right').on('click', function(e) {
+            e.preventDefault();
+            var step = $('#scroll input[name=scroll_right]').val();
+            if( isNumber(step) && parseInt(step)*2+1 <= data.groups[0].genes.length && !loading ) {
+                focus_name = data.groups[0].genes[ ((data.groups[0].genes.length-1)/2)+parseInt(step) ].name;
+                get_context_data();
+            }
+        });
 	    // make the context legend
 	    context_legend( 'legend', color, data, {"legend_click":legend_click });
         loading = false;
@@ -537,7 +565,7 @@
 		$.ajax({
 	        url:"{% url 'context_viewer_search_tracks_ajax' %}",
 	        data: {
-	            focus_name: '{{ focus_name }}',
+	            focus_name: focus_name,
                 num_neighbors: $('#parameters #num_neighbors').val(),
                 num_matched_families: $('#parameters #num_matched_families').val(),
                 non_family: $('#parameters #non_family').val(),
