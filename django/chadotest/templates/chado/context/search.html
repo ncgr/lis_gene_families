@@ -387,7 +387,24 @@
     var plot_axis_map = [];
 	var track_length = get_track_length( data );
     function gene_clicked( gene_selected ) {}
-    function axis_clicked( axis_selection, gene_selection, rail_selection ) {
+	function left_axis_clicked( axis_selection, gene_selection, rail_selection ) {
+		// add the track's links to the content box
+        var plot_selection = plot_axis_map[ axis_selection ];
+		var html = '<h4><a href="{{ APP_URL }}/chado/organism/'+data.groups[plot_selection].species_id+'/">'+data.groups[plot_selection].species_name+'</a> - <a href="{{ APP_URL }}/chado/feature/'+data.groups[plot_selection].chromosome_id+'/">'+data.groups[plot_selection].chromosome_name+'</a></h4>';
+		var genes = '<ul>';
+		var families = [];
+		gene_selection.each(function(d) {
+			genes += '<li><a href="{{ APP_URL }}/chado/feature/'+d.name+'/">'+d.name+'</a>: '+d.fmin+' - '+d.fmax+'</li>';
+			if( d.family != '' ) {
+				genes += '<ul><li>Family: <a href="/chado_phylotree/'+family_names[d.family]+'/">'+family_names[d.family]+'</a></li></ul>'
+			}
+		});
+		genes += '</ul>';
+		html += 'Genes:'+genes;
+		$("#toggle").html(html);
+		show_toggle();
+	}
+    function right_axis_clicked( axis_selection, gene_selection, rail_selection ) {
         $('#global').html('<img src="{% static 'gif/ajax-loader.gif' %}" />');
         // make the context synteny plot
         var plot_selection = plot_axis_map[ axis_selection ];
@@ -431,18 +448,15 @@
         // align all the tracks with the query track
         var alignments = [],
             result_tracks = params.algorithm ? data.groups.slice( 1 ) : [];
-        plot_axis_map = [0];
         for( var i = 1; i < data.groups.length; i++ ) {
             var scoring = { match : params.match, mismatch : params.mismatch, gap : params.gap, threshold : params.threshold };
             var al = align( data.groups[ 0 ].genes, data.groups[ i ].genes, get_family, scoring );
             if( params.algorithm ) {
                 alignments.push( al );
-                plot_axis_map.push(i);
             } else {
                 for( var j = 0; j < al.length; j++ ) {
                     result_tracks.push( clone(data.groups[ i ]) );
                     alignments.push( al[ j ] );
-                    plot_axis_map.push(i);
                 }
             }
         }
@@ -453,8 +467,23 @@
 	    // make the context viewer
 	    context_viewer( 'viewer', color, context_data, {
             "gene_clicked":gene_clicked,
-            "axis_clicked":axis_clicked,
-            "selective_coloring":true });
+            "left_axis_clicked":left_axis_clicked,
+            "right_axis_clicked":right_axis_clicked,
+            "selective_coloring":true,
+            "inter_track":true,
+            "merge":true });
+        // construct plot_axis_map after context_data has been merged by viewer
+        plot_axis_map = [];
+        var axis = -1;
+        var prev_id = null;
+        for( var i = 0; i < context_data.groups.length; i++ ) {
+            var id = context_data.groups[i].species_id+":"+context_data.groups[i].chromosome_id;
+            if( id != prev_id ) {
+                prev_id = id;
+                axis++;
+            }
+            plot_axis_map.push(axis);
+        }
     }
 	// context legend click callback
 	function legend_click( family_selection, gene_selection ) {

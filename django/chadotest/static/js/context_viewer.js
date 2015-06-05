@@ -6,6 +6,83 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 	// clear the contents of the target element first
 	document.getElementById(container_id).innerHTML = "";
 
+    // data preprocessing
+    var begin_genes = {};
+    var end_genes = {};
+    var partitions = {};
+    var groups = {};
+	for( var i = 0; i < data.groups.length; i++ ) {
+	    // find the beginning and end of each track
+        data.groups[i].genes.sort(function(a, b) {
+              return a.x - b.x;
+        });
+        var begin = data.groups[i].genes[0],
+            end = data.groups[i].genes[ data.groups[i].genes.length-1 ];
+        begin_genes[ begin.name ] = begin;
+        end_genes[ end.name ] = end;
+        // prepare to merge partitions
+        if( optional_parameters.merge !== undefined && optional_parameters.merge == true ) {
+            var id = data.groups[i].species_id+":"+data.groups[i].chromosome_id;
+            if( partitions[ id ] === undefined ) {
+                partitions[ id ] = [];
+                groups[ id ] = clone(data.groups[i]);
+                groups[ id ].genes = [];
+            }
+            partitions[ id ].push(data.groups[i].genes);
+        }
+    }
+
+    // merge partitions from same chromosome with the interval scheduling greedy algorithm
+    if( optional_parameters.merge !== undefined && optional_parameters.merge == true ) {
+        data.groups = [];
+        var group_y = 0;
+        for( var id in partitions ) {
+            var partition_groups = [];
+            // sort the partitions by "finish time"
+            partitions[ id ].sort( function(a, b) {
+                return a[ a.length-1 ].x-b[ b.length-1 ].x;
+            });
+            // generate the merged tracks
+            while( partitions[ id ].length > 0 ) {
+                var track_genes = [];
+                var remove = [];
+                for( var i=0; i<partitions[ id ].length; i++ ) {
+                    // make sure the genes are ordered by x coordinate
+                    partitions[ id ].sort( function(a, b) {
+                        return a.x-b.x;
+                    });
+                    // greedy ordering
+                    var partition = partitions[ id ][ i ];
+                    if( track_genes.length == 0 || partition[ 0 ].x > track_genes[ track_genes.length-1 ].x ) {
+                        track_genes = track_genes.concat( partition );
+                        remove.push(i);
+                    }
+                }
+                // remove the tracks that were merged
+                for( var i=remove.length-1; i>=0; i-- ) {
+                    partitions[ id ].splice( remove[ i ], 1);
+                }
+                // save the new group
+                var group = clone(groups[ id ]);
+                group.genes = track_genes.slice(0);
+                partition_groups.push(group);
+            }
+            // order the new groups largest to smallest
+            partition_groups.sort( function(a, b) {
+                return b.genes.length-a.genes.length;
+            });
+            // add the new groups to the data
+            for( var i=0; i<partition_groups.length; i++ ) {
+                partition_groups[ i ].genes = partition_groups[ i ].genes.map( function(gene) {
+                    gene.y = group_y;
+                    return gene;
+                });
+                group_y++;
+                data.groups.push( partition_groups[ i ] );
+            }
+        }
+    }
+
 	// get the family size map
 	var family_sizes = get_family_size_map( data );
 	
@@ -16,11 +93,11 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 	var w = d3.max([1000,document.getElementById(container_id).offsetWidth]),
 		rect_h = 18,
 		rect_pad = 2,
- 	        top_pad = 200,
+ 	    top_pad = 200,
 		bottom_pad = 50,
 	    pad = 20,
-	    l_pad = 150,
 	    left_pad = 250,
+	    right_pad = 150,
 		num_tracks = data.groups.length,
 	    num_genes = get_track_length( data ),
 		h = num_tracks*30+bottom_pad+top_pad,
@@ -42,25 +119,11 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 	        .attr("height", h);
 
 	// initialize the x and y scales
-	var x = d3.scale.linear().domain([min_x, max_x]).range([left_pad, w-pad-l_pad]),
+	var x = d3.scale.linear().domain([min_x, max_x]).range([left_pad, w-right_pad]),
 		y = d3.scale.linear().domain([0, num_tracks-1]).range([top_pad, h-bottom_pad]);
 
 	// for constructing the y-axis
 	var tick_values = [];
-
-    // plotted genes
-    var begin_genes = {};
-    var end_genes = {};
-	// find the beginning and end of each track
-	for( var i = 0; i < data.groups.length; i++ ) {
-        data.groups[i].genes.sort(function(a, b) {
-              return a.x - b.x;
-        });
-        var begin = data.groups[i].genes[0],
-            end = data.groups[i].genes[ data.groups[i].genes.length-1 ];
-        begin_genes[ begin.name ] = begin;
-        end_genes[ end.name ] = end;
-    }
 
 	// add the tracks (groups)
 	for( var i = 0; i < data.groups.length; i++ ) {
@@ -155,6 +218,8 @@ function context_viewer( container_id, color, data, optional_parameters ) {
         }
 
 		// add rails to the tracks
+        // this is all rather hacky
+        var partition = false;
 		gene_groups.each(function(d) {
 			var closest;
 			var neighbors = gene_groups.filter(function(e) {
@@ -166,14 +231,25 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 				}
 			});
 			if( closest !== undefined ) {
-                // inner-track line
-                draw_line(d, closest);
                 // draw inter-track lines
-			    if( begin_genes[ closest.name ] !== undefined ) {
-                    draw_line(d, begin_genes[ closest.name ]);
-			    }
-			    if( end_genes[ d.name ] !== undefined ) {
-                    draw_line(closest, end_genes[ d.name ]);
+                if( optional_parameters.inter_track !== undefined && optional_parameters.inter_track == true ) {
+			        if( end_genes[ d.name ] !== undefined && end_genes[ d.name ].y != d.y ) {
+                        partition = true;
+                        draw_line(closest, end_genes[ d.name ]);
+                    }
+                    if( !partition && begin_genes[ d.name ] === undefined && end_genes[ closest.name ] === undefined ) {
+                        // inner-track line
+                        draw_line(d, closest);
+                    }
+			        if( begin_genes[ closest.name ] !== undefined && begin_genes[ closest.name ].y != closest.y ) {
+                        partition = false;
+                        draw_line(d, begin_genes[ closest.name ]);
+			        }
+                    if( partition ) {
+                        d3.select(this).remove();
+                    } 
+                } else {
+                    draw_line(d, closest);
                 }
             }
 		});
@@ -191,22 +267,35 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 	    .range([.1, 5]);
 	rail_groups.attr("stroke-width", function(e) { return width(e); });
 
-	// construct the y-axis
-	var yAxis = d3.svg.axis().scale(y).orient("left")
+	// construct the y-axes
+	var yAxis_left = d3.svg.axis().scale(y).orient("left")
 		.tickValues(tick_values) // we don't want d3 taking liberties to make things pretty
 	    .tickFormat(function (d, i) {
-                var l = data.groups[d].genes.length;
+            var l = data.groups[d].genes.length;
 	        return data.groups[d].chromosome_name +":"+(l > 0 ? (data.groups[d].genes[0].fmin+"-"+data.groups[d].genes[l-1].fmax) : "");
 	    });
 
-	// draw the axis of the graph
+	// draw the axes of the graph
 	viewer.append("g")
-	    .attr("class", "axis")
+	    .attr("class", "axis axis_left")
 	    .attr("transform", "translate("+(left_pad-pad)+", 0)")
-	    .call(yAxis);
+	    .call(yAxis_left);
 
-	// interact with the yaxis
-	d3.selectAll(".axis text")
+    if( optional_parameters.right_axis_clicked !== undefined ) {
+	    var yAxis_right = d3.svg.axis().scale(y).orient("right")
+	    	.tickValues(tick_values) // we don't want d3 taking liberties to make things pretty
+	        .tickFormat("plot");
+	    viewer.append("g")
+	        .attr("class", "axis axis_right")
+	        .attr("transform", "translate("+(w-right_pad+pad)+", 0)")
+	        .call(yAxis_right);
+	    var yAxis_right = d3.svg.axis().scale(y).orient("right")
+	    	.tickValues(tick_values) // we don't want d3 taking liberties to make things pretty
+	        .tickFormat("plot");
+    }
+
+	// interact with the y-axes
+	d3.selectAll(".axis_left text")
 		.style("cursor", "pointer")
         .on("mouseover", function(d, y) {
 			var gene_selection = gene_groups.filter(function(e) {
@@ -232,7 +321,20 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 			var rail_selection = rail_groups.filter(function(e) {
 				return d3.select(this).attr("y") == y;
 			});
-            if( optional_parameters.axis_clicked !== undefined )
-			axis_clicked( d, gene_selection, rail_selection );
+            if( optional_parameters.left_axis_clicked !== undefined ) {
+			    optional_parameters.left_axis_clicked( d, gene_selection, rail_selection );
+            }
+		});
+	d3.selectAll(".axis_right text")
+		.style("cursor", "pointer")
+        .on("click", function(d, y){
+			var gene_selection = gene_groups.filter(function(e) {
+				return e.y == y;
+			});
+			var rail_selection = rail_groups.filter(function(e) {
+				return d3.select(this).attr("y") == y;
+			});
+            // will only be called if optional_parameters.right_axis_clicked !== undefined
+			optional_parameters.right_axis_clicked( d, gene_selection, rail_selection );
 		});
 }
