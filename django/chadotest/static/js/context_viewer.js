@@ -12,6 +12,8 @@ function context_viewer( container_id, color, data, optional_parameters ) {
     var partitions = {};
     var groups = {};
 	for( var i = 0; i < data.groups.length; i++ ) {
+        console.log("group: "+i);
+        console.log(data.groups[i].genes);
 	    // find the beginning and end of each track
         data.groups[i].genes.sort(function(a, b) {
               return a.x - b.x;
@@ -246,7 +248,12 @@ function context_viewer( container_id, color, data, optional_parameters ) {
                         draw_line(d, begin_genes[ closest.name ]);
 			        }
                     if( partition ) {
+                        // don't display genes that appear in other partitions
                         d3.select(this).remove();
+                        // don't draw lines to genes that are no longer displayed
+                        if( end_genes[ d.name ] !== undefined ) {
+                            delete end_genes[ d.name ];
+                        }
                     } 
                 } else {
                     draw_line(d, closest);

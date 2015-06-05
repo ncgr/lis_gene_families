@@ -460,6 +460,25 @@
             }
             plot_axis_map.push(axis);
         }
+        // add the scroll buttons
+        $('#viewer').append('<div id="scroll"><span style="float:right;"><input type="text" name="scroll_right" maxlength="2" size="2" value="5">&nbsp;<a id="scroll_right" href="#">&gt;</a></span><a id="scroll_left" href="#">&lt;</a>&nbsp;<input type="text" name="scroll_left" maxlength="2" size="2" value="5"></div>');
+        // bind the click event to the links
+        $('#scroll_left').on('click', function(e) {
+            e.preventDefault();
+            var step = $('#scroll input[name=scroll_left]').val();
+            if( isNumber(step) && parseInt(step)*2+1 <= data.groups[0].genes.length && !loading ) {
+                focus_name = data.groups[0].genes[ ((data.groups[0].genes.length-1)/2)-parseInt(step) ].name;
+                get_context_data();
+            }
+        });
+        $('#scroll_right').on('click', function(e) {
+            e.preventDefault();
+            var step = $('#scroll input[name=scroll_right]').val();
+            if( isNumber(step) && parseInt(step)*2+1 <= data.groups[0].genes.length && !loading ) {
+                focus_name = data.groups[0].genes[ ((data.groups[0].genes.length-1)/2)+parseInt(step) ].name;
+                get_context_data();
+            }
+        });
     }
 	// context legend click callback
 	function legend_click( family_selection, gene_selection ) {
@@ -530,25 +549,6 @@
         $('#miner').addClass("hidden");
         // generate the context
         generate_context();
-        // add the scroll buttons
-        $('#viewer').append('<div id="scroll"><span style="float:right;"><input type="text" name="scroll_right" maxlength="2" size="2" value="5">&nbsp;<a id="scroll_right" href="#">&gt;</a></span><a id="scroll_left" href="#">&lt;</a>&nbsp;<input type="text" name="scroll_left" maxlength="2" size="2" value="5"></div>');
-        // bind the click event to the links
-        $('#scroll_left').on('click', function(e) {
-            e.preventDefault();
-            var step = $('#scroll input[name=scroll_left]').val();
-            if( isNumber(step) && parseInt(step)*2+1 <= data.groups[0].genes.length && !loading ) {
-                focus_name = data.groups[0].genes[ ((data.groups[0].genes.length-1)/2)-parseInt(step) ].name;
-                get_context_data();
-            }
-        });
-        $('#scroll_right').on('click', function(e) {
-            e.preventDefault();
-            var step = $('#scroll input[name=scroll_right]').val();
-            if( isNumber(step) && parseInt(step)*2+1 <= data.groups[0].genes.length && !loading ) {
-                focus_name = data.groups[0].genes[ ((data.groups[0].genes.length-1)/2)+parseInt(step) ].name;
-                get_context_data();
-            }
-        });
 	    // make the context legend
 	    context_legend( 'legend', color, data, {"legend_click":legend_click });
         loading = false;
