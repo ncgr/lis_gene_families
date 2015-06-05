@@ -23,7 +23,7 @@
     /*display: none;*/
 }
 
-#lightbox {
+#loading, #lightbox {
     position: absolute;
     top: 0;
     left: 0;
@@ -34,7 +34,7 @@
     overflow: auto;
 }
 
-#lightbox .horizontal {
+.horizontal {
     margin: auto;  
     position: absolute;
     left:0;
@@ -44,7 +44,7 @@
     display: table;
 }
 
-#lightbox .vertical {
+.vertical {
     display: table-cell;
     vertical-align: middle;
 }
@@ -177,6 +177,17 @@
             <input name="threshold" class="form-control" id="threshold" value="{{ threshold }}">
           </div>
         </div>
+        <!--
+        <div class="form-group">
+          <label for="select" class="col-lg-2 control-label">Order by</label>
+          <div class="col-lg-10 col-lg-offset-2">
+            <select class="form-control" id="select">
+              <option>Species</option>
+              <option>Alignment Score</option>
+            </select>
+          </div>
+        </div>
+        -->
         <div class="form-group">
           <div class="col-lg-10 col-lg-offset-2">
             <button action="" class="btn btn-default lightbox">Cancel</button>
@@ -189,7 +200,7 @@
 </div></div></div>
 {% endblock %}
 {% block bottom %}
-<div class="col-lg-9" id="viewer"></div>
+<div class="col-lg-9" id="viewer"><div style="height:100px;"></div></div>
 <div class="col-lg-3" id="legend"></div>
 <div class="col-lg-9" id="miner"></div>
 <div class="col-lg-3" id="plot">
@@ -381,7 +392,7 @@
 		show_toggle();
 	}
     function right_axis_clicked( axis_selection, gene_selection, rail_selection ) {
-        $('#global').html('<img class="spinner" src="{% static 'gif/ajax-loader.gif' %}" />');
+        $('#global').html('<div class="horizontal"><div class="vertical"><img class="spinner" src="{% static 'gif/ajax-loader.gif' %}" /></div></div>');
         // make the context synteny plot
         var plot_selection = plot_axis_map[ axis_selection ];
         context_synteny( 'local', color, plot_data, plot_selection, {"width":Math.max(document.getElementById('local').offsetWidth, document.getElementById('global').offsetWidth)} );
@@ -452,14 +463,49 @@
         plot_axis_map = [];
         var axis = -1;
         var prev_id = null;
+        var remove= [];
         for( var i = 0; i < context_data.groups.length; i++ ) {
             var id = context_data.groups[i].species_id+":"+context_data.groups[i].chromosome_id;
             if( id != prev_id ) {
                 prev_id = id;
                 axis++;
+            } else {
+                remove.push( i );
             }
             plot_axis_map.push(axis);
         }
+        // prepare the plot data for show and tell
+        plot_data = clone(context_data);
+        for( var i = remove.length-1; i >= 0; i-- ) {
+            plot_data.groups.splice( remove[ i ], 1 );
+        }
+        family_map = {};
+        // make a map of points all genes will be plotted against
+        for( var i = 0; i < plot_data.groups[ 0 ].genes.length; i++ ) {
+            var g = plot_data.groups[ 0 ].genes[ i ];
+            if( g.family in family_map ) {
+                family_map[ g.family ].push( (g.fmin/2)+(g.fmax/2) );
+            } else if( g.family != '' ) {
+                family_map[ g.family ] = [(g.fmin/2)+(g.fmax/2)];
+            }
+        }
+        // plot all the genes against the list of points
+        var plot_groups = [];
+        for( var i = 0; i < plot_data.groups.length; i++ ) {
+            plot_data.groups[ i ].genes = plot_points( plot_data.groups[ i ] );
+            plot_groups.push( plot_data.groups[ i ] );
+        }
+        plot_data.groups = plot_groups;
+        // plot each local plot in the miner
+        $('#miner').html('');
+        $('#miner').removeClass("hidden");
+        for( var i = 0; i < plot_data.groups.length; i++ ) {
+            var id = "miner_"+i;
+            $('#miner').append('<div id="'+id+'" class="col-lg-4"></div>');
+            context_synteny( id, color, plot_data, i );
+            //$('#'+id).append('<a>Local</a>&nbsp|&nbsp<a>Global</a>');
+        }
+        $('#miner').addClass("hidden");
         // add the scroll buttons
         $('#viewer').append('<div id="scroll"><span style="float:right;"><input type="text" name="scroll_right" maxlength="2" size="2" value="5">&nbsp;<a id="scroll_right" href="#">&gt;</a></span><a id="scroll_left" href="#">&lt;</a>&nbsp;<input type="text" name="scroll_left" maxlength="2" size="2" value="5"></div>');
         // bind the click event to the links
@@ -514,39 +560,9 @@
         json = context_json;
         // update shared variables
 	    data = JSON.parse(json);
-        plot_data = JSON.parse(json);
         global_plot_data = JSON.parse(json);
 		family_names = get_family_name_map( data );
-        plot_axis_map = [];
 	    track_length = get_track_length( data );
-        // prepare the plot data for show and tell
-        family_map = {};
-        // make a map of points all genes will be plotted against
-        for( var i = 0; i < plot_data.groups[ 0 ].genes.length; i++ ) {
-            var g = plot_data.groups[ 0 ].genes[ i ];
-            if( g.family in family_map ) {
-                family_map[ g.family ].push( (g.fmin/2)+(g.fmax/2) );
-            } else if( g.family != '' ) {
-                family_map[ g.family ] = [(g.fmin/2)+(g.fmax/2)];
-            }
-        }
-        // plot all the genes against the list of points
-        var plot_groups = [];
-        for( var i = 0; i < plot_data.groups.length; i++ ) {
-            plot_data.groups[ i ].genes = plot_points( plot_data.groups[ i ] );
-            plot_groups.push( plot_data.groups[ i ] );
-        }
-        plot_data.groups = plot_groups;
-        // plot each local plot in the miner
-        $('#miner').html('');
-        $('#miner').removeClass("hidden");
-        for( var i = 0; i < plot_data.groups.length; i++ ) {
-            var id = "miner_"+i;
-            $('#miner').append('<div id="'+id+'" class="col-lg-4"></div>');
-            context_synteny( id, color, plot_data, i );
-            //$('#'+id).append('<a>Local</a>&nbsp|&nbsp<a>Global</a>');
-        }
-        $('#miner').addClass("hidden");
         // generate the context
         generate_context();
 	    // make the context legend
@@ -555,13 +571,13 @@
     }
     // get json data via ajax
     function get_context_data() {
-        $('#viewer').html('<img class="spinner" src="{% static 'gif/ajax-loader.gif' %}" />');
         $('#miner').html('');
         $('#viewer_tab').trigger('click');
-        loading = true;
-        $('#legend').html('<img class="spinner" src="{% static 'gif/ajax-loader.gif' %}" />');
+        $('#local_tab').trigger('click');
         $('#local').html('');
         $('#global').html('');
+        loading = true;
+        $('body').append('<div id="loading"><div class="horizontal"><div class="vertical"><img class="spinner" src="{% static 'gif/ajax-loader.gif' %}" /></div></div></div>');
 		$.ajax({
 	        url:"{% url 'context_viewer_search_tracks_ajax' %}",
 	        data: {
@@ -574,7 +590,10 @@
 	        },
 	        contentType: "application/json;charset=utf-8",
 	        dataType: "json",
-	        success: update_page,
+	        success: function(track_data) {
+                update_page(track_data);
+                $('#loading').remove();
+            },
 	        error: function(ts) { 
 	        // this is for debugging, not production!
 	            alert(ts.responseText);

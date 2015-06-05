@@ -12,8 +12,6 @@ function context_viewer( container_id, color, data, optional_parameters ) {
     var partitions = {};
     var groups = {};
 	for( var i = 0; i < data.groups.length; i++ ) {
-        console.log("group: "+i);
-        console.log(data.groups[i].genes);
 	    // find the beginning and end of each track
         data.groups[i].genes.sort(function(a, b) {
               return a.x - b.x;
@@ -317,7 +315,8 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 				return e.y == y;
 			});
 			var rail_selection = rail_groups.filter(function(e) {
-				return d3.select(this).attr("y") == y;
+                // select lines only on the track, this does not include inter-track lines
+				return d3.select(this).attr("y") == y && d3.select(this).select("line").attr("y1") == 0 && d3.select(this).select("line").attr("y2") == 0;
 			});
 			show_tips( gene_selection, rail_selection );
         })
