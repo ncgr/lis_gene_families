@@ -232,7 +232,7 @@
     ////////
 
     // make an object to hold the global plot data
-    var global_data = {};
+    var global_data = null;
     // make the tabs work
     var loading = false;
     $('#viewer_tab').on('click', function(e) {
@@ -563,6 +563,7 @@
         global_plot_data = JSON.parse(json);
 		family_names = get_family_name_map( data );
 	    track_length = get_track_length( data );
+        global_data = {};
         // generate the context
         generate_context();
 	    // make the context legend
