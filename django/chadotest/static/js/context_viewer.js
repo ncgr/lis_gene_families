@@ -287,7 +287,7 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 		.tickValues(tick_values) // we don't want d3 taking liberties to make things pretty
 	    .tickFormat(function (d, i) {
             var l = data.groups[d].genes.length;
-            if( d > 0 && data.groups[d-1].species_id+":"+data.groups[d-1].chromsome_id === data.groups[d].species_id+":"+data.groups[d].chromsome_id ) {
+            if( d > 0 && data.groups[d-1].species_id+":"+data.groups[d-1].chromosome_id === data.groups[d].species_id+":"+data.groups[d].chromosome_id ) {
 	            return (l > 0 ? (data.groups[d].genes[0].fmin+"-"+data.groups[d].genes[l-1].fmax) : "");
             }
 	        return data.groups[d].chromosome_name +":"+(l > 0 ? (data.groups[d].genes[0].fmin+"-"+data.groups[d].genes[l-1].fmax) : "");

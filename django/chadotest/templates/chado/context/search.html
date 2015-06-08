@@ -229,8 +229,6 @@
     // IO //
     ////////
 
-    // make an object to hold the global plot data
-    var global_data = null;
     // make the tabs work
     var loading = false;
     $('#viewer_tab').on('click', function(e) {
@@ -276,7 +274,23 @@
     }
     // resize the plot div every time the window is resized
     $(window).resize( resize_plot );
-    // only submit the parameter form when it needs to be submitted
+    // alignment parameters
+    var params;
+    if( $.cookie("context_parameters") !== undefined ) {
+        params = JSON.parse($.cookie("context_parameters"));
+    } else {
+        params = {"algorithm":false, // defaults to repeat
+                  "match":5,
+                  "mismatch":-1,
+                  "gap":-1,
+                  "threshold":25,
+                  "ordering":0,
+                  "num_neighbors":{{ num_neighbors }},
+                  "num_matched_families":{{ num_matched_families }},
+                  "non_family":{{ non_family }}};
+        $.cookie("context_parameters", JSON.stringify(params), {expires:1, path:"/"});
+    }
+    // when parameters are updated
     $("#parameters").submit(function (e) {
         e.preventDefault();
         $('#lightbox').toggleClass('hidden');
@@ -297,13 +311,12 @@
             // update the search parameters
             $.cookie("context_parameters", JSON.stringify(params), {expires:1, path:"/"});
         }
-        // trigger a new search (page refresh)
+        // trigger a new search
         var num_neighbors = $('#parameters #num_neighbors').val(),
             num_matched_families = $('#parameters #num_matched_families').val(),
             non_family = $('#parameters #non_family').val();
-        // refresh the page for new search arguments
+        // get new data
         if( isNumber(num_neighbors) && isNumber(num_matched_families) && isNumber(non_family) &&
-            //(parseInt(num_neighbors) != {{ num_neighbors }} || parseInt(num_matched_families) != {{ num_matched_families }} || parseInt(non_family) != {{ non_family }}) ) {
             (parseInt(num_neighbors) != params.num_neighbors || parseInt(num_matched_families) != params.num_matched_families || parseInt(non_family) != params.non_family) ) {
             params.num_neighbors = parseInt(num_neighbors);
             params.num_matched_families = parseInt(num_matched_families);
@@ -343,26 +356,11 @@
     // context //
     /////////////
 
-    // alignment parameters
-    var params;
-    if( $.cookie("context_parameters") !== undefined ) {
-        params = JSON.parse($.cookie("context_parameters"));
-    } else {
-        params = {"algorithm":false, // defaults to repeat
-                  "match":5,
-                  "mismatch":-1,
-                  "gap":-1,
-                  "threshold":25,
-                  "ordering":0,
-                  "num_neighbors":{{ num_neighbors }},
-                  "num_matched_families":{{ num_matched_families }},
-                  "non_family":{{ non_family }}};
-        $.cookie("context_parameters", JSON.stringify(params), {expires:1, path:"/"});
-    }
 	// shared variables
 	var json = null,
         data = null,
         plot_data = null,
+        global_data = null,
         global_plot_data = null,
         color = context_color,
 		family_names = null
@@ -422,8 +420,7 @@
 	                alert(ts.responseText);
 	            }
 	        });
-        }
-        if( global_data[ plot_selection ] !== undefined ) {
+        } else {
             context_synteny( 'global', color, global_plot_data, plot_selection, {"width":Math.max(document.getElementById('local').offsetWidth, document.getElementById('global').offsetWidth)} );
         }
     }
@@ -485,6 +482,7 @@
             "sort":ordering });
         // construct plot_axis_map after context_data has been merged by viewer
         plot_axis_map = [];
+        global_data = {};
         var axis = -1;
         var prev_id = null;
         var remove= [];
@@ -500,8 +498,10 @@
         }
         // prepare the plot data for show and tell
         plot_data = clone(context_data);
+        global_plot_data = clone(context_data);
         for( var i = remove.length-1; i >= 0; i-- ) {
             plot_data.groups.splice( remove[ i ], 1 );
+            global_plot_data.groups.splice( remove[ i ], 1 );
         }
         family_map = {};
         // make a map of points all genes will be plotted against
@@ -584,10 +584,10 @@
         json = context_json;
         // update shared variables
 	    data = JSON.parse(json);
-        global_plot_data = JSON.parse(json);
+        //global_plot_data = JSON.parse(json);
 		family_names = get_family_name_map( data );
 	    track_length = get_track_length( data );
-        global_data = {};
+        //global_data = {};
         // generate the context
         generate_context();
 	    // make the context legend
