@@ -12,13 +12,6 @@
     text-align: center;
 }
 
-.spinner {
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-    vertical-align: middle;
-}
-
 .hidden {
     /*display: none;*/
 }
@@ -34,19 +27,12 @@
     overflow: auto;
 }
 
-.horizontal {
-    margin: auto;  
+.centered {
     position: absolute;
-    left:0;
-    right: 0;
-    top: 0;
-    height: 100%;
-    display: table;
-}
-
-.vertical {
-    display: table-cell;
-    vertical-align: middle;
+    top: 50%;
+    left: 50%;
+    /* bring your own prefixes */
+    transform: translate(-50%, -50%);
 }
 
 #toggle {
@@ -113,7 +99,7 @@
         <li class="active"><a id="viewer_tab" href="#viewer" data-toggle="tab">Viewer</a></li>
         <li><a id="miner_tab" href="#miner" data-toggle="tab">Dotplots</a></li>
     </ul>
-<div id="lightbox" class="hidden"><div class="horizontal col-lg-6"><div class="vertical">
+<div id="lightbox" class="hidden"><div class="centered col-lg-6">
     <div class="well bs-component">
     <form id="parameters" class="form-horizontal" method="GET">
       <fieldset>
@@ -195,7 +181,7 @@
       </fieldset>
     </form>
     </div>
-</div></div></div>
+</div></div>
 {% endblock %}
 {% block bottom %}
 <div class="col-lg-9" id="viewer"><div style="height:100px;"></div></div>
@@ -391,7 +377,7 @@
 		show_toggle();
 	}
     function right_axis_clicked( axis_selection, gene_selection, rail_selection ) {
-        $('#global').html('<div class="horizontal"><div class="vertical"><img class="spinner" src="{% static 'gif/ajax-loader.gif' %}" /></div></div>');
+        $('#global').html('<div style="display:block;"><div class="centered"><img src="{% static 'gif/ajax-loader.gif' %}" /></div></div>');
         // make the context synteny plot
         var plot_selection = plot_axis_map[ axis_selection ];
         context_synteny( 'local', color, plot_data, plot_selection, {"width":Math.max(document.getElementById('local').offsetWidth, document.getElementById('global').offsetWidth)} );
@@ -602,7 +588,7 @@
         $('#local').html('');
         $('#global').html('');
         loading = true;
-        $('body').append('<div id="loading"><div class="horizontal"><div class="vertical"><img class="spinner" src="{% static 'gif/ajax-loader.gif' %}" /></div></div></div>');
+        $('body').append('<div id="loading"><div class="centered"><img src="{% static 'gif/ajax-loader.gif' %}" /></div></div>');
 		$.ajax({
 	        url:"{% url 'context_viewer_search_tracks_ajax' %}",
 	        data: {

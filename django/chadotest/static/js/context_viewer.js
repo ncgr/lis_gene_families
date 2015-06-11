@@ -303,7 +303,7 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 	    var yAxis_right = d3.svg.axis().scale(y).orient("right")
 	    	.tickValues(tick_values) // we don't want d3 taking liberties to make things pretty
 	        .tickFormat(function(d, i) {
-                if( d > 0 && data.groups[d-1].species_id+":"+data.groups[d-1].chromsome_id === data.groups[d].species_id+":"+data.groups[d].chromsome_id ) {
+                if( d > 0 && data.groups[d-1].species_id+":"+data.groups[d-1].chromosome_id === data.groups[d].species_id+":"+data.groups[d].chromosome_id ) {
                     return "";
                 }
                 return "plot";
