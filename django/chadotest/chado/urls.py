@@ -32,40 +32,6 @@ urlpatterns = patterns('chado.views',
     # cvterm
     url(r'^cvterm/(?P<cvterm_id>\d+)/$', 'cvterm_view', {'template_name' : 'chado/cvterm/view.html'}, name='cvterm_view'),
 
-    # search
-    #url(r'^search/$', 'search', name='search'),
-    #url(r'^search/(?P<depth>\d+)/new/$', 'search_feature', {'template_name' : 'chado/search/index.html', 'who' : 'feature'}, name='search_new_feature'),
-    #url(r'^search/(?P<depth>\d+)/feature/msa/$', 'search_feature', {'template_name' : 'chado/search/feature.html', 'who' : 'msa'}, name='search_feature_msa'),
-    #url(r'^search/(?P<depth>\d+)/feature/phylo/$', 'search_feature', {'template_name' : 'chado/search/feature.html', 'who' : 'phylo'}, name='search_feature_phylo'),
-    #url(r'^search/(?P<depth>\d+)/organism/feature/$', 'search_organism', {'template_name' : 'chado/search/organism.html', 'who' : 'feature'}, name='search_organism_feature'),
-    #url(r'^search/(?P<depth>\d+)/organism/msa/$', 'search_organism', {'template_name' : 'chado/search/organism.html', 'who' : 'msa'}, name='search_organism_msa'),
-    #url(r'^search/(?P<depth>\d+)/organism/phylo/$', 'search_organism', {'template_name' : 'chado/search/organism.html', 'who' : 'phylo'}, name='search_organism_phylo'),
-    #url(r'^search/(?P<depth>\d+)/msa/feature/$', 'search_msa', {'template_name' : 'chado/search/msa.html', 'who' : 'feature'}, name='search_msa_feature'),
-    #url(r'^search/(?P<depth>\d+)/msa/phylo/$', 'search_msa', {'template_name' : 'chado/search/msa.html', 'who' : 'phylo'}, name='search_msa_phylo'),
-    #url(r'^search/(?P<depth>\d+)/phylo/feature/$', 'search_phylo', {'template_name' : 'chado/search/phylo.html', 'who' : 'feature'}, name='search_phylo_feature'),
-    #url(r'^search/(?P<depth>\d+)/phylo/msa/$', 'search_phylo', {'template_name' : 'chado/search/phylo.html', 'who' : 'msa'}, name='search_phylo_msa'),
-    ## ajax
-    #url(r'^search/(?P<depth>\d+)/add/$', 'search_add_result_ajax', {'who' : 'feature'}, name='search_add_result_ajax'),
-    #url(r'^search/(?P<depth>\d+)/remove/$', 'search_remove_result_ajax', {'who' : 'feature'}, name='search_remove_result_ajax'),
-    #url(r'^search/(?P<depth>\d+)/clear/$', 'search_clear_results_ajax', {'who' : 'feature'}, name='search_clear_results_ajax'),
-    #url(r'^search/(?P<depth>\d+)/add_all/$', 'search_add_all_ajax', {'who' : 'feature'}, name='search_add_all_ajax'),
-    #url(r'^search/(?P<depth>\d+)/remove_all/$', 'search_remove_all_ajax', {'who' : 'feature'}, name='search_remove_all_ajax'),
-    #url(r'^search/(?P<depth>\d+)/msa/add/$', 'search_add_result_ajax', {'who' : 'msa'}, name='search_msa_add_result_ajax'),
-    #url(r'^search/(?P<depth>\d+)/msa/remove/$', 'search_remove_result_ajax', {'who' : 'msa'}, name='search_msa_remove_result_ajax'),
-    #url(r'^search/(?P<depth>\d+)/msa/clear/$', 'search_clear_results_ajax', {'who' : 'msa'}, name='search_msa_clear_results_ajax'),
-    #url(r'^search/(?P<depth>\d+)/msa/add_all/$', 'search_add_all_ajax', {'who' : 'msa'}, name='search_msa_add_all_ajax'),
-    #url(r'^search/(?P<depth>\d+)/msa/remove_all/$', 'search_remove_all_ajax', {'who' : 'msa'}, name='search_msa_remove_all_ajax'),
-    #url(r'^search/(?P<depth>\d+)/phylo/add/$', 'search_add_result_ajax', {'who' : 'phylo'}, name='search_phylo_add_result_ajax'),
-    #url(r'^search/(?P<depth>\d+)/phylo/remove/$', 'search_remove_result_ajax', {'who' : 'phylo'}, name='search_phylo_remove_result_ajax'),
-    #url(r'^search/(?P<depth>\d+)/phylo/clear/$', 'search_clear_results_ajax', {'who' : 'phylo'}, name='search_phylo_clear_results_ajax'),
-    #url(r'^search/(?P<depth>\d+)/phylo/add_all/$', 'search_add_all_ajax', {'who' : 'phylo'}, name='search_phylo_add_all_ajax'),
-    #url(r'^search/(?P<depth>\d+)/phylo/remove_all/$', 'search_remove_all_ajax', {'who' : 'phylo'}, name='search_phylo_remove_all_ajax'),
-    #url(r'^search/(?P<depth>\d+)/feature/add/$', 'search_add_result_ajax', {'who' : 'feature'}, name='search_feature_add_result_ajax'),
-    #url(r'^search/(?P<depth>\d+)/feature/remove/$', 'search_remove_result_ajax', {'who' : 'feature'}, name='search_feature_remove_result_ajax'),
-    #url(r'^search/(?P<depth>\d+)/feature/clear/$', 'search_clear_results_ajax', {'who' : 'feature'}, name='search_feature_clear_results_ajax'),
-    #url(r'^search/(?P<depth>\d+)/feature/add_all/$', 'search_add_all_ajax', {'who' : 'feature'}, name='search_feature_add_all_ajax'),
-    #url(r'^search/(?P<depth>\d+)/feature/remove_all/$', 'search_remove_all_ajax', {'who' : 'feature'}, name='search_feature_remove_all_ajax'),
-
     # gene context
     url(r'^context_viewer/json/(?P<node_id>\d+)/$', 'context_viewer_json', name='context_viewer_json'),
     url(r'^context_gff_download/$', 'context_gff_download', {}, name='context_gff_download'),
@@ -79,5 +45,6 @@ urlpatterns = patterns('chado.views',
     # simple views
     url(r'^context_viewer/iframe/(?P<node_id>\d+)/$', 'context_viewer', {'template_name' : 'chado/context/index_iframe.html'}, name='context_viewer'),
     # ajax
+    url(r'^context_viewer/search_tracks/$', 'context_viewer_search_tracks_ajax', name='context_viewer_search_tracks_ajax'),
     url(r'^context_viewer/search_global/$', 'context_viewer_search_global_ajax', name='context_viewer_search_global_ajax'),
     )

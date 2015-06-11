@@ -6,6 +6,16 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 	// clear the contents of the target element first
 	document.getElementById(container_id).innerHTML = "";
 
+    // sort the result tracks by some user defined function
+    if( optional_parameters.sort !== undefined ) {
+        // remove the query from the groups array
+        var query = data.groups.splice(0, 1);
+        // sort the results with the user defined function
+        data.groups.sort( optional_parameters.sort );
+        // set the groups array to the query concatenated with the sorted results
+        data.groups = query.concat( data.groups );
+    }
+
     // data preprocessing
     var begin_genes = {};
     var end_genes = {};
@@ -246,7 +256,12 @@ function context_viewer( container_id, color, data, optional_parameters ) {
                         draw_line(d, begin_genes[ closest.name ]);
 			        }
                     if( partition ) {
+                        // don't display genes that appear in other partitions
                         d3.select(this).remove();
+                        // don't draw lines to genes that are no longer displayed
+                        if( end_genes[ d.name ] !== undefined ) {
+                            delete end_genes[ d.name ];
+                        }
                     } 
                 } else {
                     draw_line(d, closest);
@@ -272,6 +287,9 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 		.tickValues(tick_values) // we don't want d3 taking liberties to make things pretty
 	    .tickFormat(function (d, i) {
             var l = data.groups[d].genes.length;
+            if( d > 0 && data.groups[d-1].species_id+":"+data.groups[d-1].chromosome_id === data.groups[d].species_id+":"+data.groups[d].chromosome_id ) {
+	            return (l > 0 ? (data.groups[d].genes[0].fmin+"-"+data.groups[d].genes[l-1].fmax) : "");
+            }
 	        return data.groups[d].chromosome_name +":"+(l > 0 ? (data.groups[d].genes[0].fmin+"-"+data.groups[d].genes[l-1].fmax) : "");
 	    });
 
@@ -284,7 +302,12 @@ function context_viewer( container_id, color, data, optional_parameters ) {
     if( optional_parameters.right_axis_clicked !== undefined ) {
 	    var yAxis_right = d3.svg.axis().scale(y).orient("right")
 	    	.tickValues(tick_values) // we don't want d3 taking liberties to make things pretty
-	        .tickFormat("plot");
+	        .tickFormat(function(d, i) {
+                if( d > 0 && data.groups[d-1].species_id+":"+data.groups[d-1].chromsome_id === data.groups[d].species_id+":"+data.groups[d].chromsome_id ) {
+                    return "";
+                }
+                return "plot";
+            });
 	    viewer.append("g")
 	        .attr("class", "axis axis_right")
 	        .attr("transform", "translate("+(w-right_pad+pad)+", 0)")
@@ -302,7 +325,8 @@ function context_viewer( container_id, color, data, optional_parameters ) {
 				return e.y == y;
 			});
 			var rail_selection = rail_groups.filter(function(e) {
-				return d3.select(this).attr("y") == y;
+                // select lines only on the track, this does not include inter-track lines
+				return d3.select(this).attr("y") == y && d3.select(this).select("line").attr("y1") == 0 && d3.select(this).select("line").attr("y2") == 0;
 			});
 			show_tips( gene_selection, rail_selection );
         })

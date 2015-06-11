@@ -58,8 +58,12 @@ var repeat_align = function( sequence, reference, accessor, scoring ) {
     var index = -1;
     var score_diag, score_up, scroe_left;
     var saving;
+    var total_score = 0;
 
     while( !(i == 0 && j == 0) ) {
+        if( saving ) {
+            total_score += a[ i ][ j ];
+        }
         if( j == 0 ) {
             saving = false;
             var max = a[i].max();
@@ -133,7 +137,7 @@ var repeat_align = function( sequence, reference, accessor, scoring ) {
         }
     }
     
-    return alignments;
+    return [alignments, total_score];
 };
 
 // returns the higher scoring alignment - forward or reverse
@@ -162,14 +166,14 @@ var repeat = function( sequence, reference, accessor, scoring ) {
 	var reverses = repeat_align( sequence, reference_clone, accessor, scoring );
     // clone each object in the arrays
     // flip the strand for each selected gene
-    var output = forwards;
-    for( var i = 0; i < reverses.length; i++ ) {
-        for( var j = 0; j < reverses[ i ][ 1 ].length; j++ ) {
-            if( reverses[ i ][ 1 ][ j ] != null ) {
-                reverses[ i ][ 1 ][ j ].strand = -1*reverses[ i ][ 1 ][ j ].strand;
+    var output = forwards[0];
+    for( var i = 0; i < reverses[0].length; i++ ) {
+        for( var j = 0; j < reverses[0][ i ][ 1 ].length; j++ ) {
+            if( reverses[ 0 ][ i ][ 1 ][ j ] != null ) {
+                reverses[ 0 ][ i ][ 1 ][ j ].strand = -1*reverses[ 0 ][ i ][ 1 ][ j ].strand;
             }
         }
-        output.push( reverses[ i ] );
+        output.push( reverses[ 0 ][ i ] );
     }
-	return output;
+	return [output, forwards[ 1 ]+reverses[ 1 ]];
 }
