@@ -120,8 +120,9 @@ var smith = function( sequence, reference, accessor, scoring ) {
 	reference_clone.reverse();
 	var reverse = smith_align( sequence, reference_clone, accessor, scoring );
 	if( forward[2] >= reverse[2] ) {
-        var val = new Array(forward[0], forward[1]);
-		return val;
+        //var val = new Array(forward[0], forward[1]);
+		//return val;
+        return forward
 	} else {
         // clone each object in the array
         // flip the strand for each selected gene
@@ -130,7 +131,8 @@ var smith = function( sequence, reference, accessor, scoring ) {
                 reverse[1][i].strand = -1*reverse[1][i].strand;
             }
         }
-        var val = new Array(reverse[0], reverse[1]);
-	    return val;
+        //var val = new Array(reverse[0], reverse[1]);
+	    //return val;
+        return reverse;
     }
 }
