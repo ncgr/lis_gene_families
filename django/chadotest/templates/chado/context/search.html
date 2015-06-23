@@ -429,7 +429,7 @@
             }
             scores[ id ] += al[ 1 ];
             if( params.algorithm ) {
-                alignments.push( al[0] );
+                alignments.push( al );
             } else {
                 for( var j = 0; j < al[ 0 ].length; j++ ) {
                     result_tracks.push( clone(data.groups[ i ]) );
