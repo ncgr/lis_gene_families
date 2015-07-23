@@ -276,6 +276,41 @@
                   "non_family":{{ non_family }}};
         $.cookie("context_parameters", JSON.stringify(params), {expires:1, path:"/"});
     }
+    // parse the url
+    var [url, args] = window.location.href.split('?', 2);
+    var url_split = url.split("/");
+    focus_name = url_split.pop();
+    while( focus_name === "" ) {
+        focus_name = url_split.pop();
+    }
+    url = url_split.join("/");
+    var get = {};
+    if( args !== undefined ) {
+        args.split('&').forEach(function (val) {
+            var [key, value] = val.split("=", 2);
+            get[key] = value;
+        });
+        // update the cookie
+        for (var property in get) {
+            if (get.hasOwnProperty(property)) {
+                if( params[ property ] !== undefined ) {
+                    params[ property ] = parseInt(get[ property ]) || params[ property ];
+                    if( property === 'algorithm' ) {
+                        params[ property ] = Boolean(get[ property ]) || params[ property ];
+                    }
+                }
+            }
+        }
+    }
+    // update the url with the params' values
+    function update_url() {
+        var param_args = [];
+        for (var property in params) {
+            param_args.push(property+"="+params[ property ]);
+        }
+        window.history.pushState('obj', '', url+"/"+focus_name+"/?"+param_args.join("&"));
+    }
+    update_url();
     // when parameters are updated
     $("#parameters").submit(function (e) {
         e.preventDefault();
@@ -296,6 +331,7 @@
             params.ordering = ordering;
             // update the search parameters
             $.cookie("context_parameters", JSON.stringify(params), {expires:1, path:"/"});
+            update_url();
         }
         // trigger a new search
         var num_neighbors = $('#parameters #num_neighbors').val(),
@@ -309,6 +345,7 @@
             params.non_family = parseInt(non_family);
             // update the search parameters
             $.cookie("context_parameters", JSON.stringify(params), {expires:1, path:"/"});
+            update_url();
             get_context_data();
         } else {
             generate_context();
@@ -349,8 +386,8 @@
         global_data = null,
         global_plot_data = null,
         color = context_color,
-		family_names = null
-        focus_name = '{{ focus_name }}';
+		family_names = null,
+        focus_name = "{{ focus_name }}";
     // if there's a color object from the previous view
     if( $.cookie("context_color_domain") !== undefined ) {
         color.domain( JSON.parse($.cookie("context_color_domain")) );
@@ -524,6 +561,7 @@
             var step = $('#scroll input[name=scroll_left]').val();
             if( isNumber(step) && parseInt(step)*2+1 <= data.groups[0].genes.length && !loading ) {
                 focus_name = data.groups[0].genes[ ((data.groups[0].genes.length-1)/2)-parseInt(step) ].name;
+                update_url();
                 get_context_data();
             }
         });
@@ -532,6 +570,7 @@
             var step = $('#scroll input[name=scroll_right]').val();
             if( isNumber(step) && parseInt(step)*2+1 <= data.groups[0].genes.length && !loading ) {
                 focus_name = data.groups[0].genes[ ((data.groups[0].genes.length-1)/2)+parseInt(step) ].name;
+                update_url();
                 get_context_data();
             }
         });
