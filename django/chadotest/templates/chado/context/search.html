@@ -274,10 +274,10 @@
                   "num_neighbors":{{ num_neighbors }},
                   "num_matched_families":{{ num_matched_families }},
                   "non_family":{{ non_family }}};
-        $.cookie("context_parameters", JSON.stringify(params), {expires:1, path:"/"});
     }
     // parse the url
-    var [url, args] = window.location.href.split('?', 2);
+    var href_split = window.location.href.split('?', 2);
+    var url = href_split[0];
     var url_split = url.split("/");
     focus_name = url_split.pop();
     while( focus_name === "" ) {
@@ -285,10 +285,12 @@
     }
     url = url_split.join("/");
     var get = {};
-    if( args !== undefined ) {
-        args.split('&').forEach(function (val) {
-            var [key, value] = val.split("=", 2);
-            get[key] = value;
+    if( href_split.length > 1 ) {
+        href_split[1].split('&').forEach(function (val) {
+            var val_split = val.split("=", 2);
+            if( val_split.length > 1 ) {
+                get[val_split[0]] = val_split[1];
+            }
         });
         // update the cookie
         for (var property in get) {
@@ -296,12 +298,13 @@
                 if( params[ property ] !== undefined ) {
                     params[ property ] = parseInt(get[ property ]) || params[ property ];
                     if( property === 'algorithm' ) {
-                        params[ property ] = Boolean(get[ property ]) || params[ property ];
+                        params[ property ] = (get[ property ].toLowerCase() == 'true');
                     }
                 }
             }
         }
     }
+    $.cookie("context_parameters", JSON.stringify(params), {expires:1, path:"/"});
     // update the url with the params' values
     function update_url() {
         var param_args = [];
