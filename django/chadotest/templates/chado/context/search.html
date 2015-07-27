@@ -398,7 +398,45 @@
 	// context viewer callback functions
     var plot_axis_map = null;
 	var track_length = null;
-    function gene_clicked( gene_selected ) {}
+	function gene_clicked( gene_selection ) {
+		$.ajax({
+	        url:'{% url 'phylo_view_ajax' %}',
+	        data: {
+	            // this is actually a phylonode_id
+	            gene: gene_selection.name,
+	            // all pages are protected against csrf so we need to pass the token for this page
+	            csrfmiddlewaretoken: '{{ csrf_token }}'
+	        },
+	        contentType: "application/json;charset=utf-8",
+	        dataType: "json",
+	        success: function(data) {
+				// pull the data out of the json we get back
+	        	var html = '<h4><a href="{{ APP_URL }}/chado/feature/'+gene_selection.name+'/">'+gene_selection.name+'</a></h4>'
+				// append the gene's families (if any)
+				html += 'Family: ';
+				if( gene_selection.family != '' ) {
+					html += '<a href="/chado_phylotree/'+family_names[gene_selection.family]+'/">'+family_names[gene_selection.family]+'</a>';
+				} else {
+					html += 'None';
+				}
+				html += '<br />';
+	        	for (var i = 0; i < data.links.length; i++) {
+	        	    for (var key in data.links[i]) {
+	        	        html += '<a href="'+data.links[i][key]+'">'+key+'</a><br/>'
+	        	    }
+	        	}
+	        	if (data.meta) {
+	        	    html += '<p>'+data.meta+'</p>'
+	        	}
+	        	$('#toggle').html(html);
+	        },
+	        error: function(ts) { 
+	        // this is for debugging, not production!
+	            alert(ts.responseText);
+	        }
+	    });
+		show_toggle();
+	}
 	function left_axis_clicked( axis_selection, gene_selection, rail_selection ) {
 		// add the track's links to the content box
         var plot_selection = plot_axis_map[ axis_selection ];
