@@ -274,8 +274,46 @@
                   "num_neighbors":{{ num_neighbors }},
                   "num_matched_families":{{ num_matched_families }},
                   "non_family":{{ non_family }}};
-        $.cookie("context_parameters", JSON.stringify(params), {expires:1, path:"/"});
     }
+    // parse the url
+    var href_split = window.location.href.split('?', 2);
+    var url = href_split[0];
+    var url_split = url.split("/");
+    focus_name = url_split.pop();
+    while( focus_name === "" ) {
+        focus_name = url_split.pop();
+    }
+    url = url_split.join("/");
+    var get = {};
+    if( href_split.length > 1 ) {
+        href_split[1].split('&').forEach(function (val) {
+            var val_split = val.split("=", 2);
+            if( val_split.length > 1 ) {
+                get[val_split[0]] = val_split[1];
+            }
+        });
+        // update the cookie
+        for (var property in get) {
+            if (get.hasOwnProperty(property)) {
+                if( params[ property ] !== undefined ) {
+                    params[ property ] = parseInt(get[ property ]) || params[ property ];
+                    if( property === 'algorithm' ) {
+                        params[ property ] = (get[ property ].toLowerCase() == 'true');
+                    }
+                }
+            }
+        }
+    }
+    $.cookie("context_parameters", JSON.stringify(params), {expires:1, path:"/"});
+    // update the url with the params' values
+    function update_url() {
+        var param_args = [];
+        for (var property in params) {
+            param_args.push(property+"="+params[ property ]);
+        }
+        window.history.pushState('obj', '', url+"/"+focus_name+"/?"+param_args.join("&"));
+    }
+    update_url();
     // when parameters are updated
     $("#parameters").submit(function (e) {
         e.preventDefault();
@@ -296,6 +334,7 @@
             params.ordering = ordering;
             // update the search parameters
             $.cookie("context_parameters", JSON.stringify(params), {expires:1, path:"/"});
+            update_url();
         }
         // trigger a new search
         var num_neighbors = $('#parameters #num_neighbors').val(),
@@ -309,6 +348,7 @@
             params.non_family = parseInt(non_family);
             // update the search parameters
             $.cookie("context_parameters", JSON.stringify(params), {expires:1, path:"/"});
+            update_url();
             get_context_data();
         } else {
             generate_context();
@@ -349,8 +389,8 @@
         global_data = null,
         global_plot_data = null,
         color = context_color,
-		family_names = null
-        focus_name = '{{ focus_name }}';
+		family_names = null,
+        focus_name = "{{ focus_name }}";
     // if there's a color object from the previous view
     if( $.cookie("context_color_domain") !== undefined ) {
         color.domain( JSON.parse($.cookie("context_color_domain")) );
@@ -358,7 +398,45 @@
 	// context viewer callback functions
     var plot_axis_map = null;
 	var track_length = null;
-    function gene_clicked( gene_selected ) {}
+	function gene_clicked( gene_selection ) {
+		$.ajax({
+	        url:'{% url 'phylo_view_ajax' %}',
+	        data: {
+	            // this is actually a phylonode_id
+	            gene: gene_selection.name,
+	            // all pages are protected against csrf so we need to pass the token for this page
+	            csrfmiddlewaretoken: '{{ csrf_token }}'
+	        },
+	        contentType: "application/json;charset=utf-8",
+	        dataType: "json",
+	        success: function(data) {
+				// pull the data out of the json we get back
+	        	var html = '<h4><a href="{{ APP_URL }}/chado/feature/'+gene_selection.name+'/">'+gene_selection.name+'</a></h4>'
+				// append the gene's families (if any)
+				html += 'Family: ';
+				if( gene_selection.family != '' ) {
+					html += '<a href="/chado_phylotree/'+family_names[gene_selection.family]+'/">'+family_names[gene_selection.family]+'</a>';
+				} else {
+					html += 'None';
+				}
+				html += '<br />';
+	        	for (var i = 0; i < data.links.length; i++) {
+	        	    for (var key in data.links[i]) {
+	        	        html += '<a href="'+data.links[i][key]+'">'+key+'</a><br/>'
+	        	    }
+	        	}
+	        	if (data.meta) {
+	        	    html += '<p>'+data.meta+'</p>'
+	        	}
+	        	$('#toggle').html(html);
+	        },
+	        error: function(ts) { 
+	        // this is for debugging, not production!
+	            alert(ts.responseText);
+	        }
+	    });
+		show_toggle();
+	}
 	function left_axis_clicked( axis_selection, gene_selection, rail_selection ) {
 		// add the track's links to the content box
         var plot_selection = plot_axis_map[ axis_selection ];
@@ -524,6 +602,7 @@
             var step = $('#scroll input[name=scroll_left]').val();
             if( isNumber(step) && parseInt(step)*2+1 <= data.groups[0].genes.length && !loading ) {
                 focus_name = data.groups[0].genes[ ((data.groups[0].genes.length-1)/2)-parseInt(step) ].name;
+                update_url();
                 get_context_data();
             }
         });
@@ -532,6 +611,7 @@
             var step = $('#scroll input[name=scroll_right]').val();
             if( isNumber(step) && parseInt(step)*2+1 <= data.groups[0].genes.length && !loading ) {
                 focus_name = data.groups[0].genes[ ((data.groups[0].genes.length-1)/2)+parseInt(step) ].name;
+                update_url();
                 get_context_data();
             }
         });
