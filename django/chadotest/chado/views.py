@@ -311,11 +311,11 @@ def msa_view(request, feature_name, template_name):
 
 def msa_consensus(request, feature_name, template_name):
     #consensus = get_object_or_404(Feature, pk=feature_id)
+    consensus = Feature.objects.get(name=feature_name)
     #the test for residue_info is a quick and dirty way of excluding features that are annotated
     #on the consensus (like protein domains) but should not be returned for the MSA display;
     #possibly not the best approach, but works for now.
-    consensus = Feature.objects.get(name=feature_name).exclude(residue_info__isnull=True)
-    featurelocs = Featureloc.objects.filter(srcfeature=consensus)
+    featurelocs = Featureloc.objects.filter(srcfeature=consensus).exclude(residue_info__isnull=True)
     return render(request, template_name, {'consensus' : consensus, 'featurelocs' : featurelocs})
 
 
