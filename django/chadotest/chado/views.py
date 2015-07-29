@@ -317,7 +317,10 @@ def msa_consensus_download(request, feature_name):
     # get consensus stuffs
     #consensus = get_object_or_404(Feature, pk=feature_id)
     consensus = Feature.objects.get(name=feature_name)
-    featurelocs = Featureloc.objects.filter(srcfeature=consensus)
+    #the test for residue_info is a quick and dirty way of excluding features that are annotated
+    #on the consensus (like protein domains) but should not be returned for the MSA display;
+    #possibly not the best approach, but works for now.
+    featurelocs = Featureloc.objects.filter(srcfeature=consensus).exclude(residue_info == None)
 
     # write the file to be downloaded
     myfile = StringIO.StringIO()
