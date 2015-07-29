@@ -296,7 +296,10 @@ def msa_index(request, template_name):
 def msa_view(request, feature_name, template_name):
     consensus = Feature.objects.get(name=feature_name)
     #consensus = get_object_or_404(Feature, pk=feature_id)
-    featurelocs = Featureloc.objects.filter(srcfeature=consensus)
+    #the test for residue_info is a quick and dirty way of excluding features that are annotated
+    #on the consensus (like protein domains) but should not be returned for the MSA display;
+    #possibly not the best approach, but works for now.
+    featurelocs = Featureloc.objects.filter(srcfeature=consensus).exclude(residue_info__isnull=True)
     # I'm sure there's a better way to get a count of the organisms but the values method was giving me trouble
     organism_pks = list(featurelocs.values_list('feature__organism', flat=True))
     organisms = Organism.objects.filter(pk__in=organism_pks)
@@ -309,7 +312,10 @@ def msa_view(request, feature_name, template_name):
 def msa_consensus(request, feature_name, template_name):
     #consensus = get_object_or_404(Feature, pk=feature_id)
     consensus = Feature.objects.get(name=feature_name)
-    featurelocs = Featureloc.objects.filter(srcfeature=consensus)
+    #the test for residue_info is a quick and dirty way of excluding features that are annotated
+    #on the consensus (like protein domains) but should not be returned for the MSA display;
+    #possibly not the best approach, but works for now.
+    featurelocs = Featureloc.objects.filter(srcfeature=consensus).exclude(residue_info__isnull=True)
     return render(request, template_name, {'consensus' : consensus, 'featurelocs' : featurelocs})
 
 
