@@ -385,6 +385,7 @@
 	// shared variables
 	var json = null,
         data = null,
+        context_data = null,
         plot_data = null,
         global_data = null,
         global_plot_data = null,
@@ -440,7 +441,7 @@
 	function left_axis_clicked( axis_selection, gene_selection, rail_selection ) {
 		// add the track's links to the content box
         var plot_selection = plot_axis_map[ axis_selection ];
-		var html = '<h4><a href="{{ APP_URL }}/chado/organism/'+data.groups[plot_selection].species_id+'/">'+data.groups[plot_selection].species_name+'</a> - <a href="{{ APP_URL }}/chado/feature/'+data.groups[plot_selection].chromosome_id+'/">'+data.groups[plot_selection].chromosome_name+'</a></h4>';
+		var html = '<h4><a href="{{ APP_URL }}/chado/organism/'+context_data.groups[axis_selection].species_id+'/">'+context_data.groups[axis_selection].species_name+'</a> - <a href="{{ APP_URL }}/chado/feature/'+context_data.groups[axis_selection].chromosome_id+'/">'+context_data.groups[axis_selection].chromosome_name+'</a></h4>';
 		var genes = '<ul>';
 		var families = [];
 		gene_selection.each(function(d) {
@@ -516,7 +517,7 @@
             }
         }
         // merge the alignments
-        var context_data = JSON.parse(json);
+        context_data = JSON.parse(json);
         context_data.groups = [ data.groups[ 0 ] ];
         merge_alignments( context_data, result_tracks, alignments );
         // helper functions for sorting
