@@ -355,7 +355,7 @@
         }
     });
     // show and hide the lightbox
-    $('.lightbox').on('click', function(e) {
+    $('body').on('click', '.lightbox', function(e) {
         e.preventDefault();
         $('#lightbox').toggleClass('hidden');
     });
@@ -545,9 +545,6 @@
             "inter_track":true,
             "merge":true,
             "sort":ordering });
-        if (context_data.groups.length == 1) {
-            $("#viewer").append("<center>No search results found</center>");
-        }
         // construct plot_axis_map after context_data has been merged by viewer
         plot_axis_map = [];
         global_data = {};
@@ -564,6 +561,18 @@
             }
             plot_axis_map.push(axis);
         }
+        // notify how many tracks were returned and how many aligned
+        var returned = data.groups.length-1;
+        var resultString = "<center>"+returned+" track";
+        if (returned != 1) {
+            resultString += "s"
+        }
+        resultString += " returned by search. "+axis+" aligned";
+        if (axis == 0) {
+            resultString += ' (<a class="lightbox" href="">Revise Alignment Parameters</a>)';
+        }
+        resultString += '</center>';
+        $("#viewer").append(resultString);
         // prepare the plot data for show and tell
         plot_data = clone(context_data);
         global_plot_data = clone(context_data);
