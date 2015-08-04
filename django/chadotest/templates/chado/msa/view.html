@@ -24,9 +24,9 @@
             <tbody>
             {% for f in featurelocs %}
                 <tr>
+                    <!--<td><a href="/feature/{{ f.feature.organism.genus }}/{{ f.feature.organism.species }}/{{ f.feature.type.name }}/{{ f.feature.uniquename }}">{{ f.feature.name }}</a></td>-->
                     <td>{{ f.feature.name }}</td>
                     <td><a href="{% url 'organism_view' f.feature.organism.organism_id %}">{{ f.feature.organism.common_name }}</a></td>
-                    <td><a href="{% url 'feature_view' f.feature.feature_id %}">view</a></td>
                 </tr>
             {% endfor %}
             </tbody>
