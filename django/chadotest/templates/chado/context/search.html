@@ -545,6 +545,9 @@
             "inter_track":true,
             "merge":true,
             "sort":ordering });
+        if (context_data.groups.length == 1) {
+            $("#viewer").append("<center>No search results found</center>");
+        }
         // construct plot_axis_map after context_data has been merged by viewer
         plot_axis_map = [];
         global_data = {};
