@@ -498,21 +498,24 @@
         var align = params.algorithm ? smith : repeat;
         // align all the tracks with the query track
         var alignments = [],
-            result_tracks = params.algorithm ? data.groups.slice( 1 ) : [];
+            result_tracks = [];
         for( var i = 1; i < data.groups.length; i++ ) {
             var scoring = { match : params.match, mismatch : params.mismatch, gap : params.gap, threshold : params.threshold };
             var al = align( data.groups[ 0 ].genes, data.groups[ i ].genes, get_family, scoring );
             var id = data.groups[ i ].species_id+":"+data.groups[ i ].chromosome_id;
-            if( scores[ id ] === undefined ) {
-                scores[ id ] = 0;
-            }
-            scores[ id ] += al[ 1 ];
-            if( params.algorithm ) {
-                alignments.push( al );
-            } else {
-                for( var j = 0; j < al[ 0 ].length; j++ ) {
+            if( al !== null ) {
+                if( scores[ id ] === undefined ) {
+                    scores[ id ] = 0;
+                }
+                scores[ id ] += al[ 1 ];
+                if( params.algorithm ) {
                     result_tracks.push( clone(data.groups[ i ]) );
-                    alignments.push( al[ 0 ][ j ] );
+                    alignments.push( al );
+                } else {
+                    for( var j = 0; j < al[ 0 ].length; j++ ) {
+                        result_tracks.push( clone(data.groups[ i ]) );
+                        alignments.push( al[ 0 ][ j ] );
+                    }
                 }
             }
         }
