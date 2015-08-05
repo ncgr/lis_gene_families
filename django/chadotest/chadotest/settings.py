@@ -1,7 +1,7 @@
 # Django settings for chadotest project.
 import os.path # used to create dynamic absolute paths (decoupling)
 
-DEBUG = True
+DEBUG = False
 TEMPLATE_DEBUG = DEBUG
 
 TEMPLATE_CONTEXT_PROCESSORS = (
@@ -29,7 +29,13 @@ DATABASES = {
 
 # Hosts/domain names that are valid for this site; required if DEBUG is False
 # See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [] 
+import socket
+if socket.gethostname()[0:4] == 'lis-':
+    ALLOWED_HOSTS = [socket.gethostname(), 'localhost']
+else:
+    ALLOWED_HOSTS = [socket.gethostname(), 'legumeinfo.org']
+
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
