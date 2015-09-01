@@ -110,6 +110,7 @@ TEMPLATE_LOADERS = (
 )
 
 MIDDLEWARE_CLASSES = (
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -154,6 +155,7 @@ INSTALLED_APPS = (
     # add the chado app
     'chado',
     'd3viz_force_directed',
+    'corsheaders',
 )
 
 # A sample logging configuration. The only tangible logging

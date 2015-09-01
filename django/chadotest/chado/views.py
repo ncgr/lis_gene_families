@@ -23,6 +23,7 @@ from django.db.models import Q
 from django.contrib import messages
 # context view
 import operator
+from django.views.decorators.csrf import csrf_exempt
 
 from chadotest.settings import APP_URL
 
@@ -1065,45 +1066,37 @@ def context_viewer_search( request, template_name, focus_name=None ):
     return render(request, template_name, {'focus_name' : focus_name, 'num_neighbors' : num, 'non_family' : non_family, 'match' : match, 'mismatch' : mismatch, 'gap' : gap, 'threshold' : threshold, 'num_matched_families' : num_matched_families, 'APP_URL' : APP_URL})
 
 # this function returns similar contexts to that provided
-def context_viewer_search_tracks_service( request ):
-    print "service called!"
+@csrf_exempt
+def context_viewer_search_tracks_service(request, focus_name):
     ###############################
     # begin - function parameters #
     ###############################
-
-    focus_name = None
-    try:
-        focus_name = request.GET['focus_name']
-    except:
-        raise Http404
     # get the focus gene of the query track
-    focus = Feature.objects.only( 'pk', 'name' ).get( name=focus_name )
-    if not focus:
-        raise Http404
+    focus = get_object_or_404(Feature, name=focus_name)
     focus_id=focus.pk
-    focus_order = list( GeneOrder.objects.filter( gene=focus ) )
-    if len( focus_order ) == 0:
+    focus_order = list(GeneOrder.objects.filter(gene=focus))
+    if len(focus_order) == 0:
         raise Http404
-    focus_order = focus_order[ 0 ]
+    focus_order = focus_order[0]
     # how many neighbors should there be?
     num = 8
-    if 'num_neighbors' in request.GET:
+    if 'numNeighbors' in request.GET:
         try:
-            num = int( request.GET['num_neighbors'] )
+            num = int(request.GET['numNeighbors'])
         except:
             pass
     # how many matched_families should there be?
     num_matched_families = 6
-    if 'num_matched_families' in request.GET:
+    if 'numMatchedFamilies' in request.GET:
         try:
-            num_matched_families = int( request.GET['num_matched_families'] )
+            num_matched_families = int(request.GET['numMatchedFamilies'])
         except:
             pass
     # the number of non query family genes tolerated between each pair of family genes
     non_family = 5
-    if 'non_family' in request.GET:
+    if 'numNonFamily' in request.GET:
         try:
-            non_family = int( request.GET )
+            non_family = int(request.GET['numNonFamily'])
             if non_family > 20:
                 non_family = 5
         except:

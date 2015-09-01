@@ -47,5 +47,5 @@ urlpatterns = patterns('chado.views',
     # ajax
     url(r'^context_viewer/search_tracks/$', 'context_viewer_search_tracks_ajax', name='context_viewer_search_tracks_ajax'),
     url(r'^context_viewer/search_global/$', 'context_viewer_search_global_ajax', name='context_viewer_search_global_ajax'),
-    url(r'^context_viewer/search_tracks_service/$', 'context_viewer_search_tracks_service', name='context_viewer_search_tracks_service'),
+    url(r'^context_viewer/search_tracks_service/(?P<focus_name>[^\/]+)/$', 'context_viewer_search_tracks_service', name='context_viewer_search_tracks_service'),
     )
