@@ -109,7 +109,8 @@
 	// context viewer callback functions
 	function gene_clicked( gene_selection ) {
 		$.ajax({
-	        url:'{% url 'phylo_view_ajax' %}',
+	        //url:'{% url 'phylo_view_ajax' %}',
+		url: '/gene_links/'+gene_selection.name+'/json',
 	        data: {
 	            // this is actually a phylonode_id
 	            gene: gene_selection.name,
@@ -129,10 +130,12 @@
 					html += 'None';
 				}
 				html += '<br />';
-	        	for (var i = 0; i < data.links.length; i++) {
-	        	    for (var key in data.links[i]) {
-	        	        html += '<a href="'+data.links[i][key]+'">'+key+'</a><br/>'
-	        	    }
+	        	//for (var i = 0; i < data.links.length; i++) {
+	        	    //for (var key in data.links[i]) {
+	        	        //html += '<a href="'+data.links[i][key]+'">'+key+'</a><br/>'
+	        	    //}
+	        	for (var i = 0; i < data.length; i++) {
+			    html += '<a href="'+data[i].href+'">'+data[i].text+'</a><br/>'
 	        	}
 	        	if (data.meta) {
 	        	    html += '<p>'+data.meta+'</p>'
