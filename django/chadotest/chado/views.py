@@ -1477,6 +1477,69 @@ def context_viewer_search_tracks_ajax( request ):
 
 
 # this function returns all the GENES for the given chromosome that have the same family as the context derived from the given gene
+def context_viewer_global_plot_service(request):
+    if "focusID" not in request.GET or "chromosomeID" not in request.GET:
+        raise Http404
+    # get the focus gene of the query track
+    focus_order = list( GeneOrder.objects.filter( gene__pk=request.GET["focusID"] ) )
+    if len( focus_order ) == 0:
+        raise Http404
+    focus_order = focus_order[ 0 ]
+
+    # how many neighbours should there be?
+    num = 4
+    if 'numNeighbors' in request.GET:
+        try:
+            num = int( request.GET[ 'numNeighbors' ] )
+        except:
+            pass
+
+    # get the gene family type
+    gene_family_type = list( Cvterm.objects.only( 'pk' ).filter( name='gene family' ) )
+    if len( gene_family_type ) == 0:
+        raise Http404
+    gene_family_type = gene_family_type[ 0 ]
+
+    # get the neighbors of focus via their ordering
+    neighbor_orders = GeneOrder.objects.only( ).filter( chromosome=focus_order.chromosome_id, number__gte=focus_order.number-num, number__lte=focus_order.number+num ).order_by( 'number' )
+    neighbor_ids = neighbor_orders.values_list( 'gene_id', flat=True )
+
+    # actually get the gene families
+    neighbor_families = Featureprop.objects.only( 'value' ).filter( type=gene_family_type, feature__in=neighbor_ids )#.values_list( 'value', flat=True )
+    neighbor_family_map = dict( ( o.feature_id, o.value ) for o in neighbor_families )
+    neighbor_families = neighbor_families.values_list( 'value', flat=True )
+    family_ids = []
+    query_families = {}
+    for n in neighbor_families:
+        if n not in family_ids:
+            family_ids.append( n )
+            query_families[n] = 1
+
+    # find all genes with the same families (excluding the query genes)
+    chromosome_gene_orders = GeneOrder.objects.filter( chromosome=request.GET["chromosome_id"] )
+    chromosome_gene_ids = chromosome_gene_orders.values_list( "gene", flat=True )
+    related_genes = Featureprop.objects.only( 'feature' ).filter( type=gene_family_type, value__in=neighbor_families, feature__in=chromosome_gene_ids )
+    gene_family_map = dict( ( o.feature_id, o.value ) for o in related_genes )
+    related_gene_ids = gene_family_map.keys()
+
+    # get all the gene names
+    gene_names = Feature.objects.only( 'name' ).filter( pk__in=related_gene_ids )
+    gene_name_map = dict( ( o.pk, o.name ) for o in gene_names ) 
+
+    # get all the gene featurelocs
+    gene_locs = Featureloc.objects.only( 'fmin', 'fmax', 'strand' ).filter( feature__in=related_gene_ids )
+    gene_loc_map = dict( ( o.feature_id, o ) for o in gene_locs )
+
+    # make the json
+    gene_json = []
+    for g in related_gene_ids:
+        loc = gene_loc_map[ g ]
+        gene_json.append( {"name": gene_name_map[ g ], "id": g, "family": str( gene_family_map[ g ] ), "fmin": loc.fmin, "fmax": loc.fmax, "strand": loc.strand, "x":0, "y": 0} )
+    # return the plot data as encoded as json
+    return HttpResponse(simplejson.dumps( gene_json ), content_type='application/json; charset=utf8')
+
+
+# this function returns all the GENES for the given chromosome that have the same family as the context derived from the given gene
 def context_viewer_search_global_ajax( request ):
     # note: a lot of this code has been taken from context_viewer_search
     # once it's set in stone we should look into encapsulation
