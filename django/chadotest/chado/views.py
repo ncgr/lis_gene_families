@@ -1516,7 +1516,7 @@ def context_viewer_global_plot_service(request):
             query_families[n] = 1
 
     # find all genes with the same families (excluding the query genes)
-    chromosome_gene_orders = GeneOrder.objects.filter( chromosome=request.GET["chromosome_id"] )
+    chromosome_gene_orders = GeneOrder.objects.filter( chromosome=request.GET["chromosomeID"] )
     chromosome_gene_ids = chromosome_gene_orders.values_list( "gene", flat=True )
     related_genes = Featureprop.objects.only( 'feature' ).filter( type=gene_family_type, value__in=neighbor_families, feature__in=chromosome_gene_ids )
     gene_family_map = dict( ( o.feature_id, o.value ) for o in related_genes )
