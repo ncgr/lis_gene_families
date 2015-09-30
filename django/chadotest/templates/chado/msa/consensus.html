@@ -12,19 +12,24 @@
     <div class="row">
         <div class="col-lg-12">
             <h1>{{ consensus.name }}</h1>
-            <a href="{% url 'msa_view' consensus.pk %}">back</a> | <a href="{% url 'msa_consensus_download' consensus.pk %}">download</a>
+            <a href="{% url 'msa_view' consensus.name %}">back</a> | <a href="{% url 'msa_consensus_download' consensus.name %}">download</a>
         </div>
     </div>
 </div>
 <div class="row">
     <div class="col-lg-12">
         <p>
-            >{{ consensus.uniquename }}
-            {{ consensus.residues }}
-            {% for f in featurelocs %}
-            >{{ f.feature.uniquename }}
-            {{ f.residue_info }}</br>
-            {% endfor %}
+        <pre>
+
+{% if consensus.residues %}
+>{{ consensus.uniquename }}
+{{ consensus.residues }}
+{% endif %}
+{% for f in featurelocs %}
+>{{ f.feature.uniquename }}
+{{ f.residue_info }}
+{% endfor %}
+        </pre>
         </p>
     </div>
 </div>

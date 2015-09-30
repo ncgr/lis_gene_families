@@ -66,7 +66,7 @@ As mentioned previously, gff files must be loaded after their fasta file so thei
     #!/bin/bash
     for chr in `cat <your_prepreprocessed_gff_file> | cut -f1 | sort | uniq
     do
-        grep "$chr" <your_prepreprocessed_gff_file> > $chr
+        grep -w "^$chr" <your_prepreprocessed_gff_file> > $chr
     done
     ```
 As gff files are normally in parent child order, ordering an unordered gff file when the GMOD tool fails is outside the scope of this discussion.
@@ -119,26 +119,32 @@ The argument to the `--dbid` flag is the unique identifier (primary key) of the 
 
 Files representing Multiple Sequence Alignments (MSAs) are only loaded if all the polypeptides in the alignment are represented in the databse. If this is the case then a new feature is created to represent the consensus with the given name and "-consensus" as the value for the `name` and `uniquename` fields. Entries are then created in the `featureloc` table for each polypeptide in the MSA with the consensus feature as their source. MSAs are loaded as follws:
 
-1. It is imperative that the names of the polypeptides in the MSA files match those in the database, excluding the "_pep" at the end. This munging is left as an exercise for the user.
+1. It is imperative that the names of the polypeptides in the MSA files match those in the database. This munging is left as an exercise for the user.
 
 2. Like all features, each consensus feature must have an organism. It is recommended that a consensus organism is created for this purpose:
 
     ```
     INSERT INTO organism ( abbreviation, genus, species, common_name ) VALUES ('consensus', 'consensus', 'consensus', 'consensus');
     ```
-3. A MSA file can be loaed with the script:
+3. A MSA file can be loaded with the script:
 
     ```
     gmod_load_msa.pl <msa_file> --errorfile <error_file>
     ```
 By default the file name is used as the value for the `name` and `uniquename` fields of the consensus feature, unless a different name is given with the `--name` flag. If some polypeptides in the MSA were not found then a list will be written to gmod_load_msa_errors.txt unless the `--errorfile` flag was uesd.
 
-4. If you don't want to run the previous command on each MSA file then use the bash script:
+4. If you don't want to run the previous command on each MSA file then create a bash script for bulk loading as following:
 
     ```
     gmod_bulk_load_msas.sh
     ```
-This script will try to load all the files in the current directory as MSAs, using the filename as the name of the entry in the `feature` table and the name of the error file with "_errors.txt" appended on.
+```
+#!/bin/bash
+
+for f in `ls *`; do echo "Loading $f"; gmod_load_msa.pl $f --dbname 'dbname' --username 'username' --password 'password' --host 'host' --port 'port' [--check_exists] [--errorfile '$f.errors.txt']; 
+done
+```
+This script will try to load all the files in the current directory as MSAs, using the filename as the name of the entry in the `feature` table and the name of the error file with ".errors.txt" appended on.
 
 ### Phylogenetic trees
 
@@ -171,28 +177,40 @@ Similar to MSA files, files representing phylogenetic trees are only loaded if a
         INSERT INTO cvterm ( cv_id, name, dbxref_id ) VALUES (<your_cv_unique_identifier>, 'phylo_leaf', <your_phylo_leaf_dbxref_unique_identifier>);
         ```
 
-3. Since each eantry in the `phylotree` table requires a dbxref you need to create an entry in the `db` table for the dbxrefs to refer to, that is, if you want it to be a different entry than the one you made in the previous step.
+3. Since each entry in the `phylotree` table requires a dbxref you need to create an entry in the `db` table for the dbxrefs to refer to, that is, if you want it to be a different entry than the one you made in the previous step.
 
-4. A phylogenetic tree is loaded as follows:
+4. A phylogenetic tree alongwith its left_idx and right_idx is loaded as follows:
 
     ```
     gmod_load_tree.pl <phylogenetic_tree_file> --dbid <your_db_unique_identifier> --errorfile <error_file>
     ```
+The values of the `left_idx` and `right_idx` fields in the `phylonode` table are automatically assigned by the loader, so there is no need to run gmod_index_trees.pl after running this loader.
 By default the file name is used as the value for the `name` field of the entry in the `phylotree` table, unless a different name is given with the `--name` flag. The `--dbid` flag takes the unique identifier (primary key) of the entry in the `db` table discussed in the previous step. If some polypeptides in the phylogenetic tree were not found then a list will be written to gmod_load_tree_errors.txt unless the `--errorfile` flag was given.
 
-5. If you don't want to run the previous command on each phylogenetic tree file then use the bash script:
+5. If you don't want to run the previous command on each phylogenetic tree file then create a bash script for bulk loading as following:
 
     ```
-    gmod_bulk_load_trees.sh <your_db_unique_identifier>
+    gmod_bulk_load_trees.sh 
     ```
-This script will try to load all the files in the current directory as phylogenetic trees, using the filename as the name of the entry in the `phylotree` table and the name of the error file with "_errors.txt" appended on.
 
-6. The values of the `left_idx` and `right_idx` fields in the `phylonode` table are not automatically assigned by the loader. This is done with another script:
+
+```
+#!/bin/bash
+for f in `ls *`; do echo "Loading tree $f"; gmod_load_tree.pl  $f --dbid 'dbid' --dbname 'dbname' --username 'username' --password 'password' --host 'host' --port 'port' [--errorfile '$f.errors.txt']; 
+done
+```
+This script will try to load all the files in the current directory as phylogenetic trees, using the filename as the name of the entry in the `phylotree` table and the name of the error file with ".errors.txt" appended on.
+
+6. NOTE: If you have already loaded a tree using the loader 'gmod_load_tree.pl' then you dont have to run this script 'gmod_index_trees.pl' because the tree indexes are already correctly inserted in phylonode table. 
+
+ The values of the `left_idx` and `right_idx` fields in the `phylonode` table can be updated using this older script:
 
     ```
     gmod_index_trees.pl --rootid <root_phylonode_unique_identifier>
     ```
 `--rootid` is optional but can be used to specify the unique identifier (primary key) of the root node of a single tree to be indexed instead of the default - index all trees in the database.
+
+
 
 ### feature residues
 
@@ -211,5 +229,6 @@ Again, this is loading sequence data for existing entries in the `feature` table
     gmod_bulk_load_fastas.sh <organism_common_name>
     ```
 This script will try to load all the files in the current directory as fasta files.
+
 
 

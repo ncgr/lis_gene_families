@@ -29,6 +29,7 @@
             <thead>
                 <tr>
                     <th>Name</th>
+                    <th>Description</th>
                     <th></th>
                 </tr>
             </thead>
@@ -36,7 +37,8 @@
                 {% for t in trees %}
                 <tr>
                     <td>{{ t.name }}</td>
-                    <td><a href="{% url 'phylo_view' t.pk %}">view</a></td>
+                    <td class="newick"><div style="word-wrap: break-word;">{{ t.comment }}</div></td>
+                    <td><a href="{% url 'phylo_view' t.name %}">view</a></td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -52,4 +54,26 @@
         </div>
     </div>
 </div>
+{% endblock %}
+{% block javascript %}
+<script type="text/javascript" src="{% static 'js/jquery-1.10.2.min.js' %}"></script>
+<script type="text/javascript">
+    // a hack 
+    // set the max size of the cells containing newick so the text will wrap
+    function resize_cells() {
+        console.log("resizing");
+        $(".newick").css("max-width", 0);
+        $(".newick div").css("max-width", $(".newick").width());
+    }
+
+    // when the document is first loaded
+    $(document).ready( function() {
+        resize_cells();
+    });
+
+    // whenever the window is resized
+    $(window).on('resize', function(){
+        resize_cells();
+    });
+</script>
 {% endblock %}

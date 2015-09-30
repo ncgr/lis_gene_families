@@ -1,0 +1,389 @@
+{% extends 'chado/base.html' %}
+{% load static %}
+{% block css %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/context.css' %}">
+<style>
+
+.hidden {
+    /*display: none;*/
+}
+
+#lightbox {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:rgba(255,255,255,0.5);
+    z-index: 1000000;
+    overflow: auto;
+}
+
+#lightbox .horizontal {
+    margin: auto;  
+    position: absolute;
+    left:0;
+    right: 0;
+    top: 0;
+    height: 100%;
+    display: table;
+}
+
+#lightbox .vertical {
+    display: table-cell;
+    vertical-align: middle;
+}
+
+#toggle {
+	width: 100%;
+	height: 200px;
+	background-color: rgb(238, 238, 238);
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	box-shadow: 0px 1px 4px rgba(0, 0, 0, 0.2);
+	padding: 0 10px;
+	text-align: left;
+	overflow: auto;
+}
+#toggle h4 {
+	word-wrap:break-word;
+}
+#viewer, #legend {
+	margin: 0;
+	padding: 0;
+}
+#legend {
+	position: fixed;
+	top: 50px;
+	right: 0;
+	bottom: 0;
+	overflow: auto;
+	background: #F6F6F6;
+}
+#plot {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    height: 50px;
+}
+
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header" id="banner">
+    <div class="row">
+        <div class="col-lg-12">
+            <h1>Context viewer</h1>
+            <a href="{% url 'context_gff_download' %}?flocs={{ floc_id_string }}">download gff</a>
+            <br />
+            <a href="http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://{{ request.get_host }}{% url 'context_gff_download' %}?flocs={{ floc_id_string }}">view in CMTV</a>
+            <br />
+            <a class="lightbox" href="">Search Parameters</a>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-lg-12">
+        {% if messages %}
+            {% for message in messages %}
+            <div class="alert{% if message.tags %} alert-{{ message.tags }}{% endif %}">
+                <strong>{{ message.tags|capfirst }}!</strong> {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+</div>
+<div id="lightbox" class="hidden"><div class="horizontal col-lg-6"><div class="vertical">
+<div class="well bs-component">
+<form class="form-horizontal" method="GET">
+  <fieldset>
+    <legend>Query Parameters</legend>
+    <div class="form-group">
+      <label for="num_neighbors" class="col-lg-2 control-label">neighbors</label>
+      <div class="col-lg-10">
+        <input name="num" class="form-control" id="num" value="{{ num }}">
+      </div>
+      <label for="num_matched_families" class="col-lg-2 control-label">families</label>
+      <div class="col-lg-10">
+        <input name="num_matched_families" class="form-control" id="num_matched_families" value="{{ num_matched_families }}">
+      </div>
+    </div>
+    <legend>Result Parameters</legend>
+    <div class="form-group">
+      <label class="col-lg-2 control-label">Families</label>
+      <div class="col-lg-10">
+        <div class="radio">
+          <label>
+            <input name="single" id="false" value="false" {% if not single %}checked="" {% endif %}type="radio">
+            Hide single family tracks
+          </label>
+        </div>
+        <div class="radio">
+          <label>
+            <input name="single" id="true" value="true" {% if single %}checked="" {% endif %}type="radio">
+            Show single family tracks
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="non_family" class="col-lg-2 control-label">Max non family members between genes</label>
+      <div class="col-lg-10">
+        <input name="non_family" class="form-control" id="non_family" value="{{ non_family }}">
+      </div>
+    </div>
+    <legend>Alignment Parameters</legend>
+    <div class="form-group">
+      <label for="match" class="col-lg-2 control-label">Match</label>
+      <div class="col-lg-10">
+        <input name="match" class="form-control" id="match" value="{{ match }}">
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="mismatch" class="col-lg-2 control-label">Mismatch</label>
+      <div class="col-lg-10">
+        <input name="mismatch" class="form-control" id="mismatch" value="{{ mismatch }}">
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="gap" class="col-lg-2 control-label">Gap</label>
+      <div class="col-lg-10">
+        <input name="gap" class="form-control" id="gap" value="{{ gap }}">
+      </div>
+    </div>
+    <div class="form-group">
+      <div class="col-lg-10 col-lg-offset-2">
+        <button action="" class="btn btn-default lightbox">Cancel</button>
+        <button type="submit" class="btn btn-primary">Submit</button>
+      </div>
+    </div>
+  </fieldset>
+</form>
+</div>
+</div></div></div>
+{% endblock %}
+{% block bottom %}
+<div class="col-lg-9" id="viewer"></div>
+<div class="col-lg-3" id="legend"></div>
+<div class="col-lg-3" id="plot">
+    <ul class="nav nav-tabs">
+        <li class="active"><a id="local_tab" href="#local" data-toggle="tab">Local</a></li>
+        <li><a id="global_tab" href="#global" data-toggle="tab">Global</a></li>
+    </ul>
+    <div id="local"><p>Select a context track to load a plot</p></div>
+    <div class="hidden" id="global">this isn't the plot you're looking for...</div>
+</div>
+<div id="toggle"></div>
+{% endblock %}
+{% block javascript %}
+<script type="text/javascript" src="{% static 'js/jquery-1.10.2.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/jquery-ui-1.10.3.custom.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/jquery.cookie.js' %}"></script>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script type="text/javascript" src="{% static 'js/context.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/context_viewer.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/context_legend.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/smith.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/enhancement.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/context_synteny_single.js' %}"></script>
+
+<script type="text/javascript">
+    // make an object to hold the global data
+    var global_data = {};
+    // make the tabs work
+    $('#local_tab').on('click', function(e) {
+        e.preventDefault();
+        if( !$(this).closest('li').hasClass('active') ) {
+            $(this).closest('li').addClass('active');
+            $('#global_tab').closest('li').removeClass('active');
+            $('#local').removeClass('hidden');
+            $('#global').addClass('hidden');
+        }
+    });
+    $('#global_tab').on('click', function(e) {
+        e.preventDefault();
+        if( !$(this).hasClass('active') ) {
+            $(this).closest('li').addClass('active');
+            $('#local_tab').closest('li').removeClass('active');
+            $('#local').addClass('hidden');
+            $('#global').removeClass('hidden');
+        }
+    });
+
+    // show and hide the lightbox
+    $('.lightbox').on('click', function(e) {
+        e.preventDefault();
+        $('#lightbox').toggleClass('hidden');
+    });
+
+	// shared variables
+	var json = '{{ json|safe }}',
+	    data = JSON.parse(json),
+        plot_data = JSON.parse(json),
+        global_plot_data = JSON.parse(json),
+		//color = d3.scale.category20(),
+        color = context_color,
+		family_names = get_family_name_map( data );
+
+    // if there's a color object from the previous view
+    if( $.cookie("color_domain") !== undefined ) {
+        color.domain( JSON.parse($.cookie("color_domain")) );
+    }
+
+    // prepare the plot data for show and tell
+    var family_map = {};
+    // make a map of points all genes will be plotted against
+    for( var i = 0; i < plot_data.groups[ 0 ].genes.length; i++ ) {
+        var g = plot_data.groups[ 0 ].genes[ i ];
+        if( g.family in family_map ) {
+            family_map[ g.family ].push( (g.fmin/2)+(g.fmax/2) );
+        } else if( g.family != '' ) {
+            family_map[ g.family ] = [(g.fmin/2)+(g.fmax/2)];
+        }
+    }
+
+    // a helper function that plots genes against genes
+    function plot_points( group ) {
+        var plot_genes = [];
+        for( var j = 0; j < group.genes.length; j++ ) {
+            if( group.genes[ j ].family in family_map ) {
+                for( var k = 0; k < family_map[ group.genes[ j ].family ].length; k++ ) {
+                    group.genes[ j ].x = ((group.genes[ j ].fmin/2)+(group.genes[ j ].fmax/2));
+                    group.genes[ j ].y = family_map[ group.genes[ j ].family ][ k ];
+                }
+            } else {
+                group.genes[ j ].x = ((group.genes[ j ].fmin/2)+(group.genes[ j ].fmax/2));
+                group.genes[ j ].y = -1;
+            }
+            plot_genes.push( group.genes[ j ] );
+        }
+        return plot_genes;
+    }
+
+    // plot all the genes against the list of points
+    var plot_groups = [];
+    for( var i = 0; i < plot_data.groups.length; i++ ) {
+        plot_data.groups[ i ].genes = plot_points( plot_data.groups[ i ] );
+        plot_groups.push( plot_data.groups[ i ] );
+    }
+    plot_data.groups = plot_groups;
+
+    // a function that resizes the elements containing the plots and the legend
+    function resize_plot() {
+        $('#plot').height( $('#plot').width()+$('#plot .nav').height() );
+        $('#legend').height( $('#plot').offset().top-$('#legend').offset().top );
+    }
+
+	// make sure the toggle div is not showing when the page loads and that the plot window is correctly sized
+	$(document).ready(function(e) {
+        $('#toggle').hide();
+        resize_plot();
+	});
+
+    // resize the plot div every time the window is resized
+    $(window).resize( resize_plot );
+
+	// hide the toggle div when the click isn't in it or on a gene
+	$(document).on('click', function(e) {
+		var bool = $(e.target).closest('#toggle').length == 0
+				&& $(e.target).closest('.axis').length == 0
+				&& $(e.target).closest('.gene').length == 0
+				&& $(e.target).closest('.legend').length == 0
+				&& $("#toggle").is(":visible");
+		if( bool ) {
+			$('#toggle').toggle('slide', {direction:'down'});
+			//$('body').css('margin-bottom', '0px');
+		}
+	});
+
+	// a function that shows to toggle div
+	function show_toggle() {
+		// don't toggle it unless it's currently hidden
+		if (!$('#toggle').is(':visible')) {
+			$('#toggle').toggle('slide', {direction:'down'});
+			//$('body').css('margin-bottom', '200px');
+		}
+	}
+
+	// context viewer callback functions
+	var track_length = get_track_length( data );
+
+    function gene_clicked( gene_selected ) {
+
+    }
+    function axis_clicked( axis_selection, gene_selection, rail_selection ) {
+        $('#global').html('<img src="{% static 'gif/ajax-loader.gif' %}" />');
+        // make the context synteny plot
+        context_synteny( 'local', color, plot_data, axis_selection, {"width":Math.max(document.getElementById('local').offsetWidth, document.getElementById('global').offsetWidth)} );
+	    var focus_id = data.groups[ 0 ].genes[ (data.groups[ 0 ].genes.length-1)/2 ].id;
+        var chromosome_id = data.groups[ axis_selection ].chromosome_id;
+        //$('#plot #local').html( axis_selection );
+        if( global_data[ axis_selection ] === undefined ) {
+		    $.ajax({
+	            url:"{% url 'context_viewer_search_global_ajax' %}",
+	            data: {
+	                focus_id: focus_id,
+                    chromosome_id: chromosome_id,
+	                // all pages are protected against csrf so we need to pass the token for this page
+	                csrfmiddlewaretoken: '{{ csrf_token }}'
+	            },
+	            contentType: "application/json;charset=utf-8",
+	            dataType: "json",
+	            success: function(genes) {
+                    global_data[ axis_selection ] = genes;
+                    global_plot_data.groups[ axis_selection ].genes = genes;
+                    global_plot_data.groups[ axis_selection ].genes = plot_points( global_plot_data.groups[ axis_selection ] );
+                    context_synteny( 'global', color, global_plot_data, axis_selection, {"width":Math.max(document.getElementById('local').offsetWidth, document.getElementById('global').offsetWidth)} );
+	            },
+	            error: function(ts) { 
+	            // this is for debugging, not production!
+	                alert(ts.responseText);
+	            }
+	        });
+        }
+        if( global_data[ axis_selection ] !== undefined ) {
+            context_synteny( 'global', color, global_plot_data, axis_selection, {"width":Math.max(document.getElementById('local').offsetWidth, document.getElementById('global').offsetWidth)} );
+        }
+    }
+
+    // define the accessor used by the smith-waterman algorithm
+    function get_family( item ) {
+        return item.family;
+    }
+
+    // align all the tracks with the query track
+    alignments = [];
+    for( var i = 1; i < data.groups.length; i++ ) {
+        var scoring = {match : {{ match }}, mismatch : {{ mismatch }}, gap : {{ gap }} };
+        alignments.push( smith( data.groups[ 0 ].genes, data.groups[ i ].genes, get_family, scoring ) );
+    }
+
+    // merge the alignments
+    var result_tracks = data.groups.slice( 1 );
+    data.groups = [ data.groups[ 0 ] ];
+    merge_alignments( data, result_tracks, alignments );
+
+	// make the context viewer
+	context_viewer( 'viewer', color, data, {
+        "gene_clicked":gene_clicked,
+        "axis_clicked":axis_clicked,
+        "selective_coloring":true });
+
+	// context legend click callback
+	function legend_click( family_selection, gene_selection ) {
+		html = '<h4><a href="/chado/phylo/'+family_names[ family_selection ]+'/">'+family_names[ family_selection ]+'</a></h4>';
+		html += 'Genes:<ul>';
+	    gene_selection.each(function(f) {
+			html += '<li><a href="/chado/feature/'+f.name+'/">'+f.name+'</a>: '+f.fmin+' - '+f.fmax+'</li>';
+		});
+		html += '</ul>';
+		$("#toggle").html(html);
+		show_toggle();
+	}
+
+	// make the context legend
+	context_legend( 'legend', color, data, {
+        "legend_click":legend_click });
+</script>
+{% endblock %}

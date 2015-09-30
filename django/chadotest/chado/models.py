@@ -20,7 +20,7 @@
 from django.db import models
 from django.db.models import Count
 # import extra stuff
-from django.utils import simplejson # for preparing json objects
+import simplejson # for preparing json objects
 
 
 class Db(models.Model):
@@ -1641,4 +1641,13 @@ class FeaturesetMeets(models.Model):
     object_id = models.IntegerField(null=True, blank=True)
     class Meta:
         db_table = u'featureset_meets'
+
+class GeneOrder(models.Model):
+    gene_order_id = models.IntegerField(primary_key=True)
+    chromosome = models.ForeignKey("Feature", related_name="%(class)s_chromosome")
+    gene = models.ForeignKey("Feature", related_name="%(class)s_gene")
+    number = models.IntegerField(null=True, blank=True)
+    class Meta:
+        db_table = u'gene_order'
+
 

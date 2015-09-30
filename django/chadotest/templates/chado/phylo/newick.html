@@ -12,13 +12,13 @@
     <div class="row">
         <div class="col-lg-12">
             <h1>{{ tree.name }}</h1>
-            <a href="{% url 'phylo_view' tree.pk %}">back</a> | <a href="{% url 'phylo_newick_download' tree.pk %}">download</a>
+            <a href="{% url 'phylo_view' tree.name %}">back</a> | <a href="{% url 'phylo_newick_download' tree.name %}">download</a>
         </div>
     </div>
 </div>
 <div class="row">
     <div class="col-lg-12">
-        <p>{{ tree.comment }}</p>
+        <p>{{ newick }}</p>
     </div>
 </div>
 {% endblock %}

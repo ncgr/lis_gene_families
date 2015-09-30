@@ -21,20 +21,22 @@ use DBI; # our DataBase Interface
   --password        The password to log into the database with
   --host            The host the database is on (default=localhost)
   --port            The port the database is on
-  --dbid            The db_id from the db table for the db that the msa feature should have a dbxref with.
+  --dbid            The db_id from the db table for the db that the msa feature should have a dbxref with. This option is not mandatory.(Optional)
   --name            The value given to the name and uniquename fields of the feature for the msa (default=<msa_file>)
   --check_exists    Will use a consensus feature with the given consensus name if it exists
   --errorfile       The file that errors should be written to (defailt=gmod_load_msa_errors.txt)
 
 =head1 DESCRIPTION
 
-The only argument to the script is the input file that contains the multiple sequence alignment. Polypeptide names in the database have "_pep" appeneded to their names to distinguish them from their mRNA. It follows that the names of sequences represented in the input file may have "_pep" appended to the end as well, though, this is not necessary.
+The only argument to the script is the input file that contains the multiple sequence alignment. Polypeptide names in the database are same as their mRNA names. It is important that the names of sequences in input (MSA) files are exactly same as polypeptide names already present in the database. 
 
 The --concensus_name flag is optional. This is the value given to the name and uniquename fields for the multiple sequence alignment feature. Note that the value given must not already exist in the table since it is used as the value for the features uniquename field. If the flag is not provided then the filename will be used.
 
 The --check_exists flag should be used with caution. Before creating a new feature for the consensus, it checks to see if one already exists and uses it if it does. This can be useful if a load was cancelled partway through and not all the featureloc entries were created. Likewise, featureloc entries can be created for a consensus they don't belong to.
 
 Note that this script requires there to be a "consensus" organism in the database. All fields of the organism should have "consensus" as their value.
+
+Unlike the older version of this script, we are not considering _pep suffix for names and are using 'name' field instead of 'uniquename' with type_id of 'polypeptide' to distinguish them from mRNA in sql searches/select. 
 
 =head1 AUTHOR
 
@@ -50,8 +52,8 @@ This library is free software; you can redistribute it and/or modify it under th
 my $man = 0;
 my $help = 0;
 #GetOptions('help|?' => \$help, man => \$man) or pod2usage(2);
-pod2usage(1) if $help;
-pod2usage(-exitval => 0, -verbose => 2) if $man;
+#pod2usage(1) if $help;
+#pod2usage(-exitval => 0, -verbose => 2) if $man;
 
 
 # get the command line options and environment variables
@@ -107,11 +109,11 @@ if (!$peptide) {
 }
 
 
-# get the cvterm for consensus
-print "Retrieving multiple sequence alignment cvterm\n";
-my $msa = $conn->selectrow_array("SELECT cvterm_ID FROM cvterm WHERE name SIMILAR TO 'consensus';");
+# get the cvterm for consensus_region
+print "Retrieving consensus_region cvterm\n";
+my $msa = $conn->selectrow_array("SELECT cvterm_ID FROM cvterm WHERE name = 'consensus_region';");
 if (!$msa) {
-    die("Failed to retrieve the consensus cvterm from the database\n");
+    die("Failed to retrieve the consensus_region cvterm from the database\n");
 }
 
 
@@ -130,8 +132,7 @@ while (my $line = <FILE>) {
     # skip the line if it's not a description line
     if (index($line, ">") != -1) {
         # trim any whitespace from the end of the string
-        $line =~ s/\s*$//;
-        $line .= "_pep" if (index($line, "_pep") == -1);
+        $line =~ s/\s.*$//;# changed ~ s/\s*$// to ~ s/\s.*$//  to strip off all chars after first white space 
         $peps{substr($line, 1)} = 1; # 1 is a placeholder
     }
 }
@@ -139,31 +140,34 @@ my $num_peps = scalar(keys(%peps));
 
 
 # construct the query to get the polypeptide features
-my $query_string = "SELECT feature_id, uniquename FROM feature WHERE";
+my $query_string = "SELECT feature_id, name, uniquename FROM feature WHERE"; #added name by peu
 my $i = 0;
 for my $key (keys(%peps)) {
     print "key: ", $key, "\n";
     $i++;
-    $query_string .= " uniquename='$key'";
-    $query_string .= " OR" if ($i != $num_peps);
+    $query_string .= " name='$key' and type_id='$peptide'"; 
+	$query_string .= " OR" if ($i != $num_peps);
 }
 $query_string .= ";";
 my $query = $conn->prepare($query_string);
 $query->execute();
 
 
-# see if all the polypeptides are in the databasee
+
+
+
+# see if all the polypeptides are in the databasee  #if some polypeptide names are not found in database the script dies here and consensus feature is not created
 print "rows: ", $query->rows, " peps: ", $num_peps, "\n";
 if ($query->rows != $num_peps) {
     # open the error file
     print "Some polypeptides were missing\nOpening the error file\n";
-    open(ERRORS, '>'.$errorfile) || die("Failed to open the error file: $!\n");
+    open(ERRORS, '>>'.$errorfile) || die("Failed to open the error file: $!\n");
     print "Writing errors\n";
-    print ERRORS "Failed to find polypeptides with uniquename:\n";
+    print ERRORS "Failed to find polypeptides with name:\n";
     # remove polypeptides that were found from the hash
     while (my @row = $query->fetchrow_array()) {
-        my ($feature_id, $uniquename) = @row;
-        delete $peps{$uniquename};
+        my ($feature_id, $name) = @row;  
+        delete $peps{$name};  
     }
     # report polypeptides that weren't found
     for my $key (keys(%peps)) {
@@ -179,8 +183,8 @@ if ($query->rows != $num_peps) {
 }
 # if not copy all their polypeptides respective feature_ids
 while (my @row = $query->fetchrow_array()) {
-    my($feature_id, $uniquename) = @row;
-    $peps{$uniquename} = $feature_id; # no need to look them up twice
+    my($feature_id, $name) = @row;
+    $peps{$name} = $feature_id; # no need to look them up twice
 }
 
 
@@ -197,15 +201,14 @@ if ($exists) {
 }
 if (!$consensus) {
     if (!$conn->do("INSERT INTO feature (organism_id, name, uniquename, type_id) VALUES ($organism, '$consensus_name', '$consensus_name', $msa);")) {
-        die("Failed to isnert consensus feature into the feature table\n");
+        die("Failed to insert consensus feature into the feature table\n");
     }
-    $consensus = $conn->selectrow_array("SELECT feature_id FROM feature ORDER BY feature_id DESC;");
-}
+    $consensus = $conn->selectrow_array("SELECT feature_id FROM feature WHERE name='$consensus_name' AND uniquename='$consensus_name';");
+}  
 
 
 # create a variable to hold the current name
 print "Creating alignment structure and inserting residues\n";
-my $name;
 # create a rank to featureloc uniqueness requirement
 my $rank = 0;
 # read the file one line at a time
@@ -220,12 +223,13 @@ while (my $line = <FILE>) {
     # if it's a description line then get the name
     elsif (index($line, ">") != -1) {
         $name = substr($line, 1);
-        $name .= "_pep" if (index($name, "_pep") == -1);
+	$name =~ s/\s.*$//; #fixed by replacing: s/\s*$// by s/\s.*$//  #to strip off extra characters after first whitespace in fasta header -peu
     }
     # it must be a residue so add it
     else {
         $rank++;
-        my $fmax = length($line);
+	my $fmax = length($line);
+        print "featureloc's fmax: $fmax \n reisdue_info: $line \n rank: $rank \n"; 	
         if(!$conn->do("INSERT INTO featureloc (feature_id, srcfeature_id, fmin, fmax, residue_info, rank) VALUES ($peps{$name}, $consensus, 0, $fmax, '$line', $rank);")) {
             print "Failed to create featureloc for feature $peps{$name} with src $consensus\n";
         }
