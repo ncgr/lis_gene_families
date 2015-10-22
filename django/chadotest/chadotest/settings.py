@@ -1,6 +1,8 @@
 # Django settings for chadotest project.
 import os.path # used to create dynamic absolute paths (decoupling)
 
+CORS_ORIGIN_ALLOW_ALL = True
+
 DEBUG = False
 TEMPLATE_DEBUG = DEBUG
 
@@ -34,7 +36,7 @@ import socket
 if socket.gethostname()[0:4] == 'lis-':
     ALLOWED_HOSTS = [socket.gethostname(), 'localhost']
 else:
-    ALLOWED_HOSTS = [socket.gethostname(), 'legumeinfo.org']
+    ALLOWED_HOSTS = [socket.gethostname(), 'legumeinfo.org', 'legumeinfo.com']
 
 
 # Local time zone for this installation. Choices can be found here:
