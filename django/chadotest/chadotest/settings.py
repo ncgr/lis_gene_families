@@ -36,7 +36,7 @@ import socket
 if socket.gethostname()[0:4] == 'lis-':
     ALLOWED_HOSTS = [socket.gethostname(), 'localhost']
 else:
-    ALLOWED_HOSTS = [socket.gethostname(), 'legumeinfo.org', 'legumeinfo.com']
+    ALLOWED_HOSTS = [socket.gethostname(), 'legumeinfo.org', 'legumeinfo.com', 'www.legumeinfo.org', 'www.legumeinfo.com']
 
 
 # Local time zone for this installation. Choices can be found here:
