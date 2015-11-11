@@ -39,6 +39,7 @@
     <div class="row">
         <div class="col-lg-12">
             <h1>Context viewer</h1>
+            <a href="https://github.com/ncgr/lis_context_viewer/wiki/User-help" target="_blank">Help Docs</a>
             <a href="{% url 'context_gff_download' %}?flocs={{ floc_id_string }}">download gff</a>
             <br>
             <a href="http://velarde.ncgr.org:7070/isys/launch?svc=org.ncgr.cmtv.isys.CompMapViewerService%40--style%40http://velarde.ncgr.org:7070/isys/bin/Components/cmtv/conf/cmtv_combined_map_style.xml%40--combined_display%40http://{{ request.get_host }}{% url 'context_gff_download' %}?flocs={{ floc_id_string }}">view in CMTV</a>
