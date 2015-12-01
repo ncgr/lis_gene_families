@@ -1650,4 +1650,11 @@ class GeneOrder(models.Model):
     class Meta:
         db_table = u'gene_order'
 
+class GeneFamilyAssignment(models.Model):
+    gene_family_assignment_id = models.IntegerField(primary_key=True)
+    gene = models.ForeignKey("Feature", related_name="%(class)s_gene")
+    family_label = models.TextField(blank=False)
+    class Meta:
+        db_table = u'gene_family_assignment'
+
 
