@@ -98,6 +98,30 @@ sub Disconnect {
     undef($query);
     $conn->disconnect();
 }
+if( !$conn->do("CREATE TABLE IF NOT EXISTS gene_family_assignment(gene_family_assignment_id SERIAL PRIMARY KEY, gene_id INTEGER NOT NULL REFERENCES feature(feature_id), family_label TEXT NOT NULL)") ) {
+    Retreat("Failed to verify or create the gene_family_assignment table\n");
+}
+#thanks to stackoverflow
+if( !$conn->do(q[
+DO $$
+BEGIN
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM   pg_class c
+    JOIN   pg_namespace n ON n.oid = c.relnamespace
+    WHERE  c.relname = 'gene_family_assignment_idx1'
+    AND    n.nspname = 'public' -- 'public' by default
+    ) THEN
+
+    CREATE INDEX gene_family_assignment_idx1 ON gene_family_assignment(family_label);
+END IF;
+
+END$$;
+]
+) ) {
+    Retreat("Failed to verify or create the gene_family_assignment index\n");
+}
 
 print "Fetching preliminaries\n";
 
@@ -181,7 +205,7 @@ if( $nuke ) {
     $query_string = "DELETE FROM featureprop WHERE type_id=$gene_family_id;";
     $query = $conn->prepare($query_string);
     $query->execute();
-    $query_string = "DELETE FROM featureprop WHERE type_id=$family_representative_id;";
+    $query_string = "TRUNCATE TABLE gene_family_assignment;";
     $query = $conn->prepare($query_string);
     $query->execute();
 }
@@ -241,14 +265,16 @@ while( my @tree = $query->fetchrow_array() ) {
     }
 }
 my $insert_featureprop = $conn->prepare("INSERT INTO featureprop (feature_id, type_id, value, rank) VALUES(?, $gene_family_id, ?, ?);");
-my $insert_featureprop_fr = $conn->prepare("INSERT INTO featureprop (feature_id, type_id, value, rank) VALUES(?, $family_representative_id, ?, ?);");
+my $insert_gene_family_assignment = $conn->prepare("INSERT INTO gene_family_assignment (gene_id, family_label) VALUES(?, ?);");
 foreach my $gene_id (keys %gene2families) {
     my $families = join(" ", sort keys %{$gene2families{$gene_id}});
     my $family_representative = $id2family_representative{$gene_id};
     # add an entry to the featureprop table for each gene
     if ($nuke) {
         $insert_featureprop->execute($gene_id, $families, 0);
-        $insert_featureprop_fr->execute($gene_id, $family_representative, 0);
+        foreach my $family (keys %{$gene2families{$gene_id}}) {
+            $insert_gene_family_assignment->execute($gene_id, $family);
+        }
     }
     else {
             my $featureprop_id = $conn->selectrow_array("SELECT featureprop_id FROM featureprop WHERE feature_id=$gene_id AND value='$families' AND type_id=$gene_family_id LIMIT 1;");
@@ -261,12 +287,17 @@ foreach my $gene_id (keys %gene2families) {
                         $insert_featureprop->execute($gene_id, $families, $max_rank+1);
                 }
             }
+            foreach my $family (keys %{$gene2families{$gene_id}}) {
+                my $gene_family_assignment_id = $conn->selectrow_array("SELECT gene_family_assignment_id FROM gene_family_assignment WHERE gene_id=$gene_id AND family_label='$family' LIMIT 1;");
+                if ( !$gene_family_assignment_id ) {
+                    $insert_gene_family_assignment->execute($gene_id, $family);
+                }
+            }
     }
 }
 
 print "Committing changes\n";
 eval{ $conn->commit() } or Retreat("The commit failed\n");
 Disconnect();
-
 
 
