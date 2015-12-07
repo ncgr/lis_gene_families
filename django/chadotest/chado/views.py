@@ -1188,7 +1188,7 @@ def context_viewer_basic_tracks_service(request, node_id):
         organism = organism_map[gene.organism_id]
         family_id = family_map[gene.pk]
         if len(family_id) > 0:
-            focus_family_id = family_id = family_id[0]
+            focus_family_id = family_id
             if family_id not in families:
                 families[family_id] = '{"name":"'+family_id+'", "id":"'+family_id+'"}'
         group = '{"chromosome_name":"'+srcfeature.name+'", "chromosome_id":'+str(srcfeature.feature_id)+', "species_name":"'+organism.genus[0]+'.'+organism.species+'", "species_id":'+str(gene.organism_id)+', "genes":['
