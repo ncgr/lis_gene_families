@@ -1385,35 +1385,37 @@ def context_viewer_search_tracks_service(request, focus_name):
                 block = [i]
                 matched_families = set([gene_family_map[g]])
 
-    # get the track genes
-    gene_pool = list(GeneOrder.objects.filter(reduce(operator.or_, gene_queries)))
-    gene_ids = map(lambda x: x.gene_id, gene_pool)
+    # are there any queries to operate on?
+    if len(gene_queries) != 0:
+        # get the track genes
+        gene_pool = list(GeneOrder.objects.filter(reduce(operator.or_, gene_queries)))
+        gene_ids = map(lambda x: x.gene_id, gene_pool)
 
-    # get the track gene families
-    #track_gene_families = list(Featureprop.objects.only('feature_id', 'value').filter(type=gene_family_type, feature_id__in=gene_ids))
-    track_gene_families = list(GeneFamilyAssignment.objects.only('gene_id', 'family_label').filter(gene_id__in=gene_ids))
-    track_family_map = dict((o.gene_id, o.family_label) for o in track_gene_families)
+        # get the track gene families
+        #track_gene_families = list(Featureprop.objects.only('feature_id', 'value').filter(type=gene_family_type, feature_id__in=gene_ids))
+        track_gene_families = list(GeneFamilyAssignment.objects.only('gene_id', 'family_label').filter(gene_id__in=gene_ids))
+        track_family_map = dict((o.gene_id, o.family_label) for o in track_gene_families)
 
-    # make sure all families are present in the json
-    for f in track_family_map.values():
-        if f not in family_ids:
-            family_ids.append(f)
+        # make sure all families are present in the json
+        for f in track_family_map.values():
+            if f not in family_ids:
+                family_ids.append(f)
 
-    # get all the gene names
-    gene_names = list(Feature.objects.only('name').filter(pk__in=gene_ids))
-    gene_name_map = dict((o.pk, o.name) for o in gene_names)
+        # get all the gene names
+        gene_names = list(Feature.objects.only('name').filter(pk__in=gene_ids))
+        gene_name_map = dict((o.pk, o.name) for o in gene_names)
 
-    # get all the gene featurelocs
-    gene_locs = list(Featureloc.objects.only('feature_id', 'fmin', 'fmax', 'strand').filter(feature__in=gene_ids))
-    gene_loc_map = dict((o.feature_id, o) for o in gene_locs)
+        # get all the gene featurelocs
+        gene_locs = list(Featureloc.objects.only('feature_id', 'fmin', 'fmax', 'strand').filter(feature__in=gene_ids))
+        gene_loc_map = dict((o.feature_id, o) for o in gene_locs)
 
-    # construct a list of genes for each track
-    for key in tracks.keys():
-        chromosome_id, lower_bound, upper_bound = key
-        for o in gene_pool:
-            if o.chromosome_id == chromosome_id and o.number >= lower_bound and o.number <= upper_bound:
-                tracks[key].append(o)
-        tracks[key] = map(lambda x: x.gene_id, sorted(tracks[key], key=lambda o: o.number))
+        # construct a list of genes for each track
+        for key in tracks.keys():
+            chromosome_id, lower_bound, upper_bound = key
+            for o in gene_pool:
+                if o.chromosome_id == chromosome_id and o.number >= lower_bound and o.number <= upper_bound:
+                    tracks[key].append(o)
+            tracks[key] = map(lambda x: x.gene_id, sorted(tracks[key], key=lambda o: o.number))
 
     # jsonify the tracks... that's right, jsonify
     groups = [query_group]
