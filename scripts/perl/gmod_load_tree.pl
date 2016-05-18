@@ -21,7 +21,8 @@ FINAL TREE LOADING SCRIPT
 
   gmod_load_tree_with_index.pl <filename> [options]
 
-  --dbid        The db_id of the db dbxref for the trees should be created with
+  --xref_db        The name of the db to link dbxrefs for the trees
+  --xref_accession        The accession to use for dbxrefs for the trees (assumed same as name unless otherwise specified)
   --name        The name given to the phylotree entry in the database (default=<filename>)
   --dbname      The name of the chado database (default=chado)
   --username    The username to access the database with (default=chado)
@@ -32,7 +33,7 @@ FINAL TREE LOADING SCRIPT
 
 =head1 DESCRIPTION
 
-The --dbid flag is required.
+The --xref_db flag is required.
 
 This script WILL NOT load a tree into the database unless all the polypeptides in the tree are represented as features in the database. Polypeptides that are not in the database will be written to the errorfile, as specified by the --errorfile flag.
 
@@ -68,7 +69,7 @@ pod2usage(-exitval => 0, -verbose => 2) if $man;
 
 
 # get the command line options and environment variables
-my ($port, $dbid, $name);
+my ($port, $xref_db, $xref_accession, $name);
 $port = $ENV{CHADO_DB_PORT} if ($ENV{CHADO_DB_PORT});
 my $dbname = "chado";
 $dbname = $ENV{CHADO_DB_NAME} if ($ENV{CHADO_DB_NAME});
@@ -80,7 +81,8 @@ my $host = "localhost";
 $host = $ENV{CHADO_DB_HOST} if ($ENV{CHADO_DB_HOST});
 my $errorfile = "gmod_load_tree_errors.txt";
 
-GetOptions("dbid=i"             => \$dbid,
+GetOptions("xref_db=s"             => \$xref_db,
+           "xref_accession=s"             => \$xref_accession,
            "name=s"             => \$name,
            "dbname=s"           => \$dbname,
            "username=s"         => \$username,
@@ -89,8 +91,8 @@ GetOptions("dbid=i"             => \$dbid,
            "port=i"             => \$port,
            "errorfile=s"        => \$errorfile) || die("Error in command line arguments\n");
 
-if (!$dbid) {
-    die("The --dbid flag is required\n");
+if (!defined $xref_db) {
+    die("The --xref_db flag is required\n");
 }
 
 
@@ -99,6 +101,7 @@ if (@ARGV != 1) {
     pod2usage(2);
 }
 $name = $ARGV[0] if (!$name);
+$xref_accession = $name if (! defined $xref_accession);
 
 
 # open the tree file and assign the name
@@ -235,9 +238,15 @@ if (!$root_id || ! $interior_id || !$leaf_id) {
     die("Failed to retrieve phylo_root, phylo_interior, and phylo_leaf cvterms from database\nExiting...\n");
 }
 
+my $dbid = $conn->selectrow_array("SELECT db_id FROM db where name = '$xref_db';");
+if (!$dbid) {
+    $conn->disconnect();
+    die("could not find db row for $xref_db\n");
+}
+
 
 # create a new dbxref for a phylotree
-if (!$conn->do("INSERT INTO dbxref (db_id, accession) VALUES ($dbid, '$name');")) {
+if (!$conn->do("INSERT INTO dbxref (db_id, accession) VALUES ($dbid, '$xref_accession');")) {
     # close the connection
     undef($query);
     $conn->disconnect();

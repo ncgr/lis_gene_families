@@ -20,7 +20,7 @@
 from django.db import models
 from django.db.models import Count
 # import extra stuff
-from django.utils import simplejson # for preparing json objects
+import simplejson # for preparing json objects
 
 
 class Db(models.Model):
@@ -1649,5 +1649,12 @@ class GeneOrder(models.Model):
     number = models.IntegerField(null=True, blank=True)
     class Meta:
         db_table = u'gene_order'
+
+class GeneFamilyAssignment(models.Model):
+    gene_family_assignment_id = models.IntegerField(primary_key=True)
+    gene = models.ForeignKey("Feature", related_name="%(class)s_gene")
+    family_label = models.TextField(blank=False)
+    class Meta:
+        db_table = u'gene_family_assignment'
 
 

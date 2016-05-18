@@ -363,7 +363,7 @@
         result_tracks = [];
     for( var i = 1; i < data.groups.length; i++ ) {
         var scoring = {match : {{ match }}, mismatch : {{ mismatch }}, gap : {{ gap }}, threshold: {{ threshold }} };
-        var i_alignments = align( data.groups[ 0 ].genes, data.groups[ i ].genes, get_family, scoring );
+        var i_alignments = repeat( data.groups[ 0 ].genes, data.groups[ i ].genes, get_family, scoring );
         for( var j = 0; j < i_alignments.length; j++ ) {
             result_tracks.push( clone(data.groups[ i ]) );
             alignments.push( i_alignments[ j ] );

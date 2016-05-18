@@ -1,7 +1,7 @@
 # Django settings for chadotest project.
 import os.path # used to create dynamic absolute paths (decoupling)
 
-DEBUG = True
+DEBUG = False
 TEMPLATE_DEBUG = DEBUG
 
 TEMPLATE_CONTEXT_PROCESSORS = (
@@ -19,17 +19,23 @@ MANAGERS = ADMINS
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': 'chado',                      # Or path to database file if using sqlite3.
-        'USER': 'chado',
+        'NAME': 'drupal',                      # Or path to database file if using sqlite3.
+        'USER': 'www',
         'PASSWORD': '',
         'HOST': '',                      # Empty for localhost through domain sockets or '127.0.0.1' for localhost through TCP.
-        'PORT': '',                      # Set to empty string for default.
+        'PORT': os.environ['PGPORT'],                      # Set to empty string for default.
     }
 }
 
 # Hosts/domain names that are valid for this site; required if DEBUG is False
 # See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [] 
+import socket
+if socket.gethostname()[0:4] == 'lis-':
+    ALLOWED_HOSTS = [socket.gethostname(), 'localhost']
+else:
+    ALLOWED_HOSTS = [socket.gethostname(), 'legumeinfo.org']
+
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -63,6 +69,8 @@ MEDIA_ROOT = ''
 # Examples: "http://example.com/media/", "http://media.example.com/"
 MEDIA_URL = ''
 
+APP_URL = '/lis_gene_families'
+
 # Absolute path to the directory static files should be collected to.
 # Don't put anything in this directory yourself; store your static files
 # in apps' "static/" subdirectories and in STATICFILES_DIRS.
@@ -71,7 +79,7 @@ STATIC_ROOT = ''
 
 # URL prefix for static files.
 # Example: "http://example.com/static/", "http://static.example.com/"
-STATIC_URL = '/static/'
+STATIC_URL = APP_URL + '/static/'
 
 # Additional locations of static files
 STATICFILES_DIRS = (
@@ -92,7 +100,7 @@ STATICFILES_FINDERS = (
 )
 
 # Make this unique, and don't share it with anybody.
-SECRET_KEY = 'jkdhfwh97649r279whdgfw6476!@%^!&^#%*#&@(*HBQDS'
+SECRET_KEY = open(os.path.join(os.path.dirname(__file__),'secret_key.txt')).read()
 
 # List of callables that know how to import templates from various sources.
 TEMPLATE_LOADERS = (
@@ -102,6 +110,7 @@ TEMPLATE_LOADERS = (
 )
 
 MIDDLEWARE_CLASSES = (
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -146,6 +155,7 @@ INSTALLED_APPS = (
     # add the chado app
     'chado',
     'd3viz_force_directed',
+    'corsheaders',
 )
 
 # A sample logging configuration. The only tangible logging

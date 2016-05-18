@@ -258,7 +258,6 @@ legend.on("mouseover", function(d, i) {
 	d3.selectAll(".track").style("opacity", .1);
     // tip the genes in the selected family
 	d3.selectAll(".gene").filter(function(e) { return e.family == d; }).select("text").style("visibility", "visible");
-    //d3.selectAll(".tip").filter(function(e, j) { return e.family == d; }).style("visibility", "visible");
 }).on("mouseout", function(d, i) {
     // unfade the legend
     d3.selectAll(".legend").filter(function(e) { return d != e; }).style("opacity", 1);
@@ -502,10 +501,6 @@ function context_plot( alignment, chromosome_id, selected ) {
 		});
 	}
 
-	// add lines from each gene to it's left neighbor
-	//query.selectAll("path").filter(function(d, i) { return d.x != 0; }).each(draw_line);
-	//query.selectAll(".gene").each(function(d) { console.log(d); });
-	
 	// make thickness of lines a function of their length
 	var tracks = d3.selectAll(".track");
 	var max_width = d3.max(tracks.data());
@@ -514,7 +509,6 @@ function context_plot( alignment, chromosome_id, selected ) {
 	    .domain([min_width, max_width])
 	    .range([.1, 5]);
 	tracks.attr("stroke-width", function(d) { 
-		console.log(this);
 		var diff = x.invert(d3.select(this).attr("x2"))-x.invert(d3.select(this).attr("x1"));
 		return width(d)/diff; });
 	

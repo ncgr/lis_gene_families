@@ -120,7 +120,7 @@ if( !$gene_id ) {
 }
 
 # make sure the helper table exists
-if( !$conn->do("CREATE TABLE IF NOT EXISTS gene_order(gene_order_id SERIAL PRIMARY KEY, chromosome_id INTEGER NOT NULL REFERENCES feature(feature_id), gene_id INTEGER UNIQUE NOT NULL REFERENCES feature(feature_id), number INTEGER NOT NULL, CONSTRAINT gene_order_c1 UNIQUE(chromosome_id, number))") ) {
+if( !$conn->do("CREATE TABLE IF NOT EXISTS gene_order(gene_order_id SERIAL PRIMARY KEY, chromosome_id INTEGER NOT NULL REFERENCES feature(feature_id), gene_id INTEGER UNIQUE NOT NULL REFERENCES feature(feature_id), number INTEGER NOT NULL, CONSTRAINT gene_order_c1 UNIQUE(chromosome_id, number), CONSTRAINT gene_order_gene_id_key UNIQUE(gene_id))") ) {
     Retreat("Failed to verify or create the gene_order table\n");
 }
 

@@ -2,7 +2,7 @@ from chado.models import Organism, Cvterm, Phylotree, Phylonode
 from chado.models import Feature, FeatureCvterm, FeatureRelationship
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse
-from django.utils import simplejson
+import simplejson
 from django.core.urlresolvers import reverse
 
 #
