@@ -30,7 +30,7 @@ use DBI; # our DataBase Interface
 
 The only argument to the script is the input file that contains the multiple sequence alignment. Polypeptide names in the database are same as their mRNA names. It is important that the names of sequences in input (MSA) files are exactly same as polypeptide names already present in the database. 
 
-The --concensus_name flag is optional. This is the value given to the name and uniquename fields for the multiple sequence alignment feature. Note that the value given must not already exist in the table since it is used as the value for the features uniquename field. If the flag is not provided then the filename will be used.
+The --consensus_name flag is optional. This is the value given to the name and uniquename fields for the multiple sequence alignment feature. Note that the value given must not already exist in the table since it is used as the value for the features uniquename field. If the flag is not provided then the filename will be used.
 
 The --check_exists flag should be used with caution. Before creating a new feature for the consensus, it checks to see if one already exists and uses it if it does. This can be useful if a load was cancelled partway through and not all the featureloc entries were created. Likewise, featureloc entries can be created for a consensus they don't belong to.
 
@@ -57,7 +57,7 @@ my $help = 0;
 
 
 # get the command line options and environment variables
-my ($port, $concensus, $db, $exists);
+my ($port, $consensus_name, $db, $exists);
 $port = $ENV{CHADO_DB_PORT} if ($ENV{CHADO_DB_PORT});
 my $dbname = "chado";
 $dbname = $ENV{CHADO_DB_NAME} = ($ENV{CHADO_DB_NAME});
@@ -121,7 +121,7 @@ if (!$msa) {
 print "Retreiving consensus organism\n";
 my $organism = $conn->selectrow_array("SELECT organism_id FROM organism WHERE genus='consensus' AND species='consensus';");
 if (!$organism) {
-    die("Failed to retriece the consensus organism from the database\n");
+    die("Failed to retrieve the consensus organism from the database\n");
 }
 
 
@@ -211,29 +211,21 @@ if (!$consensus) {
 print "Creating alignment structure and inserting residues\n";
 # create a rank to featureloc uniqueness requirement
 my $rank = 0;
-# read the file one line at a time
+# read the file one seq at a time
 close(FILE);
 open(FILE, $ARGV[0]) || die("Failed to read the input file\n");
-while (my $line = <FILE>) {
-    chomp $line;
-    # skip the line if it's a comment line
-    if ($line =~ /^\#/) {
-        next;
-    }
-    # if it's a description line then get the name
-    elsif (index($line, ">") != -1) {
-        $name = substr($line, 1);
-	$name =~ s/\s.*$//; #fixed by replacing: s/\s*$// by s/\s.*$//  #to strip off extra characters after first whitespace in fasta header -peu
-    }
-    # it must be a residue so add it
-    else {
-        $rank++;
-	my $fmax = length($line);
-        print "featureloc's fmax: $fmax \n reisdue_info: $line \n rank: $rank \n"; 	
-        if(!$conn->do("INSERT INTO featureloc (feature_id, srcfeature_id, fmin, fmax, residue_info, rank) VALUES ($peps{$name}, $consensus, 0, $fmax, '$line', $rank);")) {
-            print "Failed to create featureloc for feature $peps{$name} with src $consensus\n";
-        }
-    }
+$/="\n>";
+while (my $chunk = <FILE>) {
+    chomp $chunk;
+    $chunk =~ s/^>//;
+    my ($name, $seq) = ($chunk =~ /^(\S+)[^\n]*\n(.*)/s);
+    $seq =~ s/\n//g;
+    $rank++;
+    my $fmax = length($seq);
+    print "featureloc's fmax: $fmax \n reisdue_info: $seq \n rank: $rank \n"; 	
+    if(!$conn->do("INSERT INTO featureloc (feature_id, srcfeature_id, fmin, fmax, residue_info, rank) VALUES ($peps{$name}, $consensus, 0, $fmax, '$seq', $rank);")) {
+     	print "Failed to create featureloc for feature $peps{$name} with src $consensus\n";
+     }
 }
 
 
