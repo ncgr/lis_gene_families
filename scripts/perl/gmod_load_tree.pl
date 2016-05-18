@@ -189,7 +189,7 @@ print "$num_found present in databse\n";
 if ($num_found != $num_leafs) {
     # open the error file
     print "Some polypeptides were missing\nOpening the error file\n";
-    open(ERRORS, '>'.$errorfile) || die("Failed to open the error file: $!\n");
+    open(ERRORS, '>>'.$errorfile) || die("Failed to open the error file: $!\n");
     print "Writing errors\n";
     print ERRORS "Failed to find polypeptides with name:\n";
     # remove polypeptides that were found from the hash
@@ -244,7 +244,7 @@ if (!$conn->do("INSERT INTO dbxref (db_id, accession) VALUES ($dbid, '$name');")
     # die
     die("Failed to create a dbxref entry with db_id $dbid\n");
 }
-my $dbxref = $conn->selectrow_array("SELECT dbxref_id FROM dbxref ORDER BY dbxref_id DESC LIMIT 1;");
+my $dbxref = $conn->selectrow_array("SELECT currval(pg_get_serial_sequence('dbxref','dbxref_id'))");
 
 
 # create a new phylotree with our new dbxref
@@ -255,7 +255,7 @@ if(!$conn->do("INSERT INTO phylotree (name, dbxref_id, comment) VALUES ('$name',
     # die
     die("Failed to create phylotree entry with name $name and dbxref $dbxref\n");
 }
-my $phylotree = $conn->selectrow_array("SELECT phylotree_id FROM phylotree ORDER BY phylotree_id DESC LIMIT 1;");
+my $phylotree = $conn->selectrow_array("SELECT currval(pg_get_serial_sequence('phylotree','phylotree_id'))");
 print "Created tree with id $phylotree\n";
 
 
@@ -321,11 +321,12 @@ while( my $tree = $treeio->next_tree ) {
             die("Failed to create entry in phylonode with fields $fields and values $values\n");
         }
         # get the id for the entry and hash it
-        $nodes{$node->internal_id} = $conn->selectrow_array("SELECT phylonode_id FROM phylonode ORDER BY phylonode_id DESC LIMIT 1;");
+        $nodes{$node->internal_id} = $conn->selectrow_array("SELECT currval(pg_get_serial_sequence('phylonode','phylonode_id'))");
         # here we're assuming the first phylonode to be created is the root, which should always be true ;)
         $root_phylonode = $nodes{$node->internal_id} if (!$root_phylonode);
     }
 }
+print "populated nodes for tree with id $phylotree\n";
 
 
 # close connection
