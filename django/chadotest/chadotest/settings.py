@@ -34,7 +34,7 @@ DATABASES = {
 ALLOWED_HOSTS = [] 
 import socket
 if socket.gethostname()[0:4] == 'lis-':
-    ALLOWED_HOSTS = [socket.gethostname(), 'localhost']
+    ALLOWED_HOSTS = [socket.gethostname(), 'localhost', 'mcintosh.ncgr.org']
 else:
     ALLOWED_HOSTS = [socket.gethostname(), 'legumeinfo.org', 'legumeinfo.com', 'www.legumeinfo.org', 'www.legumeinfo.com']
 
