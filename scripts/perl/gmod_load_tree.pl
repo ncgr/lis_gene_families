@@ -23,6 +23,7 @@ FINAL TREE LOADING SCRIPT
 
   --xref_db        The name of the db to link dbxrefs for the trees
   --xref_accession        The accession to use for dbxrefs for the trees (assumed same as name unless otherwise specified)
+  --analysis_name    The name to use for analysis lookup (expected to pre-exist)
   --name        The name given to the phylotree entry in the database (default=<filename>)
   --dbname      The name of the chado database (default=chado)
   --username    The username to access the database with (default=chado)
@@ -69,7 +70,7 @@ pod2usage(-exitval => 0, -verbose => 2) if $man;
 
 
 # get the command line options and environment variables
-my ($port, $xref_db, $xref_accession, $name);
+my ($port, $xref_db, $xref_accession, $analysis_name, $name);
 $port = $ENV{CHADO_DB_PORT} if ($ENV{CHADO_DB_PORT});
 my $dbname = "chado";
 $dbname = $ENV{CHADO_DB_NAME} if ($ENV{CHADO_DB_NAME});
@@ -81,8 +82,9 @@ my $host = "localhost";
 $host = $ENV{CHADO_DB_HOST} if ($ENV{CHADO_DB_HOST});
 my $errorfile = "gmod_load_tree_errors.txt";
 
-GetOptions("xref_db=s"             => \$xref_db,
-           "xref_accession=s"             => \$xref_accession,
+GetOptions("xref_db=s"          => \$xref_db,
+           "xref_accession=s"   => \$xref_accession,
+           "analysis_name=s"    => \$analysis_name,
            "name=s"             => \$name,
            "dbname=s"           => \$dbname,
            "username=s"         => \$username,
@@ -192,7 +194,7 @@ print "$num_found present in databse\n";
 if ($num_found != $num_leafs) {
     # open the error file
     print "Some polypeptides were missing\nOpening the error file\n";
-    open(ERRORS, '>'.$errorfile) || die("Failed to open the error file: $!\n");
+    open(ERRORS, '>>'.$errorfile) || die("Failed to open the error file: $!\n");
     print "Writing errors\n";
     print ERRORS "Failed to find polypeptides with name:\n";
     # remove polypeptides that were found from the hash
@@ -238,6 +240,16 @@ if (!$root_id || ! $interior_id || !$leaf_id) {
     die("Failed to retrieve phylo_root, phylo_interior, and phylo_leaf cvterms from database\nExiting...\n");
 }
 
+#analysis_id is allowed to be null, and will be treated as such if no analysis_name is given
+my $analysis_id = 'null';
+if (defined $analysis_name) {
+    $analysis_id = $conn->selectrow_array("SELECT analysis_id FROM analysis where name = '$analysis_name';");
+    if (!defined $analysis_id) {
+        $conn->disconnect();
+        die("could not find analysis row for $analysis_name\n");
+    }
+}
+
 my $dbid = $conn->selectrow_array("SELECT db_id FROM db where name = '$xref_db';");
 if (!$dbid) {
     $conn->disconnect();
@@ -257,7 +269,7 @@ my $dbxref = $conn->selectrow_array("SELECT dbxref_id FROM dbxref ORDER BY dbxre
 
 
 # create a new phylotree with our new dbxref
-if(!$conn->do("INSERT INTO phylotree (name, dbxref_id, comment) VALUES ('$name', $dbxref, '$newick');")) {
+if(!$conn->do("INSERT INTO phylotree (name, dbxref_id, comment, analysis_id) VALUES ('$name', $dbxref, '$newick', $analysis_id);")) {
     # close the connection
     undef($query);
     $conn->disconnect();
