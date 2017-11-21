@@ -205,6 +205,9 @@ if( $nuke ) {
     $query_string = "DELETE FROM featureprop WHERE type_id=$gene_family_id;";
     $query = $conn->prepare($query_string);
     $query->execute();
+    $query_string = "DELETE FROM featureprop WHERE type_id=$family_representative_id;";
+    $query = $conn->prepare($query_string);
+    $query->execute();
     $query_string = "TRUNCATE TABLE gene_family_assignment;";
     $query = $conn->prepare($query_string);
     $query->execute();
@@ -264,27 +267,40 @@ while( my @tree = $query->fetchrow_array() ) {
         $gene2families{$gene_id}->{$tree_name} = 1;
     }
 }
-my $insert_featureprop = $conn->prepare("INSERT INTO featureprop (feature_id, type_id, value, rank) VALUES(?, $gene_family_id, ?, ?);");
+my $insert_gf_featureprop = $conn->prepare("INSERT INTO featureprop (feature_id, type_id, value, rank) VALUES(?, $gene_family_id, ?, ?);");
+my $insert_fr_featureprop = $conn->prepare("INSERT INTO featureprop (feature_id, type_id, value, rank) VALUES(?, $family_representative_id, ?, ?);");
 my $insert_gene_family_assignment = $conn->prepare("INSERT INTO gene_family_assignment (gene_id, family_label) VALUES(?, ?);");
 foreach my $gene_id (keys %gene2families) {
     my $families = join(" ", sort keys %{$gene2families{$gene_id}});
     my $family_representative = $id2family_representative{$gene_id};
     # add an entry to the featureprop table for each gene
     if ($nuke) {
-        $insert_featureprop->execute($gene_id, $families, 0);
+        $insert_gf_featureprop->execute($gene_id, $families, 0);
+        $insert_fr_featureprop->execute($gene_id, $family_representative, 0);
         foreach my $family (keys %{$gene2families{$gene_id}}) {
             $insert_gene_family_assignment->execute($gene_id, $family);
         }
     }
     else {
+    #TODO: add family representative props
             my $featureprop_id = $conn->selectrow_array("SELECT featureprop_id FROM featureprop WHERE feature_id=$gene_id AND value='$families' AND type_id=$gene_family_id LIMIT 1;");
             # does it exist?
             if ( !$featureprop_id ) {
                 my $max_rank = $conn->selectrow_array("SELECT max(rank) FROM featureprop WHERE feature_id=$gene_id AND type_id=$gene_family_id;");
                 if( !( defined $max_rank ) ) {
-                        $insert_featureprop->execute($gene_id, $families, 0);
+                        $insert_gf_featureprop->execute($gene_id, $families, 0);
                 } else {
-                        $insert_featureprop->execute($gene_id, $families, $max_rank+1);
+                        $insert_gf_featureprop->execute($gene_id, $families, $max_rank+1);
+                }
+            }
+            $featureprop_id = $conn->selectrow_array("SELECT featureprop_id FROM featureprop WHERE feature_id=$gene_id AND value='$family_representative' AND type_id=$family_representative_id LIMIT 1;");
+            # does it exist?
+            if ( !$featureprop_id ) {
+                my $max_rank = $conn->selectrow_array("SELECT max(rank) FROM featureprop WHERE feature_id=$gene_id AND type_id=$family_representative_id;");
+                if( !( defined $max_rank ) ) {
+                        $insert_fr_featureprop->execute($gene_id, $family_representative, 0);
+                } else {
+                        $insert_fr_featureprop->execute($gene_id, $family_representative, $max_rank+1);
                 }
             }
             foreach my $family (keys %{$gene2families{$gene_id}}) {
